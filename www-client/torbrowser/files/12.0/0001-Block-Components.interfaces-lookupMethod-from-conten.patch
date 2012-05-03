@@ -1,0 +1,50 @@
+From 878aa170944f7d44a76f0eb09214d46b6028c549 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Wed, 1 Feb 2012 15:40:40 -0800
+Subject: [PATCH 01/16] Block Components.interfaces,lookupMethod from content
+
+This patch removes the ability of content script to access
+Components.interfaces.* as well as call or access Components.lookupMethod.
+
+These two interfaces seem to be exposed to content script only to make our
+lives difficult. Components.lookupMethod can undo our JS hooks, and
+Components.interfaces is useful for fingerprinting the platform, OS, and
+Firebox version.
+
+They appear to have no other legitimate use. See also:
+https://bugzilla.mozilla.org/show_bug.cgi?id=429070
+https://trac.torproject.org/projects/tor/ticket/2873
+https://trac.torproject.org/projects/tor/ticket/2874
+---
+ js/xpconnect/src/XPCComponents.cpp |    8 ++++++--
+ 1 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/js/xpconnect/src/XPCComponents.cpp b/js/xpconnect/src/XPCComponents.cpp
+index 716cfdb..56e3f55 100644
+--- a/js/xpconnect/src/XPCComponents.cpp
++++ b/js/xpconnect/src/XPCComponents.cpp
+@@ -4261,7 +4261,9 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
+ NS_IMETHODIMP
+ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
+ {
+-    static const char* allowed[] = { "isSuccessCode", "lookupMethod", nsnull };
++    // XXX: Pref observer? Also, is this what we want? Seems like a plan
++    //static const char* allowed[] = { "isSuccessCode", "lookupMethod", nsnull };
++    static const char* allowed[] = { "isSuccessCode", nsnull };
+     *_retval = xpc_CheckAccessList(methodName, allowed);
+     return NS_OK;
+ }
+@@ -4270,7 +4272,9 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
+ NS_IMETHODIMP
+ nsXPCComponents::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
+ {
+-    static const char* allowed[] = { "interfaces", "interfacesByID", "results", nsnull};
++    // XXX: Pref observer? Also, is this what we want? Seems like a plan
++    //    static const char* allowed[] = { "interfaces", "interfacesByID", "results", nsnull};
++    static const char* allowed[] = { "results", nsnull};
+     *_retval = xpc_CheckAccessList(propertyName, allowed);
+     return NS_OK;
+ }
+-- 
+1.7.5.4
+

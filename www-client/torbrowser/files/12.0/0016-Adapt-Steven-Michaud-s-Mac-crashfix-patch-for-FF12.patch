@@ -1,0 +1,544 @@
+From 262403fb627ca452bfbcaf06fd6ad965f156ed18 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Thu, 26 Apr 2012 10:54:24 -0700
+Subject: [PATCH 16/16] Adapt Steven Michaud's Mac crashfix patch for FF12.
+
+Source is: https://bugzilla.mozilla.org/show_bug.cgi?id=715885#c35
+
+Some minor tweaks were needed to get it to apply to FF12 and to compile on
+MacOS.
+---
+ widget/Makefile.in                        |    1 +
+ widget/cocoa/nsChildView.mm               |   35 +++++++++++++--------
+ widget/gtk2/nsDragService.cpp             |    2 +-
+ widget/gtk2/nsWindow.cpp                  |    2 +-
+ widget/nsIDragService.idl                 |    4 +--
+ widget/nsPIDragService.idl                |   48 +++++++++++++++++++++++++++++
+ widget/qt/nsDragService.h                 |    2 +
+ widget/windows/Makefile.in                |    4 ++
+ widget/windows/nsDragService.cpp          |   13 +++++---
+ widget/windows/nsDragService.h            |   12 +++---
+ widget/windows/nsNativeDragSource.cpp     |    7 ++--
+ widget/windows/nsNativeDragTarget.cpp     |   28 ++++++++++------
+ widget/windows/nsPIDragServiceWindows.idl |   46 +++++++++++++++++++++++++++
+ widget/xpwidgets/nsBaseDragService.cpp    |   16 +++++++++-
+ widget/xpwidgets/nsBaseDragService.h      |    9 ++---
+ 15 files changed, 180 insertions(+), 49 deletions(-)
+ create mode 100644 widget/nsPIDragService.idl
+ create mode 100644 widget/windows/nsPIDragServiceWindows.idl
+
+diff --git a/widget/Makefile.in b/widget/Makefile.in
+index 4a3405b..4c105a4 100644
+--- a/widget/Makefile.in
++++ b/widget/Makefile.in
+@@ -138,6 +138,7 @@ XPIDLSRCS	= \
+ 		nsIClipboardDragDropHooks.idl \
+ 		nsIClipboardDragDropHookList.idl \
+ 		nsIDragSession.idl \
++		nsPIDragService.idl \
+ 		nsIDragService.idl \
+ 		nsIFormatConverter.idl \
+ 		nsIClipboard.idl \
+diff --git a/widget/cocoa/nsChildView.mm b/widget/cocoa/nsChildView.mm
+index 7f738a1..0149ab1 100644
+--- a/widget/cocoa/nsChildView.mm
++++ b/widget/cocoa/nsChildView.mm
+@@ -4566,11 +4566,12 @@ NSEvent* gLastDragMouseDownEvent = nil;
+   if (!dragService) {
+     dragService = do_GetService(kDragServiceContractID);
+   }
++  nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(dragService);
+ 
+   if (dragService) {
+     NSPoint pnt = [NSEvent mouseLocation];
+     FlipCocoaScreenCoordinate(pnt);
+-    dragService->DragMoved(NSToIntRound(pnt.x), NSToIntRound(pnt.y));
++    dragServicePriv->DragMoved(NSToIntRound(pnt.x), NSToIntRound(pnt.y));
+   }
+ }
+ 
+@@ -4591,11 +4592,13 @@ NSEvent* gLastDragMouseDownEvent = nil;
+   }
+ 
+   if (mDragService) {
+-    // set the dragend point from the current mouse location
+-    nsDragService* dragService = static_cast<nsDragService *>(mDragService);
+-    NSPoint pnt = [NSEvent mouseLocation];
+-    FlipCocoaScreenCoordinate(pnt);
+-    dragService->SetDragEndPoint(nsIntPoint(NSToIntRound(pnt.x), NSToIntRound(pnt.y)));
++    nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(mDragService);
++    if (dragServicePriv) {
++      // set the dragend point from the current mouse location
++      NSPoint pnt = [NSEvent mouseLocation];
++      FlipCocoaScreenCoordinate(pnt);
++      dragServicePriv->SetDragEndPoint(NSToIntRound(pnt.x), NSToIntRound(pnt.y));
++    }
+ 
+     // XXX: dropEffect should be updated per |operation|. 
+     // As things stand though, |operation| isn't well handled within "our"
+@@ -4606,13 +4609,19 @@ NSEvent* gLastDragMouseDownEvent = nil;
+     // value for NSDragOperationGeneric that is passed by other applications.
+     // All that said, NSDragOperationNone is still reliable.
+     if (operation == NSDragOperationNone) {
+-      nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
+-      dragService->GetDataTransfer(getter_AddRefs(dataTransfer));
+-      nsCOMPtr<nsIDOMNSDataTransfer> dataTransferNS =
+-        do_QueryInterface(dataTransfer);
+-
+-      if (dataTransferNS)
+-        dataTransferNS->SetDropEffectInt(nsIDragService::DRAGDROP_ACTION_NONE);
++      nsCOMPtr<nsIDragSession> dragSession;
++      mDragService->GetCurrentSession(getter_AddRefs(dragSession));
++      if (dragSession) {
++        nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
++        dragSession->GetDataTransfer(getter_AddRefs(dataTransfer));
++        if (dataTransfer) {
++          nsCOMPtr<nsIDOMNSDataTransfer> dataTransferNS =
++                do_QueryInterface(dataTransfer);
++          if (dataTransferNS) {
++            dataTransferNS->SetDropEffectInt(nsIDragService::DRAGDROP_ACTION_NONE);
++          }
++        }
++      }
+     }
+ 
+     mDragService->EndDragSession(true);
+diff --git a/widget/gtk2/nsDragService.cpp b/widget/gtk2/nsDragService.cpp
+index ca5a42c..876fd55 100644
+--- a/widget/gtk2/nsDragService.cpp
++++ b/widget/gtk2/nsDragService.cpp
+@@ -1334,7 +1334,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
+     GdkDisplay* display = gdk_display_get_default();
+     if (display) {
+       gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+-      SetDragEndPoint(nsIntPoint(x, y));
++      SetDragEndPoint(x, y);
+     }
+ 
+     // Either the drag was aborted or the drop occurred outside the app.
+diff --git a/widget/gtk2/nsWindow.cpp b/widget/gtk2/nsWindow.cpp
+index 5e4afee..25c394b 100644
+--- a/widget/gtk2/nsWindow.cpp
++++ b/widget/gtk2/nsWindow.cpp
+@@ -3698,7 +3698,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
+     if (display) {
+       // get the current cursor position
+       gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+-      ((nsDragService *)dragService.get())->SetDragEndPoint(nsIntPoint(x, y));
++      ((nsDragService *)dragService.get())->SetDragEndPoint(x, y);
+     }
+     dragService->EndDragSession(true);
+ 
+diff --git a/widget/nsIDragService.idl b/widget/nsIDragService.idl
+index e42c578..ef8c46f 100644
+--- a/widget/nsIDragService.idl
++++ b/widget/nsIDragService.idl
+@@ -48,7 +48,7 @@ interface nsIDOMDragEvent;
+ interface nsIDOMDataTransfer;
+ interface nsISelection;
+ 
+-[scriptable, uuid(82B58ADA-F490-4C3D-B737-1057C4F1D052), builtinclass]
++[scriptable, uuid(82B58ADA-F490-4C3D-B737-1057C4F1D052)]
+ interface nsIDragService : nsISupports
+ {
+   const long DRAGDROP_ACTION_NONE = 0;
+@@ -145,8 +145,6 @@ interface nsIDragService : nsISupports
+    */
+   void suppress();
+   void unsuppress();
+-
+-  [noscript] void dragMoved(in long aX, in long aY);
+ };
+ 
+ 
+diff --git a/widget/nsPIDragService.idl b/widget/nsPIDragService.idl
+new file mode 100644
+index 0000000..93a144d
+--- /dev/null
++++ b/widget/nsPIDragService.idl
+@@ -0,0 +1,48 @@
++/* ***** BEGIN LICENSE BLOCK *****
++ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
++ *
++ * The contents of this file are subject to the Mozilla Public License Version
++ * 1.1 (the "License"); you may not use this file except in compliance with
++ * the License. You may obtain a copy of the License at
++ * http://www.mozilla.org/MPL/
++ *
++ * Software distributed under the License is distributed on an "AS IS" basis,
++ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
++ * for the specific language governing rights and limitations under the
++ * License.
++ *
++ * The Original Code is mozilla.org code.
++ *
++ * The Initial Developer of the Original Code is
++ * The Mozilla Foundation.
++ * Portions created by the Initial Developer are Copyright (C) 2012
++ * the Initial Developer. All Rights Reserved.
++ *
++ * Contributor(s):
++ *   Steven Michaud <smichaud@pobox.com>
++ *
++ * Alternatively, the contents of this file may be used under the terms of
++ * either the GNU General Public License Version 2 or later (the "GPL"), or
++ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
++ * in which case the provisions of the GPL or the LGPL are applicable instead
++ * of those above. If you wish to allow use of your version of this file only
++ * under the terms of either the GPL or the LGPL, and not to allow others to
++ * use your version of this file under the terms of the MPL, indicate your
++ * decision by deleting the provisions above and replace them with the notice
++ * and other provisions required by the GPL or the LGPL. If you do not delete
++ * the provisions above, a recipient may use your version of this file under
++ * the terms of any one of the MPL, the GPL or the LGPL.
++ *
++ * ***** END LICENSE BLOCK ***** */
++
++#include "nsISupports.idl"
++
++[scriptable, uuid(FAD8C90B-8E1D-446A-9B6C-241486A85CBD)]
++interface nsPIDragService : nsISupports
++{
++  void dragMoved(in long aX, in long aY);
++
++  PRUint16 getInputSource();
++
++  void setDragEndPoint(in long aX, in long aY);
++};
+diff --git a/widget/qt/nsDragService.h b/widget/qt/nsDragService.h
+index 5a3e5bb..50dcfac 100644
+--- a/widget/qt/nsDragService.h
++++ b/widget/qt/nsDragService.h
+@@ -50,6 +50,8 @@ public:
+     NS_DECL_ISUPPORTS
+     NS_DECL_NSIDRAGSERVICE
+ 
++    NS_IMETHOD DragMoved(PRInt32 aX, PRInt32 aY);
++
+     nsDragService();
+ 
+ private:
+diff --git a/widget/windows/Makefile.in b/widget/windows/Makefile.in
+index c9327f8..3298997 100644
+--- a/widget/windows/Makefile.in
++++ b/widget/windows/Makefile.in
+@@ -119,6 +119,10 @@ ifdef MOZ_ENABLE_D3D10_LAYER
+ DEFINES		+= -DMOZ_ENABLE_D3D10_LAYER
+ endif
+ 
++XPIDLSRCS	+= \
++		nsPIDragServiceWindows.idl \
++		$(NULL)
++
+ SHARED_LIBRARY_LIBS = \
+   ../xpwidgets/$(LIB_PREFIX)xpwidgets_s.$(LIB_SUFFIX) \
+   $(NULL)
+diff --git a/widget/windows/nsDragService.cpp b/widget/windows/nsDragService.cpp
+index 8c5df7e..1cf9995 100644
+--- a/widget/windows/nsDragService.cpp
++++ b/widget/windows/nsDragService.cpp
+@@ -97,6 +97,8 @@ nsDragService::~nsDragService()
+   NS_IF_RELEASE(mDataObject);
+ }
+ 
++NS_IMPL_ISUPPORTS_INHERITED1(nsDragService, nsBaseDragService, nsPIDragServiceWindows)
++
+ bool
+ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
+                                nsIScriptableRegion *aRegion,
+@@ -350,7 +352,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
+   POINT cpos;
+   cpos.x = GET_X_LPARAM(pos);
+   cpos.y = GET_Y_LPARAM(pos);
+-  SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
++  SetDragEndPoint(cpos.x, cpos.y);
+   EndDragSession(true);
+ 
+   mDoingDrag = false;
+@@ -468,25 +470,26 @@ nsDragService::GetData(nsITransferable * aTransferable, PRUint32 anItem)
+ 
+ //---------------------------------------------------------
+ NS_IMETHODIMP
+-nsDragService::SetIDataObject(IDataObject * aDataObj)
++nsDragService::SetIDataObject(nsISupports * aDataObj)
+ {
++  IDataObject *dataObj = (IDataObject*) aDataObj;
+   // When the native drag starts the DragService gets
+   // the IDataObject that is being dragged
+   NS_IF_RELEASE(mDataObject);
+-  mDataObject = aDataObj;
++  mDataObject = dataObj;
+   NS_IF_ADDREF(mDataObject);
+ 
+   return NS_OK;
+ }
+ 
+ //---------------------------------------------------------
+-void
++NS_IMETHODIMP
+ nsDragService::SetDroppedLocal()
+ {
+   // Sent from the native drag handler, letting us know
+   // a drop occurred within the application vs. outside of it.
+   mSentLocalDropEvent = true;
+-  return;
++  return NS_OK;
+ }
+ 
+ //-------------------------------------------------------------------------
+diff --git a/widget/windows/nsDragService.h b/widget/windows/nsDragService.h
+index 87d6cc9..04c8746 100644
+--- a/widget/windows/nsDragService.h
++++ b/widget/windows/nsDragService.h
+@@ -39,6 +39,7 @@
+ #define nsDragService_h__
+ 
+ #include "nsBaseDragService.h"
++#include "nsPIDragServiceWindows.h"
+ #include <windows.h>
+ #include <shlobj.h>
+ 
+@@ -52,12 +53,15 @@ class  nsString;
+  * Native Win32 DragService wrapper
+  */
+ 
+-class nsDragService : public nsBaseDragService
++class nsDragService : public nsBaseDragService, public nsPIDragServiceWindows
+ {
+ public:
+   nsDragService();
+   virtual ~nsDragService();
+-  
++
++  NS_DECL_ISUPPORTS_INHERITED
++  NS_DECL_NSPIDRAGSERVICEWINDOWS
++
+   // nsIDragService
+   NS_IMETHOD InvokeDragSession(nsIDOMNode *aDOMNode,
+                                nsISupportsArray *anArrayTransferables,
+@@ -71,13 +75,9 @@ public:
+   NS_IMETHOD EndDragSession(bool aDoneDrag);
+ 
+   // native impl.
+-  NS_IMETHOD SetIDataObject(IDataObject * aDataObj);
+   NS_IMETHOD StartInvokingDragSession(IDataObject * aDataObj,
+                                       PRUint32 aActionType);
+ 
+-  // A drop occurred within the application vs. outside of it.
+-  void SetDroppedLocal();
+-
+ protected:
+   nsDataObjCollection* GetDataObjCollection(IDataObject * aDataObj);
+ 
+diff --git a/widget/windows/nsNativeDragSource.cpp b/widget/windows/nsNativeDragSource.cpp
+index e51101e..0fe6ffe 100644
+--- a/widget/windows/nsNativeDragSource.cpp
++++ b/widget/windows/nsNativeDragSource.cpp
+@@ -42,7 +42,7 @@
+ #include "nsIServiceManager.h"
+ #include "nsToolkit.h"
+ #include "nsWidgetsCID.h"
+-#include "nsIDragService.h"
++#include "nsDragService.h"
+ 
+ static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
+ 
+@@ -101,9 +101,10 @@ STDMETHODIMP
+ nsNativeDragSource::QueryContinueDrag(BOOL fEsc, DWORD grfKeyState)
+ {
+   nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
+-  if (dragService) {
++  nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(dragService);
++  if (dragServicePriv) {
+     DWORD pos = ::GetMessagePos();
+-    dragService->DragMoved(GET_X_LPARAM(pos), GET_Y_LPARAM(pos));
++    dragServicePriv->DragMoved(GET_X_LPARAM(pos), GET_Y_LPARAM(pos));
+   }
+ 
+   if (fEsc) {
+diff --git a/widget/windows/nsNativeDragTarget.cpp b/widget/windows/nsNativeDragTarget.cpp
+index cf6196b..82ad3c6 100644
+--- a/widget/windows/nsNativeDragTarget.cpp
++++ b/widget/windows/nsNativeDragTarget.cpp
+@@ -209,7 +209,11 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
+   event.isControl = IsKeyDown(NS_VK_CONTROL);
+   event.isMeta    = false;
+   event.isAlt     = IsKeyDown(NS_VK_ALT);
+-  event.inputSource = static_cast<nsBaseDragService*>(mDragService)->GetInputSource();
++  event.inputSource = 0;
++  nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(mDragService);
++  if (dragServicePriv) {
++    dragServicePriv->GetInputSource(&event.inputSource);
++  }
+ 
+   mWindow->DispatchEvent(&event, status);
+ }
+@@ -296,9 +300,8 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
+   // This cast is ok because in the constructor we created a
+   // the actual implementation we wanted, so we know this is
+   // a nsDragService. It should be a private interface, though.
+-  nsDragService * winDragService =
+-    static_cast<nsDragService *>(mDragService);
+-  winDragService->SetIDataObject(pIDataSource);
++  nsCOMPtr<nsPIDragServiceWindows> winDragService = do_QueryInterface(mDragService);
++  winDragService->SetIDataObject((nsISupports*)pIDataSource);
+ 
+   // Now process the native drag state and then dispatch the event
+   ProcessDrag(NS_DRAGDROP_ENTER, grfKeyState, ptl, pdwEffect);
+@@ -436,8 +439,8 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
+   // This cast is ok because in the constructor we created a
+   // the actual implementation we wanted, so we know this is
+   // a nsDragService (but it should still be a private interface)
+-  nsDragService* winDragService = static_cast<nsDragService*>(mDragService);
+-  winDragService->SetIDataObject(pData);
++  nsCOMPtr<nsPIDragServiceWindows> winDragService = do_QueryInterface(mDragService);
++  winDragService->SetIDataObject((nsISupports*)pData);
+ 
+   // NOTE: ProcessDrag spins the event loop which may destroy arbitrary objects.
+   // We use strong refs to prevent it from destroying these:
+@@ -461,11 +464,14 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
+   // tell the drag service we're done with the session
+   // Use GetMessagePos to get the position of the mouse at the last message
+   // seen by the event loop. (Bug 489729)
+-  DWORD pos = ::GetMessagePos();
+-  POINT cpos;
+-  cpos.x = GET_X_LPARAM(pos);
+-  cpos.y = GET_Y_LPARAM(pos);
+-  winDragService->SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
++  nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(mDragService);
++  if (dragServicePriv) {
++    DWORD pos = ::GetMessagePos();
++    POINT cpos;
++    cpos.x = GET_X_LPARAM(pos);
++    cpos.y = GET_Y_LPARAM(pos);
++    dragServicePriv->SetDragEndPoint(cpos.x, cpos.y);
++  }
+   serv->EndDragSession(true);
+ 
+   // release the ref that was taken in DragEnter
+diff --git a/widget/windows/nsPIDragServiceWindows.idl b/widget/windows/nsPIDragServiceWindows.idl
+new file mode 100644
+index 0000000..c8a46dd
+--- /dev/null
++++ b/widget/windows/nsPIDragServiceWindows.idl
+@@ -0,0 +1,46 @@
++/* ***** BEGIN LICENSE BLOCK *****
++ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
++ *
++ * The contents of this file are subject to the Mozilla Public License Version
++ * 1.1 (the "License"); you may not use this file except in compliance with
++ * the License. You may obtain a copy of the License at
++ * http://www.mozilla.org/MPL/
++ *
++ * Software distributed under the License is distributed on an "AS IS" basis,
++ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
++ * for the specific language governing rights and limitations under the
++ * License.
++ *
++ * The Original Code is mozilla.org code.
++ *
++ * The Initial Developer of the Original Code is
++ * The Mozilla Foundation.
++ * Portions created by the Initial Developer are Copyright (C) 2012
++ * the Initial Developer. All Rights Reserved.
++ *
++ * Contributor(s):
++ *   Steven Michaud <smichaud@pobox.com>
++ *
++ * Alternatively, the contents of this file may be used under the terms of
++ * either the GNU General Public License Version 2 or later (the "GPL"), or
++ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
++ * in which case the provisions of the GPL or the LGPL are applicable instead
++ * of those above. If you wish to allow use of your version of this file only
++ * under the terms of either the GPL or the LGPL, and not to allow others to
++ * use your version of this file under the terms of the MPL, indicate your
++ * decision by deleting the provisions above and replace them with the notice
++ * and other provisions required by the GPL or the LGPL. If you do not delete
++ * the provisions above, a recipient may use your version of this file under
++ * the terms of any one of the MPL, the GPL or the LGPL.
++ *
++ * ***** END LICENSE BLOCK ***** */
++
++#include "nsISupports.idl"
++
++[scriptable, uuid(6FC2117D-5EB4-441A-9C12-62A783BEBC0C)]
++interface nsPIDragServiceWindows : nsISupports
++{
++  void setIDataObject(in nsISupports aDataObj);
++
++  void setDroppedLocal();
++};
+diff --git a/widget/xpwidgets/nsBaseDragService.cpp b/widget/xpwidgets/nsBaseDragService.cpp
+index 342a036..87e28f7 100644
+--- a/widget/xpwidgets/nsBaseDragService.cpp
++++ b/widget/xpwidgets/nsBaseDragService.cpp
+@@ -88,7 +88,7 @@ nsBaseDragService::~nsBaseDragService()
+ {
+ }
+ 
+-NS_IMPL_ISUPPORTS2(nsBaseDragService, nsIDragService, nsIDragSession)
++NS_IMPL_ISUPPORTS3(nsBaseDragService, nsIDragService, nsPIDragService, nsIDragSession)
+ 
+ //---------------------------------------------------------
+ NS_IMETHODIMP
+@@ -436,6 +436,20 @@ nsBaseDragService::DragMoved(PRInt32 aX, PRInt32 aY)
+   return NS_OK;
+ }
+ 
++NS_IMETHODIMP
++nsBaseDragService::SetDragEndPoint(PRInt32 aX, PRInt32 aY)
++{
++  mEndDragPoint = nsIntPoint(aX, aY);
++  return NS_OK;
++}
++
++NS_IMETHODIMP
++nsBaseDragService::GetInputSource(PRUint16* aInputSource)
++{
++  *aInputSource = mInputSource;
++  return NS_OK;
++}
++
+ static nsIPresShell*
+ GetPresShellForContent(nsIDOMNode* aDOMNode)
+ {
+diff --git a/widget/xpwidgets/nsBaseDragService.h b/widget/xpwidgets/nsBaseDragService.h
+index 290c0cb..2ceac2b 100644
+--- a/widget/xpwidgets/nsBaseDragService.h
++++ b/widget/xpwidgets/nsBaseDragService.h
+@@ -39,6 +39,7 @@
+ #define nsBaseDragService_h__
+ 
+ #include "nsIDragService.h"
++#include "nsPIDragService.h"
+ #include "nsIDragSession.h"
+ #include "nsITransferable.h"
+ #include "nsISupportsArray.h"
+@@ -64,6 +65,7 @@ class nsICanvasElementExternal;
+  */
+ 
+ class nsBaseDragService : public nsIDragService,
++                          public nsPIDragService,
+                           public nsIDragSession
+ {
+ 
+@@ -74,14 +76,11 @@ public:
+   //nsISupports
+   NS_DECL_ISUPPORTS
+ 
+-  //nsIDragSession and nsIDragService
++  //nsIDragSession, nsIDragService and nsPIDragService
+   NS_DECL_NSIDRAGSERVICE
++  NS_DECL_NSPIDRAGSERVICE
+   NS_DECL_NSIDRAGSESSION
+ 
+-  void SetDragEndPoint(nsIntPoint aEndDragPoint) { mEndDragPoint = aEndDragPoint; }
+-
+-  PRUint16 GetInputSource() { return mInputSource; }
+-
+ protected:
+ 
+   /**
+-- 
+1.7.5.4
+

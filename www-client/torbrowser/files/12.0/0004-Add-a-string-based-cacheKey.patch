@@ -1,0 +1,85 @@
+From c4212c764149b74a04aad7d15cb3df810512e4ba Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@fscked.org>
+Date: Fri, 2 Sep 2011 20:47:02 -0700
+Subject: [PATCH 04/16] Add a string-based cacheKey.
+
+Used for isolating cache according to same-origin policy.
+---
+ netwerk/base/public/nsICachingChannel.idl |    7 +++++++
+ netwerk/protocol/http/nsHttpChannel.cpp   |   22 ++++++++++++++++++++++
+ netwerk/protocol/http/nsHttpChannel.h     |    1 +
+ 3 files changed, 30 insertions(+), 0 deletions(-)
+
+diff --git a/netwerk/base/public/nsICachingChannel.idl b/netwerk/base/public/nsICachingChannel.idl
+index 2da46d6..4ee5774 100644
+--- a/netwerk/base/public/nsICachingChannel.idl
++++ b/netwerk/base/public/nsICachingChannel.idl
+@@ -98,6 +98,13 @@ interface nsICachingChannel : nsICacheInfoChannel
+     attribute nsISupports cacheKey;
+ 
+     /**
++     * Set/get the cache domain... uniquely identifies the data in the cache
++     * for this channel.  Holding a reference to this key does NOT prevent
++     * the cached data from being removed.
++     */
++    attribute AUTF8String cacheDomain;
++
++    /**
+      * Specifies whether or not the data should be cached to a file.  This
+      * may fail if the disk cache is not present.  The value of this attribute
+      * is usually only settable during the processing of a channel's
+diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
+index fab0726..5f42b7b 100644
+--- a/netwerk/protocol/http/nsHttpChannel.cpp
++++ b/netwerk/protocol/http/nsHttpChannel.cpp
+@@ -2415,6 +2415,12 @@ nsHttpChannel::AssembleCacheKey(const char *spec, PRUint32 postID,
+         cacheKey.Append(buf);
+     }
+ 
++    if (strlen(mCacheDomain.get()) > 0) {
++        cacheKey.AppendLiteral("domain=");
++        cacheKey.Append(mCacheDomain.get());
++        cacheKey.AppendLiteral("&");
++    }
++
+     if (!cacheKey.IsEmpty()) {
+         cacheKey.AppendLiteral("uri=");
+     }
+@@ -4762,6 +4768,22 @@ nsHttpChannel::SetCacheForOfflineUse(bool value)
+ }
+ 
+ NS_IMETHODIMP
++nsHttpChannel::GetCacheDomain(nsACString &value)
++{
++    value = mCacheDomain;
++
++    return NS_OK;
++}
++
++NS_IMETHODIMP
++nsHttpChannel::SetCacheDomain(const nsACString &value)
++{
++    mCacheDomain = value;
++
++    return NS_OK;
++}
++
++NS_IMETHODIMP
+ nsHttpChannel::GetOfflineCacheClientID(nsACString &value)
+ {
+     value = mOfflineCacheClientID;
+diff --git a/netwerk/protocol/http/nsHttpChannel.h b/netwerk/protocol/http/nsHttpChannel.h
+index b7bba48..605dc80 100644
+--- a/netwerk/protocol/http/nsHttpChannel.h
++++ b/netwerk/protocol/http/nsHttpChannel.h
+@@ -304,6 +304,7 @@ private:
+     nsCOMPtr<nsICacheEntryDescriptor> mOfflineCacheEntry;
+     nsCacheAccessMode                 mOfflineCacheAccess;
+     nsCString                         mOfflineCacheClientID;
++    nsCString                         mCacheDomain;
+ 
+     // auth specific data
+     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
+-- 
+1.7.5.4
+
