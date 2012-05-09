@@ -9,7 +9,7 @@ WANT_AUTOCONF="2.1"
 MY_PN="firefox"
 # latest version of the torbrowser-bundle we use the profile-folder from
 # https://www.torproject.org/dist/torbrowser/linux/
-TB_V="2.2.35-10"
+TB_V="2.2.35-11"
 
 # Patch version
 PATCH="${MY_PN}-12.0-patches-0.1"
