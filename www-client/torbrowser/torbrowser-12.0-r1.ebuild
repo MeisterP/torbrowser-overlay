@@ -38,7 +38,6 @@ IUSE="bindist +crashreporter +ipc pgo selinux system-sqlite +webm"
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	${MOZ_FTP_URI}/${PV}/source/${MY_PN}-${PV}.source.tar.bz2
-	https://gitweb.torproject.org/user/ioerror/torbrowser.git/blob_plain/branding:/build-scripts/branding/torbrowser/default48.png -> torbrowser.png
 	amd64? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-x86_64-${TB_V}-dev-en-US.tar.gz )
 	x86? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-i686-${TB_V}-dev-en-US.tar.gz )"
 
@@ -272,7 +271,7 @@ src_install() {
 	# create wrapper to start torbrowser
 	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} -no-remote -profile ~/.${PN}/profile"
 
-	doicon "${DISTDIR}"/torbrowser.png
+	newicon "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png torbrowser.png
 	make_desktop_entry ${PN} "Torbrowser" torbrowser.png "Network;WebBrowser"
 	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog || die
 }
