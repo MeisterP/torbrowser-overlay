@@ -1,7 +1,7 @@
-From 649b237e95315e9858cfb038f9f7f95199584cbd Mon Sep 17 00:00:00 2001
+From 56f0543f8bc32d5f22b84d6bd4f59a0f93ef815a Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Thu, 7 Jun 2012 15:09:59 -0700
-Subject: [PATCH 16/20] Limit the number of fonts per document.
+Subject: [PATCH 16/19] Limit the number of fonts per document.
 
 We create two prefs:
 browser.display.max_font_count and browser.display.max_font_attempts.
@@ -23,7 +23,7 @@ https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkabilit
  3 files changed, 119 insertions(+), 3 deletions(-)
 
 diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
-index f3815fb..1ab210e 100644
+index 5c8b974..c567111 100644
 --- a/layout/base/nsPresContext.cpp
 +++ b/layout/base/nsPresContext.cpp
 @@ -97,6 +97,8 @@
@@ -35,7 +35,7 @@ index f3815fb..1ab210e 100644
  
  #ifdef IBMBIDI
  #include "nsBidiPresUtils.h"
-@@ -772,6 +774,10 @@ nsPresContext::GetUserPreferences()
+@@ -774,6 +776,10 @@ nsPresContext::GetUserPreferences()
    // * use fonts?
    mUseDocumentFonts =
      Preferences::GetInt("browser.display.use_document_fonts") != 0;
@@ -46,7 +46,7 @@ index f3815fb..1ab210e 100644
  
    // * replace backslashes with Yen signs? (bug 245770)
    mEnableJapaneseTransform =
-@@ -1381,6 +1387,100 @@ nsPresContext::GetDefaultFont(PRUint8 aFontID, nsIAtom *aLanguage) const
+@@ -1383,6 +1389,100 @@ nsPresContext::GetDefaultFont(PRUint8 aFontID, nsIAtom *aLanguage) const
    return font;
  }
  
@@ -148,7 +148,7 @@ index f3815fb..1ab210e 100644
  nsPresContext::SetFullZoom(float aZoom)
  {
 diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
-index e367c5f..3d979f1 100644
+index 9d58bcf..08b7766 100644
 --- a/layout/base/nsPresContext.h
 +++ b/layout/base/nsPresContext.h
 @@ -535,6 +535,13 @@ public:
@@ -165,7 +165,7 @@ index e367c5f..3d979f1 100644
    /**
     * Get the minimum font size for the specified language. If aLanguage
     * is nsnull, then the document's language is used.
-@@ -1188,6 +1195,8 @@ protected:
+@@ -1195,6 +1202,8 @@ protected:
    PRUint32              mInterruptChecksToSkip;
  
    mozilla::TimeStamp    mReflowStartTime;
@@ -175,7 +175,7 @@ index e367c5f..3d979f1 100644
    unsigned              mHasPendingInterrupt : 1;
    unsigned              mInterruptsEnabled : 1;
 diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
-index 4b134b2..82b1dd7 100644
+index 294a41c..c9313bc 100644
 --- a/layout/style/nsRuleNode.cpp
 +++ b/layout/style/nsRuleNode.cpp
 @@ -3102,14 +3102,15 @@ nsRuleNode::ComputeFontData(void* aStartStruct,

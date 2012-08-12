@@ -1,7 +1,7 @@
-From 47235106c9e1257c66bab774aab330be4dabcfb0 Mon Sep 17 00:00:00 2001
+From eb378defcebed631d488d2e20d1c3a063f9efce3 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 1 Feb 2012 15:50:15 -0800
-Subject: [PATCH 05/20] Block all plugins except flash.
+Subject: [PATCH 05/19] Block all plugins except flash.
 
 We cannot use the @mozilla.org/extensions/blocklist;1 service, because we
 actually want to stop plugins from ever entering the browser's process space
@@ -17,10 +17,10 @@ on a better way. Until then, it is delta-darwinism for us.
  2 files changed, 35 insertions(+), 0 deletions(-)
 
 diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
-index 0c3efa0..e607e68 100644
+index a4e5982..9f63789 100644
 --- a/dom/plugins/base/nsPluginHost.cpp
 +++ b/dom/plugins/base/nsPluginHost.cpp
-@@ -2002,6 +2002,35 @@ bool nsPluginHost::IsDuplicatePlugin(nsPluginTag * aPluginTag)
+@@ -1944,6 +1944,35 @@ bool nsPluginHost::IsDuplicatePlugin(nsPluginTag * aPluginTag)
    return false;
  }
  
@@ -56,7 +56,7 @@ index 0c3efa0..e607e68 100644
  typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
  
  nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
-@@ -2135,6 +2164,10 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
+@@ -2077,6 +2106,10 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
        continue;
      }
  
@@ -68,10 +68,10 @@ index 0c3efa0..e607e68 100644
      if (!pluginTag) {
        nsPluginFile pluginFile(localfile);
 diff --git a/dom/plugins/base/nsPluginHost.h b/dom/plugins/base/nsPluginHost.h
-index 1b46957..4f1e890 100644
+index e8b4ad5..cc783ce 100644
 --- a/dom/plugins/base/nsPluginHost.h
 +++ b/dom/plugins/base/nsPluginHost.h
-@@ -285,6 +285,8 @@ private:
+@@ -284,6 +284,8 @@ private:
    // Loads all cached plugins info into mCachedPlugins
    nsresult ReadPluginInfo();
  

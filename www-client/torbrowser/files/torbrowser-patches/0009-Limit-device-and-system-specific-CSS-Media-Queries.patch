@@ -1,7 +1,7 @@
-From 6c09a21d1db29dc28b359294ededc047ba5b463e Mon Sep 17 00:00:00 2001
+From c4fbcc6ea2af3d7a97e0ab7687aa8921a02f243f Mon Sep 17 00:00:00 2001
 From: Shondoit Walker <shondoit@gmail.com>
 Date: Mon, 4 Jun 2012 19:15:31 +0200
-Subject: [PATCH 09/20] Limit device- and system-specific CSS Media Queries
+Subject: [PATCH 09/19] Limit device- and system-specific CSS Media Queries
 
 This is done to address
 https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability

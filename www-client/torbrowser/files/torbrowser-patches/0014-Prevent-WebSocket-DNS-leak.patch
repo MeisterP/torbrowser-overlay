@@ -1,7 +1,7 @@
-From 0607517f87c2a0060f4f1e437f0ac37a889047a9 Mon Sep 17 00:00:00 2001
+From 5c680fadbae54ff9f0d1817823679cd961049ceb Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 2 May 2012 17:44:39 -0700
-Subject: [PATCH 14/20] Prevent WebSocket DNS leak.
+Subject: [PATCH 14/19] Prevent WebSocket DNS leak.
 
 This is due to an improper implementation of the WebSocket spec by Mozilla.
 
@@ -109,10 +109,10 @@ index 1749b41..3ec8eba 100644
 +    bool                      mDisableDNS;
  };
 diff --git a/netwerk/protocol/websocket/WebSocketChannel.cpp b/netwerk/protocol/websocket/WebSocketChannel.cpp
-index 3578866..b1aaec2 100644
+index 7a5ee7b..7f68798 100644
 --- a/netwerk/protocol/websocket/WebSocketChannel.cpp
 +++ b/netwerk/protocol/websocket/WebSocketChannel.cpp
-@@ -1884,8 +1884,12 @@ WebSocketChannel::ApplyForAdmission()
+@@ -1897,8 +1897,12 @@ WebSocketChannel::ApplyForAdmission()
    LOG(("WebSocketChannel::ApplyForAdmission: checking for concurrent open\n"));
    nsCOMPtr<nsIThread> mainThread;
    NS_GetMainThread(getter_AddRefs(mainThread));

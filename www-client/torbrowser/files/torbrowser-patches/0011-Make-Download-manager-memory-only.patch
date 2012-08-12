@@ -1,7 +1,7 @@
-From 8992ae1cb7e1545413e649027ab7827799c53300 Mon Sep 17 00:00:00 2001
+From d4810f02097dd7a3cf2ba597ca9c0e0358bb74ad Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 25 Apr 2012 13:39:35 -0700
-Subject: [PATCH 11/20] Make Download manager memory only.
+Subject: [PATCH 11/19] Make Download manager memory only.
 
 Solves https://trac.torproject.org/projects/tor/ticket/4017.
 
@@ -18,10 +18,10 @@ this breaks enough times in conflict.
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/toolkit/components/downloads/nsDownloadManager.cpp b/toolkit/components/downloads/nsDownloadManager.cpp
-index cb1f1f6..1de653b 100644
+index 1cdc022..71d89a1 100644
 --- a/toolkit/components/downloads/nsDownloadManager.cpp
 +++ b/toolkit/components/downloads/nsDownloadManager.cpp
-@@ -1999,7 +1999,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
+@@ -2037,7 +2037,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
      if (NS_LITERAL_STRING("memory").Equals(aData))
        return SwitchDatabaseTypeTo(DATABASE_MEMORY);
      else if (NS_LITERAL_STRING("disk").Equals(aData))
@@ -30,7 +30,7 @@ index cb1f1f6..1de653b 100644
    }
    else if (strcmp(aTopic, "alertclickcallback") == 0) {
      nsCOMPtr<nsIDownloadManagerUI> dmui =
-@@ -2076,7 +2076,7 @@ nsDownloadManager::OnLeavePrivateBrowsingMode()
+@@ -2114,7 +2114,7 @@ nsDownloadManager::OnLeavePrivateBrowsingMode()
    (void)ResumeAllDownloads(false);
  
    // Switch back to the on-disk DB again
@@ -40,7 +40,7 @@ index cb1f1f6..1de653b 100644
    mInPrivateBrowsing = false;
  }
 diff --git a/toolkit/components/downloads/nsDownloadManager.h b/toolkit/components/downloads/nsDownloadManager.h
-index 16a861e..e729cbf 100644
+index f3df6f7..7946973 100644
 --- a/toolkit/components/downloads/nsDownloadManager.h
 +++ b/toolkit/components/downloads/nsDownloadManager.h
 @@ -92,7 +92,7 @@ public:

@@ -1,7 +1,7 @@
-From 7c321c4d75c7c80d899db962804d288ed7db162e Mon Sep 17 00:00:00 2001
+From 0beb4d8440fd7ff415ac3207d010947c9bfceaf2 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Thu, 7 Jun 2012 15:26:13 -0700
-Subject: [PATCH 18/20] Adapt Steven Michaud's Mac crashfix patch
+Date: Fri, 20 Jul 2012 18:29:08 -0700
+Subject: [PATCH 18/19] Adapt Steven Michaud's Mac crashfix patch
 
 Source is: https://bugzilla.mozilla.org/show_bug.cgi?id=715885#c35
 
@@ -10,8 +10,8 @@ MacOS.
 ---
  widget/Makefile.in                        |    1 +
  widget/cocoa/nsChildView.mm               |   28 +++++++++++------
- widget/gtk2/nsDragService.cpp             |    2 +-
- widget/gtk2/nsWindow.cpp                  |    2 +-
+ widget/gtk2/nsDragService.cpp             |    4 +-
+ widget/gtk2/nsWindow.cpp                  |    3 +-
  widget/nsIDragService.idl                 |    4 +--
  widget/nsPIDragService.idl                |   48 +++++++++++++++++++++++++++++
  widget/qt/nsDragService.h                 |    2 +
@@ -23,7 +23,7 @@ MacOS.
  widget/windows/nsPIDragServiceWindows.idl |   46 +++++++++++++++++++++++++++
  widget/xpwidgets/nsBaseDragService.cpp    |   16 +++++++++-
  widget/xpwidgets/nsBaseDragService.h      |    9 ++---
- 15 files changed, 176 insertions(+), 46 deletions(-)
+ 15 files changed, 178 insertions(+), 47 deletions(-)
  create mode 100644 widget/nsPIDragService.idl
  create mode 100644 widget/windows/nsPIDragServiceWindows.idl
 
@@ -40,7 +40,7 @@ index 4a3405b..4c105a4 100644
  		nsIFormatConverter.idl \
  		nsIClipboard.idl \
 diff --git a/widget/cocoa/nsChildView.mm b/widget/cocoa/nsChildView.mm
-index 0db6b1c..8d59716 100644
+index 6f89719..33c16ff 100644
 --- a/widget/cocoa/nsChildView.mm
 +++ b/widget/cocoa/nsChildView.mm
 @@ -4555,11 +4555,12 @@ NSEvent* gLastDragMouseDownEvent = nil;
@@ -97,31 +97,42 @@ index 0db6b1c..8d59716 100644
  
      mDragService->EndDragSession(true);
 diff --git a/widget/gtk2/nsDragService.cpp b/widget/gtk2/nsDragService.cpp
-index be8f388..99d3878 100644
+index 16f9764..0f078b6 100644
 --- a/widget/gtk2/nsDragService.cpp
 +++ b/widget/gtk2/nsDragService.cpp
-@@ -1332,7 +1332,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
-     GdkDisplay* display = gdk_display_get_default();
-     if (display) {
-       gdk_display_get_pointer(display, NULL, &x, &y, NULL);
--      SetDragEndPoint(nsIntPoint(x, y));
-+      SetDragEndPoint(x, y);
+@@ -285,7 +285,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
+     // the NS_DRAGDROP_END event.
+     nsDragService *dragService = static_cast<nsDragService*>(user_data);
+     dragService->
+-        SetDragEndPoint(nsIntPoint(event->motion.x_root, event->motion.y_root));
++        SetDragEndPoint(event->motion.x_root, event->motion.y_root);
+ 
+     MotionEventData *data = new MotionEventData(widget, event);
+ 
+@@ -1404,7 +1404,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
+         GdkDisplay* display = gdk_display_get_default();
+         if (display) {
+             gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+-            SetDragEndPoint(nsIntPoint(x, y));
++            SetDragEndPoint(x, y);
+         }
      }
  
-     // Either the drag was aborted or the drop occurred outside the app.
 diff --git a/widget/gtk2/nsWindow.cpp b/widget/gtk2/nsWindow.cpp
-index 9de734e..81fe553 100644
+index 07a1ae2..664293d 100644
 --- a/widget/gtk2/nsWindow.cpp
 +++ b/widget/gtk2/nsWindow.cpp
-@@ -3517,7 +3517,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
-     if (display) {
-       // get the current cursor position
-       gdk_display_get_pointer(display, NULL, &x, &y, NULL);
--      ((nsDragService *)dragService.get())->SetDragEndPoint(nsIntPoint(x, y));
-+      ((nsDragService *)dragService.get())->SetDragEndPoint(x, y);
-     }
-     dragService->EndDragSession(true);
+@@ -3447,8 +3447,9 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
+     // get our drag context
+     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
+     nsDragService *dragServiceGTK = static_cast<nsDragService*>(dragService.get());
++    nsIntPoint end = nsIntPoint(aX, aY) + WidgetToScreenOffset();
  
+-    dragServiceGTK->SetDragEndPoint(nsIntPoint(aX, aY) + WidgetToScreenOffset());
++    dragServiceGTK->SetDragEndPoint(end.x, end.y);
+ 
+     nscoord retx = 0;
+     nscoord rety = 0;
 diff --git a/widget/nsIDragService.idl b/widget/nsIDragService.idl
 index e42c578..ef8c46f 100644
 --- a/widget/nsIDragService.idl
@@ -227,7 +238,7 @@ index df811ac..8d5ea4b 100644
    ../xpwidgets/$(LIB_PREFIX)xpwidgets_s.$(LIB_SUFFIX) \
    $(NULL)
 diff --git a/widget/windows/nsDragService.cpp b/widget/windows/nsDragService.cpp
-index b6b5b62..9657263 100644
+index ec4b16e..bbae112 100644
 --- a/widget/windows/nsDragService.cpp
 +++ b/widget/windows/nsDragService.cpp
 @@ -97,6 +97,8 @@ nsDragService::~nsDragService()

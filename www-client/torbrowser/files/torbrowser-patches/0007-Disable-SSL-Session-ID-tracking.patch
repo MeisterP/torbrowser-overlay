@@ -1,7 +1,7 @@
-From 3eebe3b7e2882de39e2c686a38e7084cccfa4c60 Mon Sep 17 00:00:00 2001
+From fdc588cee6af4192360775caa4d2f0d25c8727bd Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@fscked.org>
 Date: Wed, 7 Dec 2011 19:36:38 -0800
-Subject: [PATCH 07/20] Disable SSL Session ID tracking.
+Subject: [PATCH 07/19] Disable SSL Session ID tracking.
 
 We can't easily bind SSL Session ID tracking to url bar domain,
 so we have to disable them to satisfy
@@ -11,7 +11,7 @@ https://www.torproject.org/projects/torbrowser/design/#identifier-linkability.
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/security/nss/lib/ssl/sslsock.c b/security/nss/lib/ssl/sslsock.c
-index 28e6210..fa48ecd 100644
+index 0c4d0c7..8d23fc0 100644
 --- a/security/nss/lib/ssl/sslsock.c
 +++ b/security/nss/lib/ssl/sslsock.c
 @@ -173,7 +173,7 @@ static sslOptions ssl_defaults = {

@@ -1,7 +1,7 @@
-From 3b6137594c9f25725b3dd0fd46cfc8c86d6a772e Mon Sep 17 00:00:00 2001
+From 94a5a512ea1a66ea1c1a9a3b57c25b13ae19aea6 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 1 May 2012 15:02:03 -0700
-Subject: [PATCH 13/20] Make nsICacheService.EvictEntries synchronous
+Subject: [PATCH 13/19] Make nsICacheService.EvictEntries synchronous
 
 This fixes a race condition that allows cache-based EverCookies to persist for
 a brief time (on the order of minutes?) after cache clearing/"New Identity".
@@ -12,10 +12,10 @@ https://trac.torproject.org/projects/tor/ticket/5715
  1 files changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/netwerk/cache/nsCacheService.cpp b/netwerk/cache/nsCacheService.cpp
-index 8c85b68..d43f121 100644
+index 801507e..c37bd7c 100644
 --- a/netwerk/cache/nsCacheService.cpp
 +++ b/netwerk/cache/nsCacheService.cpp
-@@ -1414,10 +1414,21 @@ NS_IMETHODIMP nsCacheService::VisitEntries(nsICacheVisitor *visitor)
+@@ -1530,10 +1530,21 @@ NS_IMETHODIMP nsCacheService::VisitEntries(nsICacheVisitor *visitor)
      return NS_OK;
  }
  

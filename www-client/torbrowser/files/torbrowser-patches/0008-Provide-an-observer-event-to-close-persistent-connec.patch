@@ -1,7 +1,7 @@
-From 9594d3f2df4f20308406deea30aaccd577587438 Mon Sep 17 00:00:00 2001
+From 1b4b8d3e22bf6d344b92953ad6e46d2d0577988b Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Wed, 1 Feb 2012 15:53:28 -0800
-Subject: [PATCH 08/20] Provide an observer event to close persistent
+Date: Thu, 19 Jul 2012 19:02:39 -0700
+Subject: [PATCH 08/19] Provide an observer event to close persistent
  connections
 
 We need to prevent linkability across "New Identity", which includes closing
@@ -11,20 +11,20 @@ keep-alive connections.
  1 files changed, 7 insertions(+), 0 deletions(-)
 
 diff --git a/netwerk/protocol/http/nsHttpHandler.cpp b/netwerk/protocol/http/nsHttpHandler.cpp
-index dcdf729..672d436 100644
+index 56bca0e..2d8afa0 100644
 --- a/netwerk/protocol/http/nsHttpHandler.cpp
 +++ b/netwerk/protocol/http/nsHttpHandler.cpp
-@@ -338,6 +338,7 @@ nsHttpHandler::Init()
+@@ -344,6 +344,7 @@ nsHttpHandler::Init()
+         mObserverService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
          mObserverService->AddObserver(this, "net:clear-active-logins", true);
          mObserverService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, true);
++        mObserverService->AddObserver(this, "net:prune-all-connections", true);
          mObserverService->AddObserver(this, "net:prune-dead-connections", true);
-+        mObserverService->AddObserver(this, "net:prune-all-connections", PR_TRUE);
+         mObserverService->AddObserver(this, "net:failed-to-process-uri-content", true);
      }
-  
-     return NS_OK;
-@@ -1587,6 +1588,12 @@ nsHttpHandler::Observe(nsISupports *subject,
-             mConnMgr->PruneDeadConnections();
-         }
+@@ -1665,6 +1666,12 @@ nsHttpHandler::Observe(nsISupports *subject,
+         if (uri && mConnMgr)
+             mConnMgr->ReportFailedToProcess(uri);
      }
 +    else if (strcmp(topic, "net:prune-all-connections") == 0) {
 +        if (mConnMgr) {
