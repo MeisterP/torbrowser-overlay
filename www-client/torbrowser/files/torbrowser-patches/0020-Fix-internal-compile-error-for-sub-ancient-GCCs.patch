@@ -1,0 +1,45 @@
+From fb210909f6fd3a4a5253101d44edc8c884bf6c04 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Wed, 20 Jun 2012 15:26:11 -0700
+Subject: [PATCH 20/20] Fix 'internal compile error' for sub-ancient GCCs.
+
+Also fix a related null pointer deref.
+---
+ netwerk/protocol/http/HttpChannelParent.cpp |   13 ++++++++++---
+ 1 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/netwerk/protocol/http/HttpChannelParent.cpp b/netwerk/protocol/http/HttpChannelParent.cpp
+index c0d2fff..982c4e0 100644
+--- a/netwerk/protocol/http/HttpChannelParent.cpp
++++ b/netwerk/protocol/http/HttpChannelParent.cpp
+@@ -333,8 +333,13 @@ HttpChannelParent::RecvUpdateAssociatedContentSecurity(const PRInt32& high,
+ 
+ // Bug 621446 investigation, we don't want conditional PR_Aborts bellow to be
+ // merged to a single address.
+-#pragma warning(disable : 4068)
++// Compiling with a version of GCC <= 4.4 fails with an internal compiler
++// error.
++#if !defined(__GNUC__) || \
++      (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+ #pragma GCC optimize ("O0")
++#pragma warning(disable : 4068)
++#endif
+ 
+ bool
+ HttpChannelParent::RecvRedirect2Verify(const nsresult& result, 
+@@ -369,8 +374,10 @@ HttpChannelParent::RecvRedirect2Verify(const nsresult& result,
+ 
+   mReceivedRedirect2Verify = true;
+ 
+-  mRedirectCallback->OnRedirectVerifyCallback(result);
+-  mRedirectCallback = nsnull;
++  if (mRedirectCallback) {
++    mRedirectCallback->OnRedirectVerifyCallback(result);
++    mRedirectCallback = nsnull;
++  }
+   return true;
+ }
+ 
+-- 
+1.7.5.4
+

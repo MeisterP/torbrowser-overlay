@@ -1,0 +1,225 @@
+From 649b237e95315e9858cfb038f9f7f95199584cbd Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Thu, 7 Jun 2012 15:09:59 -0700
+Subject: [PATCH 16/20] Limit the number of fonts per document.
+
+We create two prefs:
+browser.display.max_font_count and browser.display.max_font_attempts.
+max_font_count sets a limit on the number of fonts actually used in the
+document, and max_font_attempts sets a limit on the total number of CSS
+queries that a document is allowed to perform.
+
+Once either limit is reached, the browser behaves as if
+browser.display.use_document_fonts was set to 0 for subsequent font queries.
+
+If a pref is not set or is negative, that limit does not apply.
+
+This is done to address:
+https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
+---
+ layout/base/nsPresContext.cpp |  100 +++++++++++++++++++++++++++++++++++++++++
+ layout/base/nsPresContext.h   |    9 ++++
+ layout/style/nsRuleNode.cpp   |   13 ++++-
+ 3 files changed, 119 insertions(+), 3 deletions(-)
+
+diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
+index f3815fb..1ab210e 100644
+--- a/layout/base/nsPresContext.cpp
++++ b/layout/base/nsPresContext.cpp
+@@ -97,6 +97,8 @@
+ #include "FrameLayerBuilder.h"
+ #include "nsDOMMediaQueryList.h"
+ #include "nsSMILAnimationController.h"
++#include "nsString.h"
++#include "nsUnicharUtils.h"
+ 
+ #ifdef IBMBIDI
+ #include "nsBidiPresUtils.h"
+@@ -772,6 +774,10 @@ nsPresContext::GetUserPreferences()
+   // * use fonts?
+   mUseDocumentFonts =
+     Preferences::GetInt("browser.display.use_document_fonts") != 0;
++  mMaxFonts =
++    Preferences::GetInt("browser.display.max_font_count", -1);
++  mMaxFontAttempts =
++    Preferences::GetInt("browser.display.max_font_attempts", -1);
+ 
+   // * replace backslashes with Yen signs? (bug 245770)
+   mEnableJapaneseTransform =
+@@ -1381,6 +1387,100 @@ nsPresContext::GetDefaultFont(PRUint8 aFontID, nsIAtom *aLanguage) const
+   return font;
+ }
+ 
++PRBool
++nsPresContext::FontUseCountReached(const nsFont &font) {
++  if (mMaxFonts < 0) {
++    return PR_FALSE;
++  }
++
++  for (PRUint32 i = 0; i < mFontsUsed.Length(); i++) {
++    if (mFontsUsed[i].name.Equals(font.name,
++                                  nsCaseInsensitiveStringComparator())
++        // XXX: Style is sometimes filled with garbage??
++        /*&& mFontsUsed[i].style == font.style*/) {
++      // seen it before: OK
++      return PR_FALSE;
++    }
++  }
++
++  if (mFontsUsed.Length() >= mMaxFonts) {
++    return PR_TRUE;
++  }
++
++  return PR_FALSE;
++}
++
++PRBool
++nsPresContext::FontAttemptCountReached(const nsFont &font) {
++  if (mMaxFontAttempts < 0) {
++    return PR_FALSE;
++  }
++
++  for (PRUint32 i = 0; i < mFontsTried.Length(); i++) {
++    if (mFontsTried[i].name.Equals(font.name,
++                                  nsCaseInsensitiveStringComparator())
++        // XXX: Style is sometimes filled with garbage??
++        /*&& mFontsTried[i].style == font.style*/) {
++      // seen it before: OK
++      return PR_FALSE;
++    }
++  }
++
++  if (mFontsTried.Length() >= mMaxFontAttempts) {
++    return PR_TRUE;
++  }
++
++  return PR_FALSE;
++}
++
++void
++nsPresContext::AddFontUse(const nsFont &font) {
++  if (mMaxFonts < 0) {
++    return;
++  }
++
++  for (PRUint32 i = 0; i < mFontsUsed.Length(); i++) {
++    if (mFontsUsed[i].name.Equals(font.name,
++                                  nsCaseInsensitiveStringComparator())
++        // XXX: Style is sometimes filled with garbage??
++        /*&& mFontsUsed[i].style == font.style*/) {
++      // seen it before: OK
++      return;
++    }
++  }
++
++  if (mFontsUsed.Length() >= mMaxFonts) {
++    return;
++  }
++   
++  mFontsUsed.AppendElement(font);
++  return;
++}
++
++void
++nsPresContext::AddFontAttempt(const nsFont &font) {
++  if (mMaxFontAttempts < 0) {
++    return;
++  }
++
++  for (PRUint32 i = 0; i < mFontsTried.Length(); i++) {
++    if (mFontsTried[i].name.Equals(font.name,
++                                  nsCaseInsensitiveStringComparator())
++        // XXX: Style is sometimes filled with garbage??
++        /*&& mFontsTried[i].style == font.style*/) {
++      // seen it before: OK
++      return;
++    }
++  }
++
++  if (mFontsTried.Length() >= mMaxFontAttempts) {
++    return;
++  }
++   
++  mFontsTried.AppendElement(font);
++  return;
++}
++
+ void
+ nsPresContext::SetFullZoom(float aZoom)
+ {
+diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
+index e367c5f..3d979f1 100644
+--- a/layout/base/nsPresContext.h
++++ b/layout/base/nsPresContext.h
+@@ -535,6 +535,13 @@ public:
+     }
+   }
+ 
++  nsTArray<nsFont> mFontsUsed; // currently for font-count limiting only
++  nsTArray<nsFont> mFontsTried; // currently for font-count limiting only
++  void AddFontUse(const nsFont &font);
++  void AddFontAttempt(const nsFont &font);
++  PRBool FontUseCountReached(const nsFont &font);
++  PRBool FontAttemptCountReached(const nsFont &font);
++
+   /**
+    * Get the minimum font size for the specified language. If aLanguage
+    * is nsnull, then the document's language is used.
+@@ -1188,6 +1195,8 @@ protected:
+   PRUint32              mInterruptChecksToSkip;
+ 
+   mozilla::TimeStamp    mReflowStartTime;
++  PRInt32               mMaxFontAttempts;
++  PRInt32               mMaxFonts;
+ 
+   unsigned              mHasPendingInterrupt : 1;
+   unsigned              mInterruptsEnabled : 1;
+diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
+index 4b134b2..82b1dd7 100644
+--- a/layout/style/nsRuleNode.cpp
++++ b/layout/style/nsRuleNode.cpp
+@@ -3102,14 +3102,15 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+ 
+   bool useDocumentFonts =
+     mPresContext->GetCachedBoolPref(kPresContext_UseDocumentFonts);
++  bool isXUL = PR_FALSE;
+ 
+   // See if we are in the chrome
+   // We only need to know this to determine if we have to use the
+   // document fonts (overriding the useDocumentFonts flag).
+-  if (!useDocumentFonts && mPresContext->IsChrome()) {
++  if (mPresContext->IsChrome()) {
+     // if we are not using document fonts, but this is a XUL document,
+     // then we use the document fonts anyway
+-    useDocumentFonts = true;
++    isXUL = true;
+   }
+ 
+   // Figure out if we are a generic font
+@@ -3123,9 +3124,13 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+     // generic?
+     nsFont::GetGenericID(font->mFont.name, &generic);
+ 
++    mPresContext->AddFontAttempt(font->mFont);
++
+     // If we aren't allowed to use document fonts, then we are only entitled
+     // to use the user's default variable-width font and fixed-width font
+-    if (!useDocumentFonts) {
++    if (!isXUL && (!useDocumentFonts ||
++                    mPresContext->FontAttemptCountReached(font->mFont) ||
++                    mPresContext->FontUseCountReached(font->mFont))) {
+       // Extract the generic from the specified font family...
+       nsAutoString genericName;
+       if (!font->mFont.EnumerateFamilies(ExtractGeneric, &genericName)) {
+@@ -3161,6 +3166,8 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+                                font);
+   }
+ 
++  if (font->mGenericID == kGenericFont_NONE)
++    mPresContext->AddFontUse(font->mFont);
+   COMPUTE_END_INHERITED(Font, font)
+ }
+ 
+-- 
+1.7.5.4
+

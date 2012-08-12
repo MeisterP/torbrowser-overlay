@@ -1,0 +1,138 @@
+From 41f44964edbee300c098d110be3f029ebb711081 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Fri, 8 Jun 2012 12:42:25 -0700
+Subject: [PATCH 19/20] Fix Firefox 13 build process.
+
+Patch is from https://bugzilla.mozilla.org/show_bug.cgi?id=736961.
+---
+ config/rules.mk                 |    4 ++--
+ js/src/config/rules.mk          |    4 ++--
+ js/xpconnect/src/Makefile.in    |   10 +++++-----
+ xpcom/idl-parser/Makefile.in    |    2 +-
+ xpcom/typelib/xpidl/Makefile.in |    4 ++--
+ 5 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/config/rules.mk b/config/rules.mk
+index e6353e1..c65c1f3 100644
+--- a/config/rules.mk
++++ b/config/rules.mk
+@@ -1479,7 +1479,7 @@ $(XPIDL_GEN_DIR)/%.h: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
+ 	$(PYTHON_PATH) \
+ 	  -I$(topsrcdir)/other-licenses/ply \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+-	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=$(DEPTH)/xpcom/idl-parser $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
++	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=$(DEPTH)/xpcom/idl-parser/cache $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
+ 	@if test -n "$(findstring $*.h, $(EXPORTS))"; \
+ 	  then echo "*** WARNING: file $*.h generated from $*.idl overrides $(srcdir)/$*.h"; else true; fi
+ 
+@@ -1492,7 +1492,7 @@ $(XPIDL_GEN_DIR)/%.xpt: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
+ 	  -I$(topsrcdir)/other-licenses/ply \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  -I$(topsrcdir)/xpcom/typelib/xpt/tools \
+-	  $(topsrcdir)/xpcom/idl-parser/typelib.py --cachedir=$(DEPTH)/xpcom/idl-parser $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
++	  $(topsrcdir)/xpcom/idl-parser/typelib.py --cachedir=$(DEPTH)/xpcom/idl-parser/cache $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
+ 
+ # no need to link together if XPIDLSRCS contains only XPIDL_MODULE
+ ifneq ($(XPIDL_MODULE).idl,$(strip $(XPIDLSRCS)))
+diff --git a/js/src/config/rules.mk b/js/src/config/rules.mk
+index e6353e1..c65c1f3 100644
+--- a/js/src/config/rules.mk
++++ b/js/src/config/rules.mk
+@@ -1479,7 +1479,7 @@ $(XPIDL_GEN_DIR)/%.h: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
+ 	$(PYTHON_PATH) \
+ 	  -I$(topsrcdir)/other-licenses/ply \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+-	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=$(DEPTH)/xpcom/idl-parser $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
++	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=$(DEPTH)/xpcom/idl-parser/cache $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
+ 	@if test -n "$(findstring $*.h, $(EXPORTS))"; \
+ 	  then echo "*** WARNING: file $*.h generated from $*.idl overrides $(srcdir)/$*.h"; else true; fi
+ 
+@@ -1492,7 +1492,7 @@ $(XPIDL_GEN_DIR)/%.xpt: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
+ 	  -I$(topsrcdir)/other-licenses/ply \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  -I$(topsrcdir)/xpcom/typelib/xpt/tools \
+-	  $(topsrcdir)/xpcom/idl-parser/typelib.py --cachedir=$(DEPTH)/xpcom/idl-parser $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
++	  $(topsrcdir)/xpcom/idl-parser/typelib.py --cachedir=$(DEPTH)/xpcom/idl-parser/cache $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
+ 
+ # no need to link together if XPIDLSRCS contains only XPIDL_MODULE
+ ifneq ($(XPIDL_MODULE).idl,$(strip $(XPIDLSRCS)))
+diff --git a/js/xpconnect/src/Makefile.in b/js/xpconnect/src/Makefile.in
+index 7dc7812..a369bcd 100644
+--- a/js/xpconnect/src/Makefile.in
++++ b/js/xpconnect/src/Makefile.in
+@@ -151,7 +151,7 @@ dom_quickstubs.cpp: $(srcdir)/dom_quickstubs.qsconf \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  $(srcdir)/qsgen.py \
+ 	  --idlpath=$(DEPTH)/dist/idl \
+-	  --cachedir=$(DEPTH)/xpcom/idl-parser \
++	  --cachedir=$(DEPTH)/xpcom/idl-parser/cache \
+ 	  --header-output dom_quickstubs.h \
+ 	  --stub-output dom_quickstubs.cpp \
+ 	  --makedepend-output $(MDDEPDIR)/dom_qsgen.pp \
+@@ -172,7 +172,7 @@ dombindings_gen.h: $(srcdir)/dombindings.conf \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  $(srcdir)/dombindingsgen.py \
+ 	  --idlpath=$(DEPTH)/dist/idl \
+-	  --cachedir=$(DEPTH)/xpcom/idl-parser \
++	  --cachedir=$(DEPTH)/xpcom/idl-parser/cache \
+ 	  --header-output dombindings_gen.h \
+ 	  $(srcdir)/dombindings.conf
+ 
+@@ -189,7 +189,7 @@ dombindings_gen.cpp: $(srcdir)/dombindings.conf \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  $(srcdir)/dombindingsgen.py \
+ 	  --idlpath=$(DEPTH)/dist/idl \
+-	  --cachedir=$(DEPTH)/xpcom/idl-parser \
++	  --cachedir=$(DEPTH)/xpcom/idl-parser/cache \
+ 	  --stub-output dombindings_gen.cpp \
+ 	  --makedepend-output $(MDDEPDIR)/dombindingsgen.pp \
+ 	  $(srcdir)/dombindings.conf
+@@ -208,7 +208,7 @@ DictionaryHelpers.h: $(srcdir)/dictionary_helper_gen.conf \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  $(srcdir)/dictionary_helper_gen.py \
+ 	  -I $(DEPTH)/dist/idl \
+-	  --cachedir=$(DEPTH)/xpcom/idl-parser \
++	  --cachedir=$(DEPTH)/xpcom/idl-parser/cache \
+ 	  --header-output DictionaryHelpers.h \
+ 	  $(srcdir)/dictionary_helper_gen.conf
+ 
+@@ -223,7 +223,7 @@ DictionaryHelpers.cpp: $(srcdir)/dictionary_helper_gen.conf \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+ 	  $(srcdir)/dictionary_helper_gen.py \
+ 	  -I $(DEPTH)/dist/idl \
+-	  --cachedir=$(DEPTH)/xpcom/idl-parser \
++	  --cachedir=$(DEPTH)/xpcom/idl-parser/cache \
+ 	  --header-output DictionaryHelpers.h \
+ 	  --stub-output DictionaryHelpers.cpp \
+ 	  --makedepend-output $(MDDEPDIR)/dictionary_helper_gen.pp \
+diff --git a/xpcom/idl-parser/Makefile.in b/xpcom/idl-parser/Makefile.in
+index f5ff178..97390c5 100644
+--- a/xpcom/idl-parser/Makefile.in
++++ b/xpcom/idl-parser/Makefile.in
+@@ -61,7 +61,7 @@ export:: $(PARSER_SRCS) $(PLY_PROGS)
+ 	$(PYTHON_PATH) \
+ 	  -I$(topsrcdir)/other-licenses/ply \
+ 	  -I$(topsrcdir)/xpcom/idl-parser \
+-	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=. --regen
++	  $(topsrcdir)/xpcom/idl-parser/header.py --cachedir=$(DEPTH)/xpcom/idl-parser/cache --regen
+ 
+ check::
+ 	$(PYTHON_PATH) \
+diff --git a/xpcom/typelib/xpidl/Makefile.in b/xpcom/typelib/xpidl/Makefile.in
+index bcae13a..4edda5d 100644
+--- a/xpcom/typelib/xpidl/Makefile.in
++++ b/xpcom/typelib/xpidl/Makefile.in
+@@ -48,8 +48,8 @@ SDK_BINARY = \
+   $(topsrcdir)/xpcom/idl-parser/xpidl.py \
+   $(topsrcdir)/xpcom/idl-parser/header.py \
+   $(topsrcdir)/xpcom/idl-parser/typelib.py \
+-  $(DEPTH)/xpcom/idl-parser/xpidllex.py \
+-  $(DEPTH)/xpcom/idl-parser/xpidlyacc.py \
++  $(DEPTH)/xpcom/idl-parser/cache/xpidllex.py \
++  $(DEPTH)/xpcom/idl-parser/cache/xpidlyacc.py \
+   $(NULL)
+ 
+ ifndef MOZ_SYSTEM_PLY
+-- 
+1.7.5.4
+

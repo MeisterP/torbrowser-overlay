@@ -1,0 +1,84 @@
+From 59b8b663b93248db34ad741ccb9972ecb6814c1f Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Wed, 25 Apr 2012 15:03:46 -0700
+Subject: [PATCH 12/20] Add DDG and StartPage to Omnibox.
+
+You mean there are search engines that don't require captchas if you don't
+have a cookie? Holy crap. Get those in there now.
+---
+ browser/locales/en-US/searchplugins/duckduckgo.xml |   29 ++++++++++++++++++++
+ browser/locales/en-US/searchplugins/list.txt       |    2 +
+ browser/locales/en-US/searchplugins/startpage.xml  |   11 +++++++
+ 3 files changed, 42 insertions(+), 0 deletions(-)
+ create mode 100644 browser/locales/en-US/searchplugins/duckduckgo.xml
+ create mode 100644 browser/locales/en-US/searchplugins/startpage.xml
+
+diff --git a/browser/locales/en-US/searchplugins/duckduckgo.xml b/browser/locales/en-US/searchplugins/duckduckgo.xml
+new file mode 100644
+index 0000000..4f00b4d
+--- /dev/null
++++ b/browser/locales/en-US/searchplugins/duckduckgo.xml
+@@ -0,0 +1,29 @@
++<SearchPlugin xmlns="http://www.mozilla.org/2006/browser/search/">
++<ShortName>DuckDuckGo</ShortName>
++<Description>Duck Duck Go</Description>
++<InputEncoding>UTF-8</InputEncoding>
++<Image width="16" height="16">data:image/png;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAANcNAADXDQAAAAAA
++AAAAAAAAAAAAAAAAAAAAAAAAAAAAJyDsJmlk8pf6+v3s/v7+++zr/fcnIOyzJyDsgCcg7CYAAAAA
++AAAAAAAAAAAAAAAAAAAAAAAAAAAnIOwBJyDscCcg7PZttJ7/7Pfs//////++xO7/S5GA/ycg7P8n
++IOz2JyDscCcg7AEAAAAAAAAAAAAAAAAnIOwBJyDstScg7P8nIOz/Y8p5/2fHZf9Yv0z/YcF2/1rB
++Uv8nIOz/JyDs/ycg7P8nIOy1JyDsAQAAAAAAAAAAJyDscCcg7P8nIOz/JyDs/4jQoP/p9+n/////
++/05X3v9LkYD/JyDs/ycg7P8nIOz/JyDs/ycg7HAAAAAAJyDsJicg7PYnIOz/JyDs/zUu7f/+/v//
++//////////89N+7/JyDs/yUo7f8nIOz/JyDs/ycg7P8nIOz2JyDsJicg7IAnIOz/JyDs/ycg7P9h
++XPH////////////t/P//GIr2/wfD+/8Gyfz/DKv5/yM57/8nIOz/JyDs/ycg7H8nIOyzJyDs/ycg
++7P8nIOz/jov1////////////Otz9/w3G/P8cWfH/JSvt/ycg7P8nIOz/JyDs/ycg7P8nIOyzJyDs
++5icg7P8nIOz/JyDs/7u5+f///////////27l/v8E0v3/BNL9/wTQ/f8Oofn/IT7v/ycg7P8nIOz/
++JyDs5icg7OYnIOz/JyDs/ycg7P/p6P3/uWsC////////////5fr//6Po/f8Thfb/DKv5/w6f+f8n IOz/JyDs/ycg7OYnIOyzJyDs/ycg7P8nIOz/9/b+/////////////////7lrAv/V1Pv/JyDs/ycg
++7P8nIOz/JyDs/ycg7P8nIOyzJyDsgCcg7P8nIOz/JyDs/8/N+///////////////////////iIX1
++/ycg7P8nIOz/JyDs/ycg7P8nIOz/JyDsfycg7CYnIOz2JyDs/ycg7P9FP+7/q6n4/+7u/f/n5v3/
++fXn0/yoj7P8nIOz/JyDs/ycg7P8nIOz/JyDs9icg7CYAAAAAJyDscCcg7P8nIOz/wsD6/+no/f/Y
++1/z/eHTz/ycg7P8nIOz/JyDs/ycg7P8nIOz/JyDs/ycg7HAAAAAAAAAAACcg7AEnIOy1JyDs/ycg
++7P8nIOz/JyDs/ycg7P8nIOz/JyDs/ycg7P8nIOz/JyDs/ycg7LUnIOwBAAAAAAAAAAAAAAAAJyDs
++AScg7HAnIOz2JyDs/ycg7P8nIOz/JyDs/ycg7P8nIOz/JyDs9icg7HAnIOwBAAAAAAAAAAAAAAAA
++AAAAAAAAAAAAAAAAJyDsJicg7IAnIOyzJyDs5icg7OYnIOyzJyDsgCcg7CYAAAAAAAAAAAAAAAAA
++AAAA+B8AAPAPAADAAwAAwAMAAIABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAABAACAAQAAwAMAAMAD
++AADwDwAA+B8AAA==</Image>
++<Url type="text/html" method="POST" template="https://duckduckgo.com/html/">
++  <Param name="q" value="{searchTerms}"/>
++</Url>
++<SearchForm>https://duckduckgo.com/html/</SearchForm>
++</SearchPlugin>
+diff --git a/browser/locales/en-US/searchplugins/list.txt b/browser/locales/en-US/searchplugins/list.txt
+index 2a1141a..0466f4e 100644
+--- a/browser/locales/en-US/searchplugins/list.txt
++++ b/browser/locales/en-US/searchplugins/list.txt
+@@ -1,7 +1,9 @@
+ amazondotcom
+ bing
++duckduckgo
+ eBay
+ google
++startpage
+ twitter
+ wikipedia
+ yahoo
+diff --git a/browser/locales/en-US/searchplugins/startpage.xml b/browser/locales/en-US/searchplugins/startpage.xml
+new file mode 100644
+index 0000000..1a310b1
+--- /dev/null
++++ b/browser/locales/en-US/searchplugins/startpage.xml
+@@ -0,0 +1,11 @@
++<SearchPlugin xmlns="http://www.mozilla.org/2006/browser/search/">
++<ShortName>Startpage</ShortName>
++<Description>Start Page</Description>
++<InputEncoding>UTF-8</InputEncoding>
++<Image width="16" height="16">data:image/png;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2jkj+9YtD/vWLQ/71i0P+9otD/vaLRP72i0T+9YtE/vWLRP72i0T+9otD/vaNRP72jUT+9otF/vaLRf73kkv+9Yc///WJP//1iT//9Yk///rAmf/94Mz/+sCa//aRTv/1iUH/9ok///aJP//2i0H/9otB//aJQv/2iUL/9otC//aNRP/2jUT/9o1E//aNRP/6wpv////////////96dr/95dQ//aNRP/2kET/9pBG//aQRv/2kEb/9pBG//aRR//3lEz/95BH//mueP/7xJ3/959g//efYf/4p23//vDm//3p2//3kEr/95FJ//aRSf/niFH/95FK//aRSv/2mE//95hS/vq4iP/////////////////81bj/95xZ//q4iP//////+bF+//eZT//njFT/PSqi/2xGjv/2mVD/951V/vedVv783cX///////vQrf/++PP///////748//+8uj///////m3gf/olFr/PSuj/w8Pt/9sSJD/951V//eeWf73oVv++8ul///////5sXf/+KRi//vRsf////////////3r3v/olF//Piyk/w8Pt/9sSJH/+J5Z//ieWv/3oV/++KZf/vihXP/97N7//vn0//zTs//6wJP/+bBy//q6iP/onW//Piyl/w8Pt/8fGbH/m2iB/+icY//4pGD/96hl/viqZf74pmD/+Kxr//3iy/////////n1//ivbP/onGj/Pi2m/w8Pt/8uJKz/fFeQ/x8Zsf8+Lqb/6J9r//ivbP74rm3++Klm//mpZv/5q2f/+bR9//m0e//poW7/Pi6n/w8Pt/9sTZj/+Ktp//ira/+rd4P/Dw+3/4xijv/5snH++LN1/vmvbf/5r23/+a5t//mvb//4r2//TTuk/w8Pt/8fGrL/6ah1//ivcP/4r3P/q3yI/w8Pt/+MZpP/+bN5/vm4ev75t3X/+bV1//m1df/5t3X/+Ld3/8qUhP98XZn/Hxqz/+mse//5t3f/2p+B/x8as/8PD7f/u4qK//m7fv76u4D++bl7//m3fP/5uXz/+bl8//m5fP/5t3z/+bl//x8as/9NPKf/fWCb/x8as/8PD7f/bVOh//q5f//6v4X++sGI/vm9g//5voX/+b6F//m9hf/6vYX/+r6F//nCh/+bepr/Hxu0/w8Pt/8PD7f/fWOh//q+hf/6wof/+saN/vrGjf75xIv/+ceL//nEi//5xIv/+sSL//rHi//6x43/+ceN/+m7kP+7lpj/6ruQ//rHkP/6x43/+seQ//rLlf76ypT++seR//rJkf/6yZH/+seR//rJkf/6yZH/+8mR//vJlP/7yZT/+smU//rJlP/6yZT/+8yV//rJlf/6zpn+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==</Image>
++
++<Url type="text/html" method="POST" template="https://startpage.com/do/search">
++  <Param name="q" value="{searchTerms}"/>
++</Url>
++<SearchForm>https://startpage.com/do/search/</SearchForm>
++</SearchPlugin>
+-- 
+1.7.5.4
+

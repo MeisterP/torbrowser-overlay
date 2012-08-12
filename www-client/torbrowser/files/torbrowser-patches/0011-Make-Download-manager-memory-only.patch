@@ -1,0 +1,57 @@
+From 8992ae1cb7e1545413e649027ab7827799c53300 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Wed, 25 Apr 2012 13:39:35 -0700
+Subject: [PATCH 11/20] Make Download manager memory only.
+
+Solves https://trac.torproject.org/projects/tor/ticket/4017.
+
+Yes, this is an ugly hack. We *could* send the observer notification from
+Torbutton to tell the download manager to switch to memory, but then we have
+to dance around and tell it again if the user switches in and out of private
+browsing mode..
+
+The right way to do this is with a pref. Maybe I'll get to that someday, if
+this breaks enough times in conflict.
+---
+ toolkit/components/downloads/nsDownloadManager.cpp |    4 ++--
+ toolkit/components/downloads/nsDownloadManager.h   |    2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/toolkit/components/downloads/nsDownloadManager.cpp b/toolkit/components/downloads/nsDownloadManager.cpp
+index cb1f1f6..1de653b 100644
+--- a/toolkit/components/downloads/nsDownloadManager.cpp
++++ b/toolkit/components/downloads/nsDownloadManager.cpp
+@@ -1999,7 +1999,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
+     if (NS_LITERAL_STRING("memory").Equals(aData))
+       return SwitchDatabaseTypeTo(DATABASE_MEMORY);
+     else if (NS_LITERAL_STRING("disk").Equals(aData))
+-      return SwitchDatabaseTypeTo(DATABASE_DISK);
++      return SwitchDatabaseTypeTo(DATABASE_MEMORY);
+   }
+   else if (strcmp(aTopic, "alertclickcallback") == 0) {
+     nsCOMPtr<nsIDownloadManagerUI> dmui =
+@@ -2076,7 +2076,7 @@ nsDownloadManager::OnLeavePrivateBrowsingMode()
+   (void)ResumeAllDownloads(false);
+ 
+   // Switch back to the on-disk DB again
+-  (void)SwitchDatabaseTypeTo(DATABASE_DISK);
++  //(void)SwitchDatabaseTypeTo(DATABASE_DISK);
+ 
+   mInPrivateBrowsing = false;
+ }
+diff --git a/toolkit/components/downloads/nsDownloadManager.h b/toolkit/components/downloads/nsDownloadManager.h
+index 16a861e..e729cbf 100644
+--- a/toolkit/components/downloads/nsDownloadManager.h
++++ b/toolkit/components/downloads/nsDownloadManager.h
+@@ -92,7 +92,7 @@ public:
+ 
+   virtual ~nsDownloadManager();
+   nsDownloadManager() :
+-      mDBType(DATABASE_DISK)
++      mDBType(DATABASE_MEMORY)
+     , mInPrivateBrowsing(false)
+ #ifdef DOWNLOAD_SCANNER
+     , mScanner(nsnull)
+-- 
+1.7.5.4
+

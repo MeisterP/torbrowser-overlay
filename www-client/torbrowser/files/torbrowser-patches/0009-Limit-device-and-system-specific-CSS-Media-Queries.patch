@@ -1,0 +1,116 @@
+From 6c09a21d1db29dc28b359294ededc047ba5b463e Mon Sep 17 00:00:00 2001
+From: Shondoit Walker <shondoit@gmail.com>
+Date: Mon, 4 Jun 2012 19:15:31 +0200
+Subject: [PATCH 09/20] Limit device- and system-specific CSS Media Queries
+
+This is done to address
+https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
+
+This also fixes bug #4795 by making queries still available for chrome windows,
+whilst returning nothing or non-device-specific values for web pages or extensions.
+---
+ layout/style/nsMediaFeatures.cpp |   42 ++++++++++++++++++++++++-------------
+ 1 files changed, 27 insertions(+), 15 deletions(-)
+
+diff --git a/layout/style/nsMediaFeatures.cpp b/layout/style/nsMediaFeatures.cpp
+index 6eca06e..25735e8 100644
+--- a/layout/style/nsMediaFeatures.cpp
++++ b/layout/style/nsMediaFeatures.cpp
+@@ -130,6 +130,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
+ static nsSize
+ GetDeviceSize(nsPresContext* aPresContext)
+ {
++  if (!aPresContext->IsChrome()) {
++    return GetSize(aPresContext);
++  } else {
+     nsSize size;
+     if (aPresContext->IsRootPaginatedDocument())
+         // We want the page size, including unprintable areas and margins.
+@@ -140,6 +143,7 @@ GetDeviceSize(nsPresContext* aPresContext)
+         GetDeviceContextFor(aPresContext)->
+             GetDeviceSurfaceDimensions(size.width, size.height);
+     return size;
++  }
+ }
+ 
+ static nsresult
+@@ -183,17 +187,17 @@ static nsresult
+ GetDeviceOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
+                      nsCSSValue& aResult)
+ {
+-    nsSize size = GetDeviceSize(aPresContext);
+-    PRInt32 orientation;
+-    if (size.width > size.height) {
+-        orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
+-    } else {
+-        // Per spec, square viewports should be 'portrait'
+-        orientation = NS_STYLE_ORIENTATION_PORTRAIT;
+-    }
+-
+-    aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
+-    return NS_OK;
++  nsSize size = GetDeviceSize(aPresContext);
++  PRInt32 orientation;
++  if (size.width > size.height) {
++      orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
++  } else {
++      // Per spec, square viewports should be 'portrait'
++      orientation = NS_STYLE_ORIENTATION_PORTRAIT;
++  }
++
++  aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
++  return NS_OK;
+ }
+ 
+ static nsresult
+@@ -311,8 +315,12 @@ static nsresult
+ GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
+                     nsCSSValue& aResult)
+ {
+-  float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
+-  aResult.SetFloatValue(ratio, eCSSUnit_Number);
++  if (aPresContext->IsChrome()) {
++    float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
++    aResult.SetFloatValue(ratio, eCSSUnit_Number);
++  } else {
++    aResult.SetFloatValue(1.0, eCSSUnit_Number);
++  }
+   return NS_OK;
+ }
+ 
+@@ -320,18 +328,21 @@ static nsresult
+ GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+                 nsCSSValue& aResult)
+ {
++  if (aPresContext->IsChrome()) {
+     NS_ABORT_IF_FALSE(aFeature->mValueType == nsMediaFeature::eBoolInteger,
+                       "unexpected type");
+     nsIAtom *metricAtom = *aFeature->mData.mMetric;
+     bool hasMetric = nsCSSRuleProcessor::HasSystemMetric(metricAtom);
+     aResult.SetIntValue(hasMetric ? 1 : 0, eCSSUnit_Integer);
+-    return NS_OK;
++  }
++  return NS_OK;
+ }
+ 
+ static nsresult
+ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+                 nsCSSValue& aResult)
+ {
++  if (aPresContext->IsChrome()) {
+     aResult.Reset();
+ #ifdef XP_WIN
+     PRUint8 windowsThemeId =
+@@ -350,7 +361,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+         }
+     }
+ #endif
+-    return NS_OK;
++  }
++  return NS_OK;
+ }
+ 
+ /*
+-- 
+1.7.5.4
+
