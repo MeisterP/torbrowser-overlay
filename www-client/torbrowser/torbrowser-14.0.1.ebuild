@@ -293,7 +293,8 @@ src_install() {
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
 
 	# create wrapper to start torbrowser
-	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} -no-remote -profile ~/.${PN}/profile"
+	# the class value should match the name of the desktop entry
+	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} --class torbrowser-torbrowser -no-remote -profile ~/.${PN}/profile"
 
 	newicon -s 256 "${DISTDIR}"/${PN}256.png ${PN}.png
 	make_desktop_entry ${PN} "Torbrowser" ${PN} "Network;WebBrowser"
