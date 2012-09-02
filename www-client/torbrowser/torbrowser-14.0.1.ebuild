@@ -128,6 +128,7 @@ src_prepare() {
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"
 	epatch "${FILESDIR}"/${MY_PN}-14.0_beta7-gst-*.patch
+	epatch "${FILESDIR}"/${MY_PN}-15.0_beta1-fix-packager-xargs-rm.patch
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
