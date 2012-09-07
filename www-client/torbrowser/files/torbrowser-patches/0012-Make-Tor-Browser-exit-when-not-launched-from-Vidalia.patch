@@ -1,7 +1,7 @@
-From 6c15c52f930e7c7bccca0270219d87433c6d4dc8 Mon Sep 17 00:00:00 2001
+From 07ed1fba9d99b3aa860ab75f34c7650341c59b77 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Thu, 7 Jun 2012 14:45:26 -0700
-Subject: [PATCH 15/19] Make Tor Browser exit when not launched from Vidalia
+Subject: [PATCH 12/19] Make Tor Browser exit when not launched from Vidalia
 
 Turns out the Windows 7 UI encourages users to "dock" their Tor Browser app
 for easy relaunch. If they manage to do this, we should fail closed rather
@@ -16,10 +16,10 @@ actually be common.
  1 files changed, 14 insertions(+), 0 deletions(-)
 
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index fa89e20..e504b88 100644
+index 79ab155..84f747c 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
-@@ -1243,6 +1243,20 @@ function BrowserStartup() {
+@@ -995,6 +995,20 @@ function BrowserStartup() {
  
    prepareForStartup();
  

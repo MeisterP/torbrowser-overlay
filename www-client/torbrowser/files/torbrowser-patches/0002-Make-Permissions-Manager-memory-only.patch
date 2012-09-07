@@ -1,4 +1,4 @@
-From 167d0ac069fa5d50f679636d690171b4fd4ac5a2 Mon Sep 17 00:00:00 2001
+From 12acd440d185f5536eed99084c4800a46d617197 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 1 Feb 2012 15:45:16 -0800
 Subject: [PATCH 02/19] Make Permissions Manager memory-only
@@ -16,10 +16,10 @@ https://trac.torproject.org/projects/tor/ticket/2950
  1 files changed, 31 insertions(+), 3 deletions(-)
 
 diff --git a/extensions/cookie/nsPermissionManager.cpp b/extensions/cookie/nsPermissionManager.cpp
-index cdfe21b..a7a0efb 100644
+index 94791ca..1f7bcbd 100644
 --- a/extensions/cookie/nsPermissionManager.cpp
 +++ b/extensions/cookie/nsPermissionManager.cpp
-@@ -58,6 +58,10 @@
+@@ -24,6 +24,10 @@
  #include "mozStorageHelper.h"
  #include "mozStorageCID.h"
  #include "nsXULAppAPI.h"
@@ -30,7 +30,7 @@ index cdfe21b..a7a0efb 100644
  
  static nsPermissionManager *gPermissionManager = nsnull;
  
-@@ -203,6 +207,11 @@ nsPermissionManager::Init()
+@@ -167,6 +171,11 @@ nsPermissionManager::Init()
      mObserverService->AddObserver(this, "profile-do-change", true);
    }
  
@@ -42,7 +42,7 @@ index cdfe21b..a7a0efb 100644
    if (IsChildProcess()) {
      // Get the permissions from the parent process
      InfallibleTArray<IPC::Permission> perms;
-@@ -251,8 +260,18 @@ nsPermissionManager::InitDB(bool aRemoveFile)
+@@ -215,8 +224,18 @@ nsPermissionManager::InitDB(bool aRemoveFile)
    if (!storage)
      return NS_ERROR_UNEXPECTED;
  
@@ -62,7 +62,7 @@ index cdfe21b..a7a0efb 100644
    NS_ENSURE_SUCCESS(rv, rv);
  
    bool ready;
-@@ -262,7 +281,11 @@ nsPermissionManager::InitDB(bool aRemoveFile)
+@@ -226,7 +245,11 @@ nsPermissionManager::InitDB(bool aRemoveFile)
      rv = permissionsFile->Remove(false);
      NS_ENSURE_SUCCESS(rv, rv);
  
@@ -75,7 +75,7 @@ index cdfe21b..a7a0efb 100644
      NS_ENSURE_SUCCESS(rv, rv);
  
      mDBConn->GetConnectionReady(&ready);
-@@ -794,7 +817,12 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
+@@ -758,7 +781,12 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
  {
    ENSURE_NOT_CHILD_PROCESS;
  

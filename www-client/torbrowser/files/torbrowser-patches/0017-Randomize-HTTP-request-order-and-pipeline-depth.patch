@@ -1,7 +1,7 @@
-From 1777a19229cf111156aeae078344a27f34c953c3 Mon Sep 17 00:00:00 2001
+From c5b94226e50a5502ef7902e2d05874f36d678769 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Fri, 20 Jul 2012 18:13:44 -0700
-Subject: [PATCH 17/21] Randomize HTTP request order and pipeline depth.
+Date: Tue, 28 Aug 2012 18:08:27 -0700
+Subject: [PATCH 17/19] Randomize HTTP request order and pipeline depth.
 
 This is an experimental defense against
 http://lorre.uni.lu/~andriy/papers/acmccs-wpes11-fingerprinting.pdf
@@ -24,19 +24,19 @@ request order (though SPDY is still disabled by default in TBB).
  2 files changed, 57 insertions(+), 4 deletions(-)
 
 diff --git a/netwerk/protocol/http/nsHttpConnectionMgr.cpp b/netwerk/protocol/http/nsHttpConnectionMgr.cpp
-index 5336c7d..b94ee31 100644
+index 0bfaf3b..d565532 100644
 --- a/netwerk/protocol/http/nsHttpConnectionMgr.cpp
 +++ b/netwerk/protocol/http/nsHttpConnectionMgr.cpp
-@@ -52,6 +52,8 @@
+@@ -20,6 +20,8 @@
  #include "prnetdb.h"
  #include "mozilla/Telemetry.h"
  
 +#include <stdlib.h>
 +
  using namespace mozilla;
+ using namespace mozilla::net;
  
- // defined by the socket transport service while active
-@@ -70,15 +72,39 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
+@@ -39,15 +41,39 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
      // insert into queue with smallest valued number first.  search in reverse
      // order under the assumption that many of the existing transactions will
      // have the same priority (usually 0).
@@ -80,7 +80,7 @@ index 5336c7d..b94ee31 100644
  }
  
  //-----------------------------------------------------------------------------
-@@ -101,6 +127,12 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
+@@ -70,6 +96,12 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
      mCT.Init();
      mAlternateProtocolHash.Init(16);
      mSpdyPreferredHash.Init();
@@ -93,7 +93,7 @@ index 5336c7d..b94ee31 100644
  }
  
  nsHttpConnectionMgr::~nsHttpConnectionMgr()
-@@ -1115,6 +1147,19 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
+@@ -1141,6 +1173,19 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
          maxPersistConns = mMaxPersistConnsPerHost;
      }
  
@@ -113,7 +113,7 @@ index 5336c7d..b94ee31 100644
      // use >= just to be safe
      bool result = (totalCount >= maxConns) || ( (caps & NS_HTTP_ALLOW_KEEPALIVE) &&
                                                (persistCount >= maxPersistConns) );
-@@ -1250,6 +1295,11 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
+@@ -1307,6 +1352,11 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
  
      maxdepth = PR_MIN(maxdepth, depthLimit);
  
@@ -126,10 +126,10 @@ index 5336c7d..b94ee31 100644
          return false;
  
 diff --git a/netwerk/protocol/http/nsHttpConnectionMgr.h b/netwerk/protocol/http/nsHttpConnectionMgr.h
-index 9f36345..6e12015 100644
+index 9e65da0..07c93b1 100644
 --- a/netwerk/protocol/http/nsHttpConnectionMgr.h
 +++ b/netwerk/protocol/http/nsHttpConnectionMgr.h
-@@ -54,6 +54,7 @@
+@@ -22,6 +22,7 @@
  #include "nsIObserver.h"
  #include "nsITimer.h"
  #include "nsIX509Cert3.h"
@@ -137,7 +137,7 @@ index 9f36345..6e12015 100644
  
  class nsHttpPipeline;
  
-@@ -562,6 +563,8 @@ private:
+@@ -579,6 +580,8 @@ private:
      PRUint64 mTimeOfNextWakeUp;
      // Timer for next pruning of dead connections.
      nsCOMPtr<nsITimer> mTimer;

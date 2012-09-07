@@ -1,4 +1,4 @@
-From 497c96e0d9be60c3c4d61edf6162aff22ee9f4fc Mon Sep 17 00:00:00 2001
+From caab8c136e806dcd913d637210ff187abb1b6b29 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 1 Feb 2012 15:40:40 -0800
 Subject: [PATCH 01/19] Block Components.interfaces,lookupMethod from content
@@ -20,10 +20,10 @@ https://trac.torproject.org/projects/tor/ticket/2874
  1 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/js/xpconnect/src/XPCComponents.cpp b/js/xpconnect/src/XPCComponents.cpp
-index ad39de5..cf11c20 100644
+index ed7ab0a..609b73f 100644
 --- a/js/xpconnect/src/XPCComponents.cpp
 +++ b/js/xpconnect/src/XPCComponents.cpp
-@@ -4636,7 +4636,9 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
+@@ -4621,7 +4621,9 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
  NS_IMETHODIMP
  nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
  {
@@ -34,7 +34,7 @@ index ad39de5..cf11c20 100644
      *_retval = xpc_CheckAccessList(methodName, allowed);
      return NS_OK;
  }
-@@ -4645,7 +4647,9 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
+@@ -4630,7 +4632,9 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
  NS_IMETHODIMP
  nsXPCComponents::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
  {

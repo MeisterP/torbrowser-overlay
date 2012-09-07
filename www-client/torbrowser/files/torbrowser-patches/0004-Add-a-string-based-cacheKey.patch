@@ -1,6 +1,6 @@
-From 0abaf15bf59d5d742511642c1f05127058c557b9 Mon Sep 17 00:00:00 2001
-From: Mike Perry <mikeperry-git@fscked.org>
-Date: Fri, 2 Sep 2011 20:47:02 -0700
+From df164279499b23794a112de4305f3ed99a25da68 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Tue, 28 Aug 2012 17:03:57 -0700
 Subject: [PATCH 04/19] Add a string-based cacheKey.
 
 Used for isolating cache according to same-origin policy.
@@ -11,10 +11,10 @@ Used for isolating cache according to same-origin policy.
  3 files changed, 30 insertions(+), 0 deletions(-)
 
 diff --git a/netwerk/base/public/nsICachingChannel.idl b/netwerk/base/public/nsICachingChannel.idl
-index 2da46d6..4ee5774 100644
+index 96a8aef..b1c6f05 100644
 --- a/netwerk/base/public/nsICachingChannel.idl
 +++ b/netwerk/base/public/nsICachingChannel.idl
-@@ -98,6 +98,13 @@ interface nsICachingChannel : nsICacheInfoChannel
+@@ -66,6 +66,13 @@ interface nsICachingChannel : nsICacheInfoChannel
      attribute nsISupports cacheKey;
  
      /**
@@ -29,10 +29,10 @@ index 2da46d6..4ee5774 100644
       * may fail if the disk cache is not present.  The value of this attribute
       * is usually only settable during the processing of a channel's
 diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
-index 3f63c27..23edc3c 100644
+index 290d04c..9c10e3a 100644
 --- a/netwerk/protocol/http/nsHttpChannel.cpp
 +++ b/netwerk/protocol/http/nsHttpChannel.cpp
-@@ -2540,6 +2540,12 @@ nsHttpChannel::AssembleCacheKey(const char *spec, PRUint32 postID,
+@@ -2538,6 +2538,12 @@ nsHttpChannel::AssembleCacheKey(const char *spec, PRUint32 postID,
          cacheKey.Append(buf);
      }
  
@@ -45,7 +45,7 @@ index 3f63c27..23edc3c 100644
      if (!cacheKey.IsEmpty()) {
          cacheKey.AppendLiteral("uri=");
      }
-@@ -4910,6 +4916,22 @@ nsHttpChannel::SetCacheForOfflineUse(bool value)
+@@ -4876,6 +4882,22 @@ nsHttpChannel::SetCacheForOfflineUse(bool value)
  }
  
  NS_IMETHODIMP
@@ -69,17 +69,17 @@ index 3f63c27..23edc3c 100644
  {
      value = mOfflineCacheClientID;
 diff --git a/netwerk/protocol/http/nsHttpChannel.h b/netwerk/protocol/http/nsHttpChannel.h
-index c3935f5..5a61e21 100644
+index eaad05e..0382b1c 100644
 --- a/netwerk/protocol/http/nsHttpChannel.h
 +++ b/netwerk/protocol/http/nsHttpChannel.h
-@@ -311,6 +311,7 @@ private:
+@@ -292,6 +292,7 @@ private:
      nsCOMPtr<nsICacheEntryDescriptor> mOfflineCacheEntry;
      nsCacheAccessMode                 mOfflineCacheAccess;
      nsCString                         mOfflineCacheClientID;
 +    nsCString                         mCacheDomain;
  
-     // auth specific data
-     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
+     nsCOMPtr<nsILocalFile>            mProfileDirectory;
+ 
 -- 
 1.7.5.4
 

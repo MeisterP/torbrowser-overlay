@@ -1,6 +1,6 @@
-From 0beb4d8440fd7ff415ac3207d010947c9bfceaf2 Mon Sep 17 00:00:00 2001
+From d705e4bb2b7efd4166d46d6fcb3183212902707c Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Fri, 20 Jul 2012 18:29:08 -0700
+Date: Tue, 28 Aug 2012 18:22:32 -0700
 Subject: [PATCH 18/19] Adapt Steven Michaud's Mac crashfix patch
 
 Source is: https://bugzilla.mozilla.org/show_bug.cgi?id=715885#c35
@@ -10,8 +10,7 @@ MacOS.
 ---
  widget/Makefile.in                        |    1 +
  widget/cocoa/nsChildView.mm               |   28 +++++++++++------
- widget/gtk2/nsDragService.cpp             |    4 +-
- widget/gtk2/nsWindow.cpp                  |    3 +-
+ widget/gtk2/nsDragService.cpp             |    9 +++--
  widget/nsIDragService.idl                 |    4 +--
  widget/nsPIDragService.idl                |   48 +++++++++++++++++++++++++++++
  widget/qt/nsDragService.h                 |    2 +
@@ -23,15 +22,15 @@ MacOS.
  widget/windows/nsPIDragServiceWindows.idl |   46 +++++++++++++++++++++++++++
  widget/xpwidgets/nsBaseDragService.cpp    |   16 +++++++++-
  widget/xpwidgets/nsBaseDragService.h      |    9 ++---
- 15 files changed, 178 insertions(+), 47 deletions(-)
+ 14 files changed, 179 insertions(+), 48 deletions(-)
  create mode 100644 widget/nsPIDragService.idl
  create mode 100644 widget/windows/nsPIDragServiceWindows.idl
 
 diff --git a/widget/Makefile.in b/widget/Makefile.in
-index 4a3405b..4c105a4 100644
+index f1df966..eb6eec2 100644
 --- a/widget/Makefile.in
 +++ b/widget/Makefile.in
-@@ -138,6 +138,7 @@ XPIDLSRCS	= \
+@@ -105,6 +105,7 @@ XPIDLSRCS	= \
  		nsIClipboardDragDropHooks.idl \
  		nsIClipboardDragDropHookList.idl \
  		nsIDragSession.idl \
@@ -40,10 +39,10 @@ index 4a3405b..4c105a4 100644
  		nsIFormatConverter.idl \
  		nsIClipboard.idl \
 diff --git a/widget/cocoa/nsChildView.mm b/widget/cocoa/nsChildView.mm
-index 6f89719..33c16ff 100644
+index 9cbc1e3..92b93cb 100644
 --- a/widget/cocoa/nsChildView.mm
 +++ b/widget/cocoa/nsChildView.mm
-@@ -4555,11 +4555,12 @@ NSEvent* gLastDragMouseDownEvent = nil;
+@@ -4513,11 +4513,12 @@ NSEvent* gLastDragMouseDownEvent = nil;
    if (!dragService) {
      dragService = do_GetService(kDragServiceContractID);
    }
@@ -57,7 +56,7 @@ index 6f89719..33c16ff 100644
    }
  }
  
-@@ -4580,11 +4581,13 @@ NSEvent* gLastDragMouseDownEvent = nil;
+@@ -4538,11 +4539,13 @@ NSEvent* gLastDragMouseDownEvent = nil;
    }
  
    if (mDragService) {
@@ -76,7 +75,7 @@ index 6f89719..33c16ff 100644
  
      // XXX: dropEffect should be updated per |operation|. 
      // As things stand though, |operation| isn't well handled within "our"
-@@ -4595,10 +4598,15 @@ NSEvent* gLastDragMouseDownEvent = nil;
+@@ -4553,10 +4556,15 @@ NSEvent* gLastDragMouseDownEvent = nil;
      // value for NSDragOperationGeneric that is passed by other applications.
      // All that said, NSDragOperationNone is still reliable.
      if (operation == NSDragOperationNone) {
@@ -97,19 +96,21 @@ index 6f89719..33c16ff 100644
  
      mDragService->EndDragSession(true);
 diff --git a/widget/gtk2/nsDragService.cpp b/widget/gtk2/nsDragService.cpp
-index 16f9764..0f078b6 100644
+index e0ff5d6..2c10c10 100644
 --- a/widget/gtk2/nsDragService.cpp
 +++ b/widget/gtk2/nsDragService.cpp
-@@ -285,7 +285,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
-     // the NS_DRAGDROP_END event.
-     nsDragService *dragService = static_cast<nsDragService*>(user_data);
-     dragService->
--        SetDragEndPoint(nsIntPoint(event->motion.x_root, event->motion.y_root));
-+        SetDragEndPoint(event->motion.x_root, event->motion.y_root);
- 
-     MotionEventData *data = new MotionEventData(widget, event);
- 
-@@ -1404,7 +1404,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
+@@ -239,8 +239,8 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
+         // Update the cursor position.  The last of these recorded gets used for
+         // the NS_DRAGDROP_END event.
+         nsDragService *dragService = static_cast<nsDragService*>(user_data);
+-        dragService->SetDragEndPoint(nsIntPoint(event->motion.x_root,
+-                                                event->motion.y_root));
++        dragService->SetDragEndPoint(event->motion.x_root,
++                                     event->motion.y_root);
+     } else if (sMotionEvent && (event->type != GDK_KEY_PRESS ||
+                                 event->type != GDK_KEY_RELEASE)) {
+         // Update modifier state from keypress events.
+@@ -1348,7 +1348,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
          GdkDisplay* display = gdk_display_get_default();
          if (display) {
              gdk_display_get_pointer(display, NULL, &x, &y, NULL);
@@ -118,26 +119,22 @@ index 16f9764..0f078b6 100644
          }
      }
  
-diff --git a/widget/gtk2/nsWindow.cpp b/widget/gtk2/nsWindow.cpp
-index 07a1ae2..664293d 100644
---- a/widget/gtk2/nsWindow.cpp
-+++ b/widget/gtk2/nsWindow.cpp
-@@ -3447,8 +3447,9 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
-     // get our drag context
-     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
-     nsDragService *dragServiceGTK = static_cast<nsDragService*>(dragService.get());
-+    nsIntPoint end = nsIntPoint(aX, aY) + WidgetToScreenOffset();
+@@ -1765,8 +1765,9 @@ nsDragService::ScheduleDropEvent(nsWindow *aWindow,
+         NS_WARNING("Additional drag drop ignored");
+         return FALSE;        
+     }
++    nsIntPoint pt = aWindowPoint + aWindow->WidgetToScreenOffset();
  
--    dragServiceGTK->SetDragEndPoint(nsIntPoint(aX, aY) + WidgetToScreenOffset());
-+    dragServiceGTK->SetDragEndPoint(end.x, end.y);
+-    SetDragEndPoint(aWindowPoint + aWindow->WidgetToScreenOffset());
++    SetDragEndPoint(pt.x, pt.y);
  
-     nscoord retx = 0;
-     nscoord rety = 0;
+     // We'll reply with gtk_drag_finish().
+     return TRUE;
 diff --git a/widget/nsIDragService.idl b/widget/nsIDragService.idl
-index e42c578..ef8c46f 100644
+index 196761e..c0565bb 100644
 --- a/widget/nsIDragService.idl
 +++ b/widget/nsIDragService.idl
-@@ -48,7 +48,7 @@ interface nsIDOMDragEvent;
+@@ -15,7 +15,7 @@ interface nsIDOMDragEvent;
  interface nsIDOMDataTransfer;
  interface nsISelection;
  
@@ -146,7 +143,7 @@ index e42c578..ef8c46f 100644
  interface nsIDragService : nsISupports
  {
    const long DRAGDROP_ACTION_NONE = 0;
-@@ -145,8 +145,6 @@ interface nsIDragService : nsISupports
+@@ -112,8 +112,6 @@ interface nsIDragService : nsISupports
     */
    void suppress();
    void unsuppress();
@@ -210,10 +207,10 @@ index 0000000..93a144d
 +  void setDragEndPoint(in long aX, in long aY);
 +};
 diff --git a/widget/qt/nsDragService.h b/widget/qt/nsDragService.h
-index 5a3e5bb..50dcfac 100644
+index 393be99..56d0312 100644
 --- a/widget/qt/nsDragService.h
 +++ b/widget/qt/nsDragService.h
-@@ -50,6 +50,8 @@ public:
+@@ -17,6 +17,8 @@ public:
      NS_DECL_ISUPPORTS
      NS_DECL_NSIDRAGSERVICE
  
@@ -223,10 +220,10 @@ index 5a3e5bb..50dcfac 100644
  
  private:
 diff --git a/widget/windows/Makefile.in b/widget/windows/Makefile.in
-index df811ac..8d5ea4b 100644
+index 160c941..12f6dc7 100644
 --- a/widget/windows/Makefile.in
 +++ b/widget/windows/Makefile.in
-@@ -120,6 +120,10 @@ ifdef MOZ_ENABLE_D3D10_LAYER
+@@ -88,6 +88,10 @@ ifdef MOZ_ENABLE_D3D10_LAYER
  DEFINES		+= -DMOZ_ENABLE_D3D10_LAYER
  endif
  
@@ -238,10 +235,10 @@ index df811ac..8d5ea4b 100644
    ../xpwidgets/$(LIB_PREFIX)xpwidgets_s.$(LIB_SUFFIX) \
    $(NULL)
 diff --git a/widget/windows/nsDragService.cpp b/widget/windows/nsDragService.cpp
-index ec4b16e..bbae112 100644
+index efe8ce1..62e7d97 100644
 --- a/widget/windows/nsDragService.cpp
 +++ b/widget/windows/nsDragService.cpp
-@@ -97,6 +97,8 @@ nsDragService::~nsDragService()
+@@ -60,6 +60,8 @@ nsDragService::~nsDragService()
    NS_IF_RELEASE(mDataObject);
  }
  
@@ -250,7 +247,7 @@ index ec4b16e..bbae112 100644
  bool
  nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
                                 nsIScriptableRegion *aRegion,
-@@ -347,7 +349,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
+@@ -305,7 +307,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
    POINT cpos;
    cpos.x = GET_X_LPARAM(pos);
    cpos.y = GET_Y_LPARAM(pos);
@@ -259,7 +256,7 @@ index ec4b16e..bbae112 100644
    EndDragSession(true);
  
    mDoingDrag = false;
-@@ -465,25 +467,26 @@ nsDragService::GetData(nsITransferable * aTransferable, PRUint32 anItem)
+@@ -423,25 +425,26 @@ nsDragService::GetData(nsITransferable * aTransferable, PRUint32 anItem)
  
  //---------------------------------------------------------
  NS_IMETHODIMP
@@ -291,10 +288,10 @@ index ec4b16e..bbae112 100644
  
  //-------------------------------------------------------------------------
 diff --git a/widget/windows/nsDragService.h b/widget/windows/nsDragService.h
-index 87d6cc9..04c8746 100644
+index 93b5480..bd2125b 100644
 --- a/widget/windows/nsDragService.h
 +++ b/widget/windows/nsDragService.h
-@@ -39,6 +39,7 @@
+@@ -7,6 +7,7 @@
  #define nsDragService_h__
  
  #include "nsBaseDragService.h"
@@ -302,7 +299,7 @@ index 87d6cc9..04c8746 100644
  #include <windows.h>
  #include <shlobj.h>
  
-@@ -52,12 +53,15 @@ class  nsString;
+@@ -20,12 +21,15 @@ class  nsString;
   * Native Win32 DragService wrapper
   */
  
@@ -320,7 +317,7 @@ index 87d6cc9..04c8746 100644
    // nsIDragService
    NS_IMETHOD InvokeDragSession(nsIDOMNode *aDOMNode,
                                 nsISupportsArray *anArrayTransferables,
-@@ -71,13 +75,9 @@ public:
+@@ -39,13 +43,9 @@ public:
    NS_IMETHOD EndDragSession(bool aDoneDrag);
  
    // native impl.
@@ -335,10 +332,10 @@ index 87d6cc9..04c8746 100644
    nsDataObjCollection* GetDataObjCollection(IDataObject * aDataObj);
  
 diff --git a/widget/windows/nsNativeDragSource.cpp b/widget/windows/nsNativeDragSource.cpp
-index e51101e..0fe6ffe 100644
+index e981ff9..e34613f 100644
 --- a/widget/windows/nsNativeDragSource.cpp
 +++ b/widget/windows/nsNativeDragSource.cpp
-@@ -42,7 +42,7 @@
+@@ -10,7 +10,7 @@
  #include "nsIServiceManager.h"
  #include "nsToolkit.h"
  #include "nsWidgetsCID.h"
@@ -347,7 +344,7 @@ index e51101e..0fe6ffe 100644
  
  static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
  
-@@ -101,9 +101,10 @@ STDMETHODIMP
+@@ -69,9 +69,10 @@ STDMETHODIMP
  nsNativeDragSource::QueryContinueDrag(BOOL fEsc, DWORD grfKeyState)
  {
    nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
@@ -361,13 +358,13 @@ index e51101e..0fe6ffe 100644
  
    if (fEsc) {
 diff --git a/widget/windows/nsNativeDragTarget.cpp b/widget/windows/nsNativeDragTarget.cpp
-index 3362ca6..a69817c 100644
+index da1cd1f..96303c3 100644
 --- a/widget/windows/nsNativeDragTarget.cpp
 +++ b/widget/windows/nsNativeDragTarget.cpp
-@@ -205,7 +205,11 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
-   event.isControl = IsKeyDown(NS_VK_CONTROL);
-   event.isMeta    = false;
-   event.isAlt     = IsKeyDown(NS_VK_ALT);
+@@ -172,7 +172,11 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
+   nsModifierKeyState modifierKeyState;
+   modifierKeyState.InitInputEvent(event);
+ 
 -  event.inputSource = static_cast<nsBaseDragService*>(mDragService)->GetInputSource();
 +  event.inputSource = 0;
 +  nsCOMPtr<nsPIDragService> dragServicePriv = do_QueryInterface(mDragService);
@@ -377,7 +374,7 @@ index 3362ca6..a69817c 100644
  
    mWindow->DispatchEvent(&event, status);
  }
-@@ -292,9 +296,8 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
+@@ -259,9 +263,8 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
    // This cast is ok because in the constructor we created a
    // the actual implementation we wanted, so we know this is
    // a nsDragService. It should be a private interface, though.
@@ -389,7 +386,7 @@ index 3362ca6..a69817c 100644
  
    // Now process the native drag state and then dispatch the event
    ProcessDrag(NS_DRAGDROP_ENTER, grfKeyState, ptl, pdwEffect);
-@@ -432,8 +435,8 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
+@@ -399,8 +402,8 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
    // This cast is ok because in the constructor we created a
    // the actual implementation we wanted, so we know this is
    // a nsDragService (but it should still be a private interface)
@@ -400,7 +397,7 @@ index 3362ca6..a69817c 100644
  
    // NOTE: ProcessDrag spins the event loop which may destroy arbitrary objects.
    // We use strong refs to prevent it from destroying these:
-@@ -457,11 +460,14 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
+@@ -424,11 +427,14 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
    // tell the drag service we're done with the session
    // Use GetMessagePos to get the position of the mouse at the last message
    // seen by the event loop. (Bug 489729)
@@ -473,10 +470,10 @@ index 0000000..c8a46dd
 +  void setDroppedLocal();
 +};
 diff --git a/widget/xpwidgets/nsBaseDragService.cpp b/widget/xpwidgets/nsBaseDragService.cpp
-index 342a036..87e28f7 100644
+index 1b2ef0d..627ebd2 100644
 --- a/widget/xpwidgets/nsBaseDragService.cpp
 +++ b/widget/xpwidgets/nsBaseDragService.cpp
-@@ -88,7 +88,7 @@ nsBaseDragService::~nsBaseDragService()
+@@ -55,7 +55,7 @@ nsBaseDragService::~nsBaseDragService()
  {
  }
  
@@ -485,7 +482,7 @@ index 342a036..87e28f7 100644
  
  //---------------------------------------------------------
  NS_IMETHODIMP
-@@ -436,6 +436,20 @@ nsBaseDragService::DragMoved(PRInt32 aX, PRInt32 aY)
+@@ -403,6 +403,20 @@ nsBaseDragService::DragMoved(PRInt32 aX, PRInt32 aY)
    return NS_OK;
  }
  
@@ -507,10 +504,10 @@ index 342a036..87e28f7 100644
  GetPresShellForContent(nsIDOMNode* aDOMNode)
  {
 diff --git a/widget/xpwidgets/nsBaseDragService.h b/widget/xpwidgets/nsBaseDragService.h
-index 290c0cb..2ceac2b 100644
+index 006747f..d825b53 100644
 --- a/widget/xpwidgets/nsBaseDragService.h
 +++ b/widget/xpwidgets/nsBaseDragService.h
-@@ -39,6 +39,7 @@
+@@ -7,6 +7,7 @@
  #define nsBaseDragService_h__
  
  #include "nsIDragService.h"
@@ -518,7 +515,7 @@ index 290c0cb..2ceac2b 100644
  #include "nsIDragSession.h"
  #include "nsITransferable.h"
  #include "nsISupportsArray.h"
-@@ -64,6 +65,7 @@ class nsICanvasElementExternal;
+@@ -32,6 +33,7 @@ class nsICanvasElementExternal;
   */
  
  class nsBaseDragService : public nsIDragService,
@@ -526,7 +523,7 @@ index 290c0cb..2ceac2b 100644
                            public nsIDragSession
  {
  
-@@ -74,14 +76,11 @@ public:
+@@ -42,14 +44,11 @@ public:
    //nsISupports
    NS_DECL_ISUPPORTS
  

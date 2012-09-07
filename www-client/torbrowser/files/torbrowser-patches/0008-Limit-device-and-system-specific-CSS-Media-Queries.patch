@@ -1,7 +1,7 @@
-From c4fbcc6ea2af3d7a97e0ab7687aa8921a02f243f Mon Sep 17 00:00:00 2001
+From fdecb1911dd0bbd9bc611931c16026de17f6cbe9 Mon Sep 17 00:00:00 2001
 From: Shondoit Walker <shondoit@gmail.com>
 Date: Mon, 4 Jun 2012 19:15:31 +0200
-Subject: [PATCH 09/19] Limit device- and system-specific CSS Media Queries
+Subject: [PATCH 08/19] Limit device- and system-specific CSS Media Queries
 
 This is done to address
 https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
@@ -13,10 +13,10 @@ whilst returning nothing or non-device-specific values for web pages or extensio
  1 files changed, 27 insertions(+), 15 deletions(-)
 
 diff --git a/layout/style/nsMediaFeatures.cpp b/layout/style/nsMediaFeatures.cpp
-index 6eca06e..25735e8 100644
+index a814f30..c9785b9 100644
 --- a/layout/style/nsMediaFeatures.cpp
 +++ b/layout/style/nsMediaFeatures.cpp
-@@ -130,6 +130,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
+@@ -98,6 +98,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
  static nsSize
  GetDeviceSize(nsPresContext* aPresContext)
  {
@@ -26,7 +26,7 @@ index 6eca06e..25735e8 100644
      nsSize size;
      if (aPresContext->IsRootPaginatedDocument())
          // We want the page size, including unprintable areas and margins.
-@@ -140,6 +143,7 @@ GetDeviceSize(nsPresContext* aPresContext)
+@@ -108,6 +111,7 @@ GetDeviceSize(nsPresContext* aPresContext)
          GetDeviceContextFor(aPresContext)->
              GetDeviceSurfaceDimensions(size.width, size.height);
      return size;
@@ -34,7 +34,7 @@ index 6eca06e..25735e8 100644
  }
  
  static nsresult
-@@ -183,17 +187,17 @@ static nsresult
+@@ -151,17 +155,17 @@ static nsresult
  GetDeviceOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
                       nsCSSValue& aResult)
  {
@@ -63,7 +63,7 @@ index 6eca06e..25735e8 100644
  }
  
  static nsresult
-@@ -311,8 +315,12 @@ static nsresult
+@@ -279,8 +283,12 @@ static nsresult
  GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
  {
@@ -78,7 +78,7 @@ index 6eca06e..25735e8 100644
    return NS_OK;
  }
  
-@@ -320,18 +328,21 @@ static nsresult
+@@ -288,18 +296,21 @@ static nsresult
  GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                  nsCSSValue& aResult)
  {
@@ -101,7 +101,7 @@ index 6eca06e..25735e8 100644
      aResult.Reset();
  #ifdef XP_WIN
      PRUint8 windowsThemeId =
-@@ -350,7 +361,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+@@ -318,7 +329,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
          }
      }
  #endif
