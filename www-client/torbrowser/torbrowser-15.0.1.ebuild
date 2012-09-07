@@ -16,7 +16,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # Patch version
-PATCH="${MY_PN}-14.0-patches-0.3"
+PATCH="${MY_PN}-15.0-patches-0.2"
 # Upstream ftp release URI that's used by mozlinguas.eclass
 # We don't use the http mirror because it deletes old tarballs.
 MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
@@ -37,7 +37,7 @@ LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 IUSE="bindist gstreamer +ipc +jit pgo selinux system-sqlite +torprofile +webm"
 
 SRC_URI="${SRC_URI}
-	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
+	http://dev.gentoo.org/~nirbheek/mozilla/patchsets/${PATCH}.tar.xz
 	${MOZ_FTP_URI}/${PV}/source/${MOZ_P}.source.tar.bz2
 	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
 
@@ -46,8 +46,8 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
 	>=sys-devel/binutils-2.16.1
-	>=dev-libs/nss-3.13.5
-	>=dev-libs/nspr-4.9.1
+	>=dev-libs/nss-3.13.6
+	>=dev-libs/nspr-4.9.2
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
 	>=media-libs/libpng-1.5.9[apng]
@@ -55,13 +55,12 @@ RDEPEND="
 	gstreamer? (
 		>=media-libs/gstreamer-0.10.33:0.10
 		>=media-libs/gst-plugins-base-0.10.33:0.10 )
-	system-sqlite? ( >=dev-db/sqlite-3.7.11[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
+	system-sqlite? ( >=dev-db/sqlite-3.7.12.1[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
 	webm? ( >=media-libs/libvpx-1.0.0
-		kernel_linux? ( media-libs/alsa-lib ) )
+		media-libs/alsa-lib )
 	selinux? ( sec-policy/selinux-mozilla )"
 # We don't use PYTHON_DEPEND/PYTHON_USE_WITH for some silly reason
 DEPEND="${RDEPEND}
-	!elibc_glibc? ( dev-libs/libexecinfo )
 	virtual/pkgconfig
 	pgo? (
 		=dev-lang/python-2*[sqlite]
@@ -123,12 +122,13 @@ src_prepare() {
 	# Torbrowser patches for firefox 10.0.5esr, check regularly/for every version-bump
 	# https://gitweb.torproject.org/torbrowser.git/history/HEAD:/src/current-patches
 	# exclude vidalia patch, cause we don't force the user to use it
-	EPATCH_EXCLUDE="0015-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
+	EPATCH_EXCLUDE="0012-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"
-	epatch "${FILESDIR}"/${MY_PN}-14.0_beta7-gst-*.patch
-	epatch "${FILESDIR}"/${MY_PN}-15.0_beta1-fix-packager-xargs-rm.patch
+
+	# Allow AAC and H.264 files to be played using <audio> and <video>
+	epatch "${FILESDIR}"/${MY_PN}*-gst*.patch
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
@@ -167,6 +167,10 @@ src_prepare() {
 	# system.
 	sed '/^MOZ_PKG_FATAL_WARNINGS/s@= 1@= 0@' \
 		-i "${S}"/browser/installer/Makefile.in || die
+
+	# Don't error out when there's no files to be removed:
+	sed 's@\(xargs rm\)$@\1 -f@' \
+		-i "${S}"/toolkit/mozapps/installer/packager.mk || die
 
 	eautoreconf
 }
