@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/www-misc/torbrowser-profile/torbrowser-profile-2.3.12_alpha2.ebuild,v 1.1 2012/07/14 16:57:17 hasufell Exp $
+# $Header: $
 
 EAPI=4
 
@@ -14,7 +14,7 @@ SRC_URI="amd64? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu
 
 LICENSE="BSD GPL-2 MIT"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS=""
 IUSE=""
 
 RDEPEND="www-client/torbrowser"
