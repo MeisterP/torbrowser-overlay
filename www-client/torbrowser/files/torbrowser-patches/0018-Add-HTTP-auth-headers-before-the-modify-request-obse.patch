@@ -1,0 +1,52 @@
+From 3a0261c7fdbed4a4705d5c6c39edeed4c127121f Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@fscked.org>
+Date: Fri, 2 Sep 2011 15:33:20 -0700
+Subject: [PATCH 18/19] Add HTTP auth headers before the modify-request
+ observer.
+
+Otherwise, how are we supposed to modify them?
+
+Thanks to Georg Koppen for spotting both the problem and this fix.
+---
+ netwerk/protocol/http/nsHttpChannel.cpp |   11 +++++++----
+ 1 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
+index 97bd84c..6205d62 100644
+--- a/netwerk/protocol/http/nsHttpChannel.cpp
++++ b/netwerk/protocol/http/nsHttpChannel.cpp
+@@ -316,9 +316,6 @@ nsHttpChannel::Connect(bool firstTime)
+         return NS_ERROR_DOCUMENT_NOT_CACHED;
+     }
+ 
+-    // check to see if authorization headers should be included
+-    mAuthProvider->AddAuthorizationHeaders();
+-
+     if (mLoadFlags & LOAD_NO_NETWORK_IO) {
+         return NS_ERROR_DOCUMENT_NOT_CACHED;
+     }
+@@ -3707,6 +3704,9 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
+ 
+     AddCookiesToRequest();
+ 
++    // check to see if authorization headers should be included
++    mAuthProvider->AddAuthorizationHeaders();
++
+     // notify "http-on-modify-request" observers
+     gHttpHandler->OnModifyRequest(this);
+ 
+@@ -4817,7 +4817,10 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
+     // this authentication attempt (bug 84794).
+     // TODO: save cookies from auth response and send them here (bug 572151).
+     AddCookiesToRequest();
+-    
++   
++    // check to see if authorization headers should be included
++    mAuthProvider->AddAuthorizationHeaders();
++ 
+     // notify "http-on-modify-request" observers
+     gHttpHandler->OnModifyRequest(this);
+ 
+-- 
+1.7.5.4
+

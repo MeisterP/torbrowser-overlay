@@ -1,0 +1,46 @@
+From d6956a597662f3d753622377183cb317ef6a3ad4 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@fscked.org>
+Date: Sun, 9 Oct 2011 22:50:07 -0700
+Subject: [PATCH 07/19] Make Tor Browser exit when not launched from Vidalia
+
+Turns out the Windows 7 UI encourages users to "dock" their Tor Browser app
+for easy relaunch. If they manage to do this, we should fail closed rather
+than opened. Hopefully they will get the hint and dock Vidalia instead.
+
+This is an emergency fix for
+https://trac.torproject.org/projects/tor/ticket/4192. We can do a better
+localized fix w/ a translated alert menu later, if it seems like this might
+actually be common.
+---
+ browser/base/content/browser.js |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
+
+diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
+index b06a17b..fc1d305 100644
+--- a/browser/base/content/browser.js
++++ b/browser/base/content/browser.js
+@@ -1217,6 +1217,21 @@ function BrowserStartup() {
+ 
+   prepareForStartup();
+ 
++  // If this is not a TBB profile, exit. 
++  // Solves https://trac.torproject.org/projects/tor/ticket/4192
++  var foundPref = false;
++  try {
++    foundPref = gPrefService.prefHasUserValue("torbrowser.version");
++  } catch(e) {
++    //dump("No pref: "+e);
++  }
++  if(!foundPref) {
++    var appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"]
++                         .getService(Components.interfaces.nsIAppStartup);
++    appStartup.quit(3); // Force all windows to close, and then quit.
++  }
++
++
+   if (uriToLoad && !isLoadingBlank) {
+     if (uriToLoad instanceof Ci.nsISupportsArray) {
+       let count = uriToLoad.Count();
+-- 
+1.7.5.4
+
