@@ -125,7 +125,7 @@ src_prepare() {
 	EPATCH_EXCLUDE="0012-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
-	epatch "${FILESDIR}/${PN}-patches"
+	epatch "${FILESDIR}/${PN}-alpha-patches"
 
 	# Allow AAC and H.264 files to be played using <audio> and <video>
 	epatch "${FILESDIR}"/${MY_PN}*-gst*.patch
