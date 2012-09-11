@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/www-client/torbrowser/torbrowser-13.0-r1.ebuild,v 1.2 2012/07/14 19:02:53 hasufell Exp $
+# $Header: $
 
 EAPI="3"
 VIRTUALX_REQUIRED="pgo"
@@ -27,7 +27,7 @@ DESCRIPTION="Torbrowser without vidalia or tor"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
 
 # may work on other arches, but untested
-KEYWORDS="~amd64 ~x86"
+KEYWORDS=""
 SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
@@ -68,7 +68,7 @@ DEPEND="${RDEPEND}
 	webm? ( x86? ( ${ASM_DEPEND} )
 		amd64? ( ${ASM_DEPEND} )
 		virtual/opengl )"
-PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
+PDEPEND="torprofile? ( =www-misc/torbrowser-profile-2.3.20_alpha1 )"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"

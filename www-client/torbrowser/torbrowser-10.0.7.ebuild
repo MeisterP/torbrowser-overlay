@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/www-client/torbrowser/Attic/torbrowser-10.0.5.ebuild,v 1.2 2012/06/30 20:43:11 hasufell dead $
+# $Header: $
 
 EAPI="3"
 VIRTUALX_REQUIRED="pgo"
@@ -65,7 +65,7 @@ DEPEND="${RDEPEND}
 	webm? ( virtual/opengl
 		x86? ( ${ASM_DEPEND} )
 		amd64? ( ${ASM_DEPEND} ) )"
-PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
+PDEPEND="torprofile? ( =www-misc/torbrowser-profile-2.2.38.2 )"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"
