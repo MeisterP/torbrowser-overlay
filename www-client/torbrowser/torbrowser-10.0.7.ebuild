@@ -8,10 +8,6 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-# latest version of the torbrowser-bundle we use the profile-folder from
-# https://www.torproject.org/dist/torbrowser/linux/
-TB_V="2.2.36-1"
-
 MOZ_P="${MY_PN}-${PV}"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
@@ -20,50 +16,45 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # Patch version
-PATCH="${MY_PN}-10.0-patches-0.8"
+PATCH="${MY_PN}-10.0-patches-0.9"
 # Upstream ftp release URI that's used by mozlinguas.eclass
 # We don't use the http mirror because it deletes old tarballs.
 MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
 
-inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils autotools python virtualx
+inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils fdo-mime autotools python virtualx
 
-DESCRIPTION="Torbrowser without vidalia or tor, includes profile and extensions"
+DESCRIPTION="Torbrowser without vidalia or tor"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
 
 # may work on other arches, but untested
 KEYWORDS="~amd64 ~x86"
 SLOT="0"
 # BSD license applies to torproject-related code like the patches
-# GPL-2 and MIT applies to the extensions
 # icons are under CCPL-Attribution-3.0
 LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	BSD
-	GPL-2
-	MIT
 	CCPL-Attribution-3.0"
-IUSE="bindist +crashreporter +ipc pgo selinux system-sqlite +webm"
+IUSE="bindist +ipc pgo selinux system-sqlite +torprofile +webm"
 
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	${MOZ_FTP_URI}/${PV}/source/${MOZ_P}.source.tar.bz2
-	amd64? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-x86_64-${TB_V}-dev-en-US.tar.gz )
-	x86? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-i686-${TB_V}-dev-en-US.tar.gz )"
+	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
 	>=sys-devel/binutils-2.16.1
-	>=dev-libs/nss-3.13.5
-	>=dev-libs/nspr-4.9.1
+	>=dev-libs/nss-3.13.6
+	>=dev-libs/nspr-4.9.2
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
-	media-libs/libpng[apng]
+	>=media-libs/libpng-1.5.9[apng]
 	virtual/libffi
 	system-sqlite? ( >=dev-db/sqlite-3.7.7.1[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
 	webm? ( >=media-libs/libvpx-1.0.0
 		media-libs/alsa-lib )
-	crashreporter? ( net-misc/curl )
 	selinux? ( sec-policy/selinux-mozilla )"
 # We don't use PYTHON_DEPEND/PYTHON_USE_WITH for some silly reason
 DEPEND="${RDEPEND}
@@ -71,9 +62,10 @@ DEPEND="${RDEPEND}
 	pgo? (
 		=dev-lang/python-2*[sqlite]
 		>=sys-devel/gcc-4.5 )
-	webm? ( x86? ( ${ASM_DEPEND} )
-		amd64? ( ${ASM_DEPEND} )
-		virtual/opengl )"
+	webm? ( virtual/opengl
+		x86? ( ${ASM_DEPEND} )
+		amd64? ( ${ASM_DEPEND} ) )"
+PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"
@@ -120,7 +112,9 @@ pkg_setup() {
 
 src_prepare() {
 	# Apply our patches
-	EPATCH_EXCLUDE="6012_fix_shlibsign.patch 6013_fix_abort_declaration.patch" \
+	EPATCH_EXCLUDE="5005_use_resource_urls_appropriately.patch
+		6012_fix_shlibsign.patch
+		6013_fix_abort_declaration.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${WORKDIR}/firefox"
@@ -191,6 +185,7 @@ src_configure() {
 	mozconfig_annotate '' --enable-safe-browsing
 	mozconfig_annotate '' --with-system-png
 	mozconfig_annotate '' --enable-system-ffi
+	mozconfig_annotate 'regression' --disable-tracejit
 
 	# Other ff-specific settings
 	mozconfig_annotate '' --with-default-mozilla-five-home=${MOZILLA_FIVE_HOME}
@@ -233,7 +228,6 @@ src_compile() {
 				# let's use indirect rendering so that the device files aren't
 				# touched at all. See bug 394715.
 				export LIBGL_ALWAYS_INDIRECT=1
-				addpredict "${cards}"
 			fi
 		fi
 		shopt -u nullglob
@@ -275,16 +269,11 @@ src_install() {
 	# Plugins dir
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
 
-	# Install pre-configured Torbrowser-profile
-	insinto /usr/share/${PN}
-	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile || die
-
 	# create wrapper to start torbrowser
 	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} -no-remote -profile ~/.${PN}/profile"
 
-	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
+	newicon -s 256 "${DISTDIR}"/${PN}256.png ${PN}.png
 	make_desktop_entry ${PN} "Torbrowser" ${PN} "Network;WebBrowser"
-	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
 }
 
 pkg_preinst() {
@@ -296,15 +285,20 @@ pkg_postinst() {
 	ewarn "the exact same patches (excluding Vidalia-patch). Use this only if you know"
 	ewarn "what you are doing!"
 	einfo ""
-	elog "Copy the folder contents from /usr/share/${PN}/profile into ~/.${PN}/profile and run '${PN}'."
-	einfo
-	elog "This profile folder includes pre-configuration recommended by upstream,"
-	elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
-	elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
+	if use torprofile ; then
+		elog "Copy the folder contents from /usr/share/${PN}/profile (installed by"
+		elog "www-misc/torbrowser-profile) into ~/.${PN}/profile and run '${PN}'."
+		einfo
+		elog "This profile folder includes pre-configuration recommended by upstream,"
+		elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
+		elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
+	fi
 	einfo
 	elog "The update check when you first start ${PN} does not recognize this version."
 	einfo
 
+	# Update mimedb for the new .desktop file
+	fdo-mime_desktop_database_update
 	gnome2_icon_cache_update
 }
 
