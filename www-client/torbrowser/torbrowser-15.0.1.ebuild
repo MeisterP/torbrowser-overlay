@@ -325,6 +325,8 @@ pkg_postinst() {
 	elog "The update check when you first start ${PN} does not recognize this version."
 	einfo
 
+	# Update mimedb for the new .desktop file
+	fdo-mime_desktop_database_update
 	gnome2_icon_cache_update
 }
 
