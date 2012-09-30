@@ -1,0 +1,148 @@
+From 73e548ceee36b99f06e33010163ed8b8cc86b3dd Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Tue, 28 Aug 2012 18:35:33 -0700
+Subject: [PATCH 20/20] Add mozIThirdPartyUtil.getFirstPartyURI API
+
+API allows you to get the url bar URI for a channel or nsIDocument.
+---
+ content/base/src/ThirdPartyUtil.cpp        |   52 ++++++++++++++++++++++++++++
+ content/base/src/ThirdPartyUtil.h          |    2 +
+ netwerk/base/public/mozIThirdPartyUtil.idl |   21 +++++++++++
+ 3 files changed, 75 insertions(+), 0 deletions(-)
+
+diff --git a/content/base/src/ThirdPartyUtil.cpp b/content/base/src/ThirdPartyUtil.cpp
+index 6a415e9..62333f3 100644
+--- a/content/base/src/ThirdPartyUtil.cpp
++++ b/content/base/src/ThirdPartyUtil.cpp
+@@ -40,6 +40,9 @@
+ #include "nsIServiceManager.h"
+ #include "nsIHttpChannelInternal.h"
+ #include "nsIDOMWindow.h"
++#include "nsICookiePermission.h"
++#include "nsIDOMDocument.h"
++#include "nsIDocument.h"
+ #include "nsILoadContext.h"
+ #include "nsIPrincipal.h"
+ #include "nsIScriptObjectPrincipal.h"
+@@ -54,6 +57,7 @@ ThirdPartyUtil::Init()
+ 
+   nsresult rv;
+   mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
++  mCookiePermissions = do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
+   return rv;
+ }
+ 
+@@ -315,3 +319,51 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
+ 
+   return NS_OK;
+ }
++
++NS_IMETHODIMP
++ThirdPartyUtil::GetFirstPartyURI(nsIChannel *aChannel,
++                                 nsIDocument *aDoc,
++                                 nsIURI **aOutput)
++{
++  nsresult rv = NS_ERROR_NULL_POINTER;
++
++  if (!aChannel && aDoc) {
++    aChannel = aDoc->GetChannel();
++  }
++
++  // If aChannel is specified or available, use the official route
++  // for sure
++  if (aChannel) {
++    rv = mCookiePermissions->GetOriginatingURI(aChannel, aOutput);
++  }
++
++  // If the channel was missing, closed or broken, try the
++  // window hierarchy directly. 
++  //
++  // This might fail to work for first-party loads themselves, but 
++  // we don't need this codepath for that case.
++  if (NS_FAILED(rv) && aDoc) {
++    nsCOMPtr<nsIDOMWindow> top;
++    nsCOMPtr<nsIDOMDocument> topDDoc;
++    
++    aDoc->GetWindow()->GetTop(getter_AddRefs(top));
++    top->GetDocument(getter_AddRefs(topDDoc));
++
++    nsCOMPtr<nsIDocument> topDoc(do_QueryInterface(topDDoc));
++    *aOutput = topDoc->GetOriginalURI();
++
++    if (*aOutput)
++      rv = NS_OK;
++  }
++
++  // TODO: We could provide a route through the loadgroup + notification
++  // callbacks too, but either channel or document was always available
++  // in the cases where this function was originally needed (the image cache).
++  // The notification callbacks also appear to suffers from the same limitation
++  // as the document path. See nsICookiePermissions.GetOriginatingURI() for
++  // details.
++
++  return rv;
++}
++
++
+diff --git a/content/base/src/ThirdPartyUtil.h b/content/base/src/ThirdPartyUtil.h
+index 58ddb15..c8eab11 100644
+--- a/content/base/src/ThirdPartyUtil.h
++++ b/content/base/src/ThirdPartyUtil.h
+@@ -42,6 +42,7 @@
+ #include "nsString.h"
+ #include "mozIThirdPartyUtil.h"
+ #include "nsIEffectiveTLDService.h"
++#include "nsICookiePermission.h"
+ 
+ class nsIURI;
+ class nsIChannel;
+@@ -61,6 +62,7 @@ private:
+   static already_AddRefed<nsIURI> GetURIFromWindow(nsIDOMWindow* aWin);
+ 
+   nsCOMPtr<nsIEffectiveTLDService> mTLDService;
++  nsCOMPtr<nsICookiePermission> mCookiePermissions;
+ };
+ 
+ #endif
+diff --git a/netwerk/base/public/mozIThirdPartyUtil.idl b/netwerk/base/public/mozIThirdPartyUtil.idl
+index ad41985..fd2cb38 100644
+--- a/netwerk/base/public/mozIThirdPartyUtil.idl
++++ b/netwerk/base/public/mozIThirdPartyUtil.idl
+@@ -40,6 +40,7 @@
+ interface nsIURI;
+ interface nsIDOMWindow;
+ interface nsIChannel;
++interface nsIDocument;
+ 
+ /**
+  * Utility functions for determining whether a given URI, channel, or window
+@@ -173,6 +174,26 @@ interface mozIThirdPartyUtil : nsISupports
+    * @return the base domain.
+    */
+   AUTF8String getBaseDomain(in nsIURI aHostURI);
++
++
++  /**
++   * getFirstPartyURI
++   *
++   * Obtain the top-level url bar URI for either a channel or a document.
++   * Either parameter may be null (but not both).
++   * 
++   * @param aChannel
++   *        An arbitrary channel for some content element of a first party
++   *        load. Can be null.
++   *
++   * @param aDoc
++   *        An arbitrary third party document. Can be null.
++   *
++   * @return the first party url bar URI for the load.
++   */ 
++  nsIURI getFirstPartyURI(in nsIChannel aChannel,
++                          in nsIDocument aDoc);
++
+ };
+ 
+ %{ C++
+-- 
+1.7.5.4
+
