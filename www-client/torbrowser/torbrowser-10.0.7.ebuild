@@ -65,7 +65,7 @@ DEPEND="${RDEPEND}
 	webm? ( virtual/opengl
 		x86? ( ${ASM_DEPEND} )
 		amd64? ( ${ASM_DEPEND} ) )"
-PDEPEND="torprofile? ( =www-misc/torbrowser-profile-2.2.39.1 )"
+PDEPEND="torprofile? ( =www-misc/torbrowser-profile-2.2.39.3 )"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"
