@@ -1,7 +1,7 @@
-From 3a0261c7fdbed4a4705d5c6c39edeed4c127121f Mon Sep 17 00:00:00 2001
+From c1e26c8a294abe426fd6fb84508db6074ef23379 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@fscked.org>
 Date: Fri, 2 Sep 2011 15:33:20 -0700
-Subject: [PATCH 18/19] Add HTTP auth headers before the modify-request
+Subject: [PATCH 18/24] Add HTTP auth headers before the modify-request
  observer.
 
 Otherwise, how are we supposed to modify them?

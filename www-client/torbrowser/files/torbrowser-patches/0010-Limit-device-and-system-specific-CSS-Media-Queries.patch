@@ -1,19 +1,14 @@
-From d3261423b0bd07fb3c0ca7b9448c9abb97053be2 Mon Sep 17 00:00:00 2001
-From: Shondoit Walker <shondoit@gmail.com>
-Date: Mon, 4 Jun 2012 19:15:31 +0200
-Subject: [PATCH 10/19] Limit device- and system-specific CSS Media Queries
+From 8f97f2f36adb9e4416f3d19af10880c800c846c2 Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Thu, 4 Oct 2012 14:28:48 -0400
+Subject: [PATCH 10/24] Limit device and system specific CSS Media Queries.
 
-This is done to address
-https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
-
-This also fixes bug #4795 by making queries still available for chrome windows,
-whilst returning nothing or non-device-specific values for web pages or extensions.
 ---
- layout/style/nsMediaFeatures.cpp |   42 ++++++++++++++++++++++++-------------
- 1 files changed, 27 insertions(+), 15 deletions(-)
+ layout/style/nsMediaFeatures.cpp |   71 ++++++++++++++++++++++++-------------
+ 1 files changed, 46 insertions(+), 25 deletions(-)
 
 diff --git a/layout/style/nsMediaFeatures.cpp b/layout/style/nsMediaFeatures.cpp
-index 6eca06e..25735e8 100644
+index 6eca06e..5b1df7e 100644
 --- a/layout/style/nsMediaFeatures.cpp
 +++ b/layout/style/nsMediaFeatures.cpp
 @@ -130,6 +130,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
@@ -63,7 +58,50 @@ index 6eca06e..25735e8 100644
  }
  
  static nsresult
-@@ -311,8 +315,12 @@ static nsresult
+@@ -236,13 +240,17 @@ static nsresult
+ GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
+          nsCSSValue& aResult)
+ {
+-    // FIXME:  This implementation is bogus.  nsDeviceContext
+-    // doesn't provide reliable information (should be fixed in bug
+-    // 424386).
+-    // FIXME: On a monochrome device, return 0!
+-    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+-    PRUint32 depth;
+-    dx->GetDepth(depth);
++    PRUint32 depth = 24; // Always return 24 to non-chrome callers.
++
++    if (aPresContext->IsChrome()) {
++        // FIXME:  This implementation is bogus.  nsDeviceContext
++        // doesn't provide reliable information (should be fixed in bug
++        // 424386).
++        // FIXME: On a monochrome device, return 0!
++        nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
++        dx->GetDepth(depth);
++    }
++
+     // The spec says to use bits *per color component*, so divide by 3,
+     // and round down, since the spec says to use the smallest when the
+     // color components differ.
+@@ -280,9 +288,14 @@ static nsresult
+ GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
+               nsCSSValue& aResult)
+ {
+-    // Resolution values are in device pixels, not CSS pixels.
+-    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+-    float dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
++    float dpi = 96; // Always return 96 to non-chrome callers.
++
++    if (aPresContext->IsChrome()) {
++      // Resolution values are in device pixels, not CSS pixels.
++      nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
++      dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
++    }
++
+     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
+     return NS_OK;
+ }
+@@ -311,8 +324,12 @@ static nsresult
  GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
  {
@@ -78,7 +116,7 @@ index 6eca06e..25735e8 100644
    return NS_OK;
  }
  
-@@ -320,18 +328,21 @@ static nsresult
+@@ -320,18 +337,21 @@ static nsresult
  GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                  nsCSSValue& aResult)
  {
@@ -101,7 +139,7 @@ index 6eca06e..25735e8 100644
      aResult.Reset();
  #ifdef XP_WIN
      PRUint8 windowsThemeId =
-@@ -350,7 +361,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+@@ -350,7 +370,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
          }
      }
  #endif

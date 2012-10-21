@@ -1,0 +1,43 @@
+From 74215e38ba60b74df59216122c4f2cc068e33216 Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Tue, 9 Oct 2012 11:13:45 -0400
+Subject: [PATCH 22/24] Return client window coordinates for mouse event
+ screenX/Y (for dragend, 0,0 is returned).
+
+---
+ content/events/src/nsDOMUIEvent.cpp |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
+
+diff --git a/content/events/src/nsDOMUIEvent.cpp b/content/events/src/nsDOMUIEvent.cpp
+index fe57f52..d641f0d 100644
+--- a/content/events/src/nsDOMUIEvent.cpp
++++ b/content/events/src/nsDOMUIEvent.cpp
+@@ -135,10 +135,25 @@ nsDOMUIEvent::GetScreenPoint()
+     return nsIntPoint(0, 0);
+   }
+ 
++  bool isChrome = nsContentUtils::IsCallerChrome();
++
+   if (!((nsGUIEvent*)mEvent)->widget ) {
++    // For non-chrome callers, return 0,0 if there is no widget associated
++    // with this event, e.g., for dragend events.  Since dragend is for the
++    // drag originator and not for the receiver, it is probably not widely
++    // used (receivers get a drop event).  Therefore, returning 0,0 should
++    // not break many web pages.  Also, a few years ago Firefox returned 0,0.
++    // See:  https://bugzilla.mozilla.org/show_bug.cgi?id=466379
++    if (!isChrome)
++      return nsIntPoint(0, 0);
++
+     return mEvent->refPoint;
+   }
+ 
++  // For non-chrome callers, return client area coordinates instead.
++  if (!isChrome)
++    return GetClientPoint();
++
+   nsIntPoint offset = mEvent->refPoint + 
+     ((nsGUIEvent*)mEvent)->widget->WidgetToScreenOffset();
+   nscoord factor = mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel();
+-- 
+1.7.5.4
+

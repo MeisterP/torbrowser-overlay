@@ -1,7 +1,7 @@
-From d5ef29d9219a7ff9a78f9523845a2e2966c2a266 Mon Sep 17 00:00:00 2001
+From 9c6f997dd9a44336af9a1db17f5b680cc80a0e6c Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 1 Feb 2012 15:53:28 -0800
-Subject: [PATCH 09/19] Provide an observer event to close persistent
+Subject: [PATCH 09/24] Provide an observer event to close persistent
  connections
 
 We need to prevent linkability across "New Identity", which includes closing

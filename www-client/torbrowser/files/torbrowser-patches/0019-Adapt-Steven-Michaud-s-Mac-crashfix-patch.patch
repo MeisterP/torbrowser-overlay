@@ -1,7 +1,7 @@
-From e263c559a4799a26a9ef5ca3490372fc93a62d3e Mon Sep 17 00:00:00 2001
+From 49cccdba3e6fc10e0e376d423b3ba1b6135f62e1 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Thu, 7 Jun 2012 16:25:48 -0700
-Subject: [PATCH 19/19] Adapt Steven Michaud's Mac crashfix patch
+Subject: [PATCH 19/24] Adapt Steven Michaud's Mac crashfix patch
 
 Source is: https://bugzilla.mozilla.org/show_bug.cgi?id=715885#c35
 

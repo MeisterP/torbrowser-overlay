@@ -1,17 +1,17 @@
-From 73e548ceee36b99f06e33010163ed8b8cc86b3dd Mon Sep 17 00:00:00 2001
+From 36d57455893bcf6dc08e91a2784970f285c5e84b Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 28 Aug 2012 18:35:33 -0700
-Subject: [PATCH 20/20] Add mozIThirdPartyUtil.getFirstPartyURI API
+Subject: [PATCH 20/24] Add mozIThirdPartyUtil.getFirstPartyURI API
 
 API allows you to get the url bar URI for a channel or nsIDocument.
 ---
- content/base/src/ThirdPartyUtil.cpp        |   52 ++++++++++++++++++++++++++++
+ content/base/src/ThirdPartyUtil.cpp        |   59 ++++++++++++++++++++++++++++
  content/base/src/ThirdPartyUtil.h          |    2 +
- netwerk/base/public/mozIThirdPartyUtil.idl |   21 +++++++++++
- 3 files changed, 75 insertions(+), 0 deletions(-)
+ netwerk/base/public/mozIThirdPartyUtil.idl |   21 ++++++++++
+ 3 files changed, 82 insertions(+), 0 deletions(-)
 
 diff --git a/content/base/src/ThirdPartyUtil.cpp b/content/base/src/ThirdPartyUtil.cpp
-index 6a415e9..62333f3 100644
+index 6a415e9..52b3dab 100644
 --- a/content/base/src/ThirdPartyUtil.cpp
 +++ b/content/base/src/ThirdPartyUtil.cpp
 @@ -40,6 +40,9 @@
@@ -32,7 +32,7 @@ index 6a415e9..62333f3 100644
    return rv;
  }
  
-@@ -315,3 +319,51 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
+@@ -315,3 +319,58 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
  
    return NS_OK;
  }
@@ -62,12 +62,19 @@ index 6a415e9..62333f3 100644
 +  if (NS_FAILED(rv) && aDoc) {
 +    nsCOMPtr<nsIDOMWindow> top;
 +    nsCOMPtr<nsIDOMDocument> topDDoc;
-+    
-+    aDoc->GetWindow()->GetTop(getter_AddRefs(top));
-+    top->GetDocument(getter_AddRefs(topDDoc));
++   
++    if (aDoc->GetWindow()) {
++      aDoc->GetWindow()->GetTop(getter_AddRefs(top));
++      top->GetDocument(getter_AddRefs(topDDoc));
 +
-+    nsCOMPtr<nsIDocument> topDoc(do_QueryInterface(topDDoc));
-+    *aOutput = topDoc->GetOriginalURI();
++      nsCOMPtr<nsIDocument> topDoc(do_QueryInterface(topDDoc));
++      *aOutput = topDoc->GetOriginalURI();
++    } else {
++      // XXX: Chrome callers (such as NoScript) can end up here
++      // through getImageData/canvas usage with no document state
++      // (no Window and a document URI of about:blank). Propogate
++      // rv fail (by doing nothing), and hope caller recovers.
++    }
 +
 +    if (*aOutput)
 +      rv = NS_OK;

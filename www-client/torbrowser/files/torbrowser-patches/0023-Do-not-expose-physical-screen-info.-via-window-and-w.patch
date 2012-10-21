@@ -1,0 +1,312 @@
+From d944531b020848e09ac280af11d039d992ab6461 Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Wed, 3 Oct 2012 17:06:48 -0400
+Subject: [PATCH 23/24] Do not expose physical screen info. via window and
+ window.screen.
+
+---
+ dom/base/nsGlobalWindow.cpp |   46 +++++++++++++++++++++
+ dom/base/nsGlobalWindow.h   |    2 +
+ dom/base/nsScreen.cpp       |   92 +++++++++++++++++++++++++++++++++++++++++++
+ dom/base/nsScreen.h         |    3 +
+ 4 files changed, 143 insertions(+), 0 deletions(-)
+
+diff --git a/dom/base/nsGlobalWindow.cpp b/dom/base/nsGlobalWindow.cpp
+index 2c99571..982d931 100644
+--- a/dom/base/nsGlobalWindow.cpp
++++ b/dom/base/nsGlobalWindow.cpp
+@@ -3817,6 +3817,10 @@ nsGlobalWindow::GetOuterWidth(PRInt32* aOuterWidth)
+ {
+   FORWARD_TO_OUTER(GetOuterWidth, (aOuterWidth), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, return inner width to prevent fingerprinting.
++  if (!IsChrome())
++    return GetInnerWidth(aOuterWidth);
++
+   nsIntSize sizeCSSPixels;
+   nsresult rv = GetOuterSize(&sizeCSSPixels);
+   NS_ENSURE_SUCCESS(rv, rv);
+@@ -3830,6 +3834,10 @@ nsGlobalWindow::GetOuterHeight(PRInt32* aOuterHeight)
+ {
+   FORWARD_TO_OUTER(GetOuterHeight, (aOuterHeight), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, return inner height to prevent fingerprinting.
++  if (!IsChrome())
++    return GetInnerHeight(aOuterHeight);
++
+   nsIntSize sizeCSSPixels;
+   nsresult rv = GetOuterSize(&sizeCSSPixels);
+   NS_ENSURE_SUCCESS(rv, rv);
+@@ -3892,6 +3900,12 @@ nsGlobalWindow::GetScreenX(PRInt32* aScreenX)
+ {
+   FORWARD_TO_OUTER(GetScreenX, (aScreenX), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aScreenX = 0;
++    return NS_OK;
++  }
++
+   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
+   GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
+@@ -3933,6 +3947,12 @@ nsGlobalWindow::GetMozInnerScreenX(float* aScreenX)
+ {
+   FORWARD_TO_OUTER(GetMozInnerScreenX, (aScreenX), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aScreenX = 0;
++    return NS_OK;
++  }
++
+   nsRect r = GetInnerScreenRect();
+   *aScreenX = nsPresContext::AppUnitsToFloatCSSPixels(r.x);
+   return NS_OK;
+@@ -3943,6 +3963,12 @@ nsGlobalWindow::GetMozInnerScreenY(float* aScreenY)
+ {
+   FORWARD_TO_OUTER(GetMozInnerScreenY, (aScreenY), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aScreenY = 0;
++    return NS_OK;
++  }
++
+   nsRect r = GetInnerScreenRect();
+   *aScreenY = nsPresContext::AppUnitsToFloatCSSPixels(r.y);
+   return NS_OK;
+@@ -4064,6 +4090,12 @@ nsGlobalWindow::GetScreenY(PRInt32* aScreenY)
+ {
+   FORWARD_TO_OUTER(GetScreenY, (aScreenY), NS_ERROR_NOT_INITIALIZED);
+ 
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aScreenY = 0;
++    return NS_OK;
++  }
++
+   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
+   GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
+@@ -4110,6 +4142,20 @@ nsGlobalWindow::SetScreenY(PRInt32 aScreenY)
+   return NS_OK;
+ }
+ 
++bool
++nsGlobalWindow::IsChrome()
++{
++  bool isChrome = false;
++
++  if (mDocShell) {
++    nsRefPtr<nsPresContext> presContext;
++    mDocShell->GetPresContext(getter_AddRefs(presContext));
++    isChrome = (presContext && presContext->IsChrome());
++  }
++
++  return isChrome;
++}
++
+ // NOTE: Arguments to this function should have values scaled to
+ // CSS pixels, not device pixels.
+ nsresult
+diff --git a/dom/base/nsGlobalWindow.h b/dom/base/nsGlobalWindow.h
+index 2ffe4a7..863329c 100644
+--- a/dom/base/nsGlobalWindow.h
++++ b/dom/base/nsGlobalWindow.h
+@@ -744,6 +744,8 @@ protected:
+   nsresult SetOuterSize(PRInt32 aLengthCSSPixels, bool aIsWidth);
+   nsRect GetInnerScreenRect();
+ 
++  bool IsChrome();
++
+   bool IsFrame()
+   {
+     return GetParentInternal() != nsnull;
+diff --git a/dom/base/nsScreen.cpp b/dom/base/nsScreen.cpp
+index 33a03dc..29a3598 100644
+--- a/dom/base/nsScreen.cpp
++++ b/dom/base/nsScreen.cpp
+@@ -82,6 +82,12 @@ nsScreen::SetDocShell(nsIDocShell* aDocShell)
+ NS_IMETHODIMP
+ nsScreen::GetTop(PRInt32* aTop)
+ {
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aTop = 0;
++    return NS_OK;
++  }
++
+   nsRect rect;
+   nsresult rv = GetRect(rect);
+ 
+@@ -94,6 +100,12 @@ nsScreen::GetTop(PRInt32* aTop)
+ NS_IMETHODIMP
+ nsScreen::GetLeft(PRInt32* aLeft)
+ {
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aLeft = 0;
++    return NS_OK;
++  }
++
+   nsRect rect;
+   nsresult rv = GetRect(rect);
+ 
+@@ -106,6 +118,14 @@ nsScreen::GetLeft(PRInt32* aLeft)
+ NS_IMETHODIMP
+ nsScreen::GetWidth(PRInt32* aWidth)
+ {
++  // For non-chrome callers, return content width to prevent fingerprinting.
++  if (!IsChrome()) {
++    nsCOMPtr<nsIDOMWindow> win;
++    nsresult rv = GetDOMWindow(getter_AddRefs(win));
++    NS_ENSURE_SUCCESS(rv, rv);
++    return win->GetInnerWidth(aWidth);
++  }
++
+   nsRect rect;
+   nsresult rv = GetRect(rect);
+ 
+@@ -117,6 +137,14 @@ nsScreen::GetWidth(PRInt32* aWidth)
+ NS_IMETHODIMP
+ nsScreen::GetHeight(PRInt32* aHeight)
+ {
++  // For non-chrome callers, return content height to prevent fingerprinting.
++  if (!IsChrome()) {
++    nsCOMPtr<nsIDOMWindow> win;
++    nsresult rv = GetDOMWindow(getter_AddRefs(win));
++    NS_ENSURE_SUCCESS(rv, rv);
++    return win->GetInnerHeight(aHeight);
++  }
++
+   nsRect rect;
+   nsresult rv = GetRect(rect);
+ 
+@@ -128,6 +156,12 @@ nsScreen::GetHeight(PRInt32* aHeight)
+ NS_IMETHODIMP
+ nsScreen::GetPixelDepth(PRInt32* aPixelDepth)
+ {
++  // For non-chrome callers, always return 24 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aPixelDepth = 24;
++    return NS_OK;
++  }
++
+   nsDeviceContext* context = GetDeviceContext();
+ 
+   if (!context) {
+@@ -153,6 +187,14 @@ nsScreen::GetColorDepth(PRInt32* aColorDepth)
+ NS_IMETHODIMP
+ nsScreen::GetAvailWidth(PRInt32* aAvailWidth)
+ {
++  // For non-chrome callers, return content width to prevent fingerprinting.
++  if (!IsChrome()) {
++    nsCOMPtr<nsIDOMWindow> win;
++    nsresult rv = GetDOMWindow(getter_AddRefs(win));
++    NS_ENSURE_SUCCESS(rv, rv);
++    return win->GetInnerWidth(aAvailWidth);
++  }
++
+   nsRect rect;
+   nsresult rv = GetAvailRect(rect);
+ 
+@@ -164,6 +206,14 @@ nsScreen::GetAvailWidth(PRInt32* aAvailWidth)
+ NS_IMETHODIMP
+ nsScreen::GetAvailHeight(PRInt32* aAvailHeight)
+ {
++  // For non-chrome callers, return content height to prevent fingerprinting.
++  if (!IsChrome()) {
++    nsCOMPtr<nsIDOMWindow> win;
++    nsresult rv = GetDOMWindow(getter_AddRefs(win));
++    NS_ENSURE_SUCCESS(rv, rv);
++    return win->GetInnerHeight(aAvailHeight);
++  }
++
+   nsRect rect;
+   nsresult rv = GetAvailRect(rect);
+ 
+@@ -175,6 +225,12 @@ nsScreen::GetAvailHeight(PRInt32* aAvailHeight)
+ NS_IMETHODIMP
+ nsScreen::GetAvailLeft(PRInt32* aAvailLeft)
+ {
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aAvailLeft = 0;
++    return NS_OK;
++  }
++
+   nsRect rect;
+   nsresult rv = GetAvailRect(rect);
+ 
+@@ -186,6 +242,12 @@ nsScreen::GetAvailLeft(PRInt32* aAvailLeft)
+ NS_IMETHODIMP
+ nsScreen::GetAvailTop(PRInt32* aAvailTop)
+ {
++  // For non-chrome callers, always return 0 to prevent fingerprinting.
++  if (!IsChrome()) {
++    *aAvailTop = 0;
++    return NS_OK;
++  }
++
+   nsRect rect;
+   nsresult rv = GetAvailRect(rect);
+ 
+@@ -237,3 +299,33 @@ nsScreen::GetAvailRect(nsRect& aRect)
+ 
+   return NS_OK;
+ }
++
++bool
++nsScreen::IsChrome()
++{
++  bool isChrome = false;
++  if (mDocShell) {
++    nsRefPtr<nsPresContext> presContext;
++    mDocShell->GetPresContext(getter_AddRefs(presContext));
++    if (presContext)
++      isChrome = presContext->IsChrome();
++  }
++
++  return isChrome;
++}
++
++nsresult
++nsScreen::GetDOMWindow(nsIDOMWindow **aResult)
++{
++  NS_ENSURE_ARG_POINTER(aResult);
++  *aResult = NULL;
++
++  if (!mDocShell)
++    return NS_ERROR_FAILURE;
++
++  nsCOMPtr<nsIDOMWindow> win = do_GetInterface(mDocShell);
++  NS_ENSURE_STATE(win);
++  win.swap(*aResult);
++
++  return NS_OK;
++}
+diff --git a/dom/base/nsScreen.h b/dom/base/nsScreen.h
+index 52eab29..d4edaa3 100644
+--- a/dom/base/nsScreen.h
++++ b/dom/base/nsScreen.h
+@@ -44,6 +44,7 @@
+ 
+ class nsIDocShell;
+ class nsDeviceContext;
++class nsIDOMWindow;
+ struct nsRect;
+ 
+ // Script "screen" object
+@@ -62,6 +63,8 @@ protected:
+   nsDeviceContext* GetDeviceContext();
+   nsresult GetRect(nsRect& aRect);
+   nsresult GetAvailRect(nsRect& aRect);
++  bool IsChrome();
++  nsresult GetDOMWindow(nsIDOMWindow **aResult);
+ 
+   nsIDocShell* mDocShell; // Weak Reference
+ };
+-- 
+1.7.5.4
+

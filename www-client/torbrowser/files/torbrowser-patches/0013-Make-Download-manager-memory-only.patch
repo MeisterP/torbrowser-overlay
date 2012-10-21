@@ -1,7 +1,7 @@
-From 6eba0489502d7298e0941df12a0823b13078c52b Mon Sep 17 00:00:00 2001
+From 28178fb406d86b317b13b16ade3b06e5e1500c7e Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 25 Apr 2012 13:39:35 -0700
-Subject: [PATCH 13/19] Make Download manager memory only.
+Subject: [PATCH 13/24] Make Download manager memory only.
 
 Solves https://trac.torproject.org/projects/tor/ticket/4017.
 

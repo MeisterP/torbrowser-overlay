@@ -1,7 +1,7 @@
-From 18fea351a9f218893514ccbca82c492ce81d038d Mon Sep 17 00:00:00 2001
+From 1c2ccbea73720db5405602e4033c69b706068a8b Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 1 Feb 2012 15:40:40 -0800
-Subject: [PATCH 01/19] Block Components.interfaces,lookupMethod from content
+Subject: [PATCH 01/24] Block Components.interfaces,lookupMethod from content
 
 This patch removes the ability of content script to access
 Components.interfaces.* as well as call or access Components.lookupMethod.
@@ -20,10 +20,10 @@ https://trac.torproject.org/projects/tor/ticket/2874
  1 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/js/xpconnect/src/XPCComponents.cpp b/js/xpconnect/src/XPCComponents.cpp
-index 3bcbf91..d5c020a 100644
+index 38bfe08..7224b9b 100644
 --- a/js/xpconnect/src/XPCComponents.cpp
 +++ b/js/xpconnect/src/XPCComponents.cpp
-@@ -4456,7 +4456,9 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
+@@ -4502,7 +4502,9 @@ nsXPCComponents::CanCreateWrapper(const nsIID * iid, char **_retval)
  NS_IMETHODIMP
  nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, char **_retval)
  {
@@ -34,7 +34,7 @@ index 3bcbf91..d5c020a 100644
      *_retval = xpc_CheckAccessList(methodName, allowed);
      return NS_OK;
  }
-@@ -4465,7 +4467,9 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
+@@ -4511,7 +4513,9 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
  NS_IMETHODIMP
  nsXPCComponents::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
  {

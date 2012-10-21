@@ -1,7 +1,7 @@
-From bf5c8236b9b995e01e7909181dfe3f01bec05149 Mon Sep 17 00:00:00 2001
+From 976f0d4fabb6b0b50c83192d622827357c761bd3 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 2 May 2012 17:44:39 -0700
-Subject: [PATCH 16/19] Prevent WebSocket DNS leak.
+Subject: [PATCH 16/24] Prevent WebSocket DNS leak.
 
 This is due to an improper implementation of the WebSocket spec by Mozilla.
 
