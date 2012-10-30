@@ -13,6 +13,7 @@ MOZ_P="${MY_PN}-${PV}"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_P="${MOZ_P}esr"
+	MOZ_PV="${PV}esr"
 fi
 
 # Patch version
@@ -38,7 +39,7 @@ IUSE="bindist +ipc pgo selinux system-sqlite +torprofile +webm"
 
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
-	${MOZ_FTP_URI}/${PV}/source/${MOZ_P}.source.tar.bz2
+	${MOZ_FTP_URI}/${MOZ_PV}/source/${MOZ_P}.source.tar.bz2
 	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
@@ -65,7 +66,7 @@ DEPEND="${RDEPEND}
 	webm? ( virtual/opengl
 		x86? ( ${ASM_DEPEND} )
 		amd64? ( ${ASM_DEPEND} ) )"
-PDEPEND="torprofile? ( =www-misc/torbrowser-profile-2.2.39.4 )"
+PDEPEND="torprofile? ( <www-misc/torbrowser-profile-2.3.12_alpha2 )"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"
