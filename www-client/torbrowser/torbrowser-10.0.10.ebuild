@@ -8,11 +8,10 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-MOZ_P="${MY_PN}-${PV}"
+MOZ_PV="${MY_PN}-${PV}"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
-	MOZ_P="${MOZ_P}esr"
 	MOZ_PV="${PV}esr"
 fi
 
@@ -37,9 +36,9 @@ LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	CCPL-Attribution-3.0"
 IUSE="bindist +ipc pgo selinux system-sqlite +torprofile +webm"
 
+# More URIs appended below...
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
-	${MOZ_FTP_URI}/${MOZ_PV}/source/${MOZ_P}.source.tar.bz2
 	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
@@ -68,6 +67,8 @@ DEPEND="${RDEPEND}
 		amd64? ( ${ASM_DEPEND} ) )"
 PDEPEND="torprofile? ( <www-misc/torbrowser-profile-2.3.12_alpha2 )"
 
+SRC_URI="${SRC_URI}
+	${MOZ_FTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.bz2"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	S="${WORKDIR}/mozilla-esr${PV%%.*}"
 else
