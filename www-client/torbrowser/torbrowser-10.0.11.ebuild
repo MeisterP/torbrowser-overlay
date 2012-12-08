@@ -65,7 +65,7 @@ DEPEND="${RDEPEND}
 	webm? ( virtual/opengl
 		x86? ( ${ASM_DEPEND} )
 		amd64? ( ${ASM_DEPEND} ) )"
-PDEPEND="torprofile? ( <www-misc/torbrowser-profile-2.3.12_alpha2 )"
+PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
 
 SRC_URI="${SRC_URI}
 	${MOZ_FTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.bz2"
