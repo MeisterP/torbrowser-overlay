@@ -1,6 +1,13 @@
 # ChangeLog for www-client/torbrowser
 # Copyright 1999-2012 Gentoo Foundation; Distributed under the GPL v2
-# $Header: /var/cvsroot/gentoo-x86/www-client/torbrowser/Attic/ChangeLog,v 1.9 2012/11/05 23:28:17 hasufell dead $
+# $Header: $
+
+
+*torbrowser-10.0.11 (08 Dez 2012)
+
+  11 Dez 2012; Poncho <poncho@spahan.ch> torbrowser-10.0.11.ebuild:
+  use stable firefox, move to torbrowser-overlay
+  https://github.com/MeisterP/torbrowser-overlay/commits/master
 
   28 Aug 2012; Julian Ospald <hasufell@gentoo.org> metadata.xml:
   add mozilla herd

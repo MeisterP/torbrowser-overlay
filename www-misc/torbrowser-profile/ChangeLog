@@ -1,6 +1,12 @@
 # ChangeLog for www-misc/torbrowser-profile
 # Copyright 1999-2012 Gentoo Foundation; Distributed under the GPL v2
-# $Header: /var/cvsroot/gentoo-x86/www-misc/torbrowser-profile/Attic/ChangeLog,v 1.2 2012/11/05 23:22:32 hasufell dead $
+# $Header: $
+
+*torbrowser-profile-2.3.25.1 (08 Dez 2012)
+
+  11 Dez 2012; Poncho <poncho@spahan.ch> torbrowser-profile-2.3.25.1.ebuild:
+  move to torbrowser-overlay
+  https://github.com/MeisterP/torbrowser-overlay/commits/master
 
 *torbrowser-profile-2.3.12_alpha2 (14 Jul 2012)
 
