@@ -1,0 +1,10 @@
+# ChangeLog for www-misc/torbrowser-profile
+# Copyright 1999-2012 Gentoo Foundation; Distributed under the GPL v2
+# $Header: /var/cvsroot/gentoo-x86/www-misc/torbrowser-profile/Attic/ChangeLog,v 1.2 2012/11/05 23:22:32 hasufell dead $
+
+*torbrowser-profile-2.3.12_alpha2 (14 Jul 2012)
+
+  14 Jul 2012; Julian Ospald <hasufell@gentoo.org>
+  +torbrowser-profile-2.3.12_alpha2.ebuild:
+  initial commit, split from www-client/torbrowser
+

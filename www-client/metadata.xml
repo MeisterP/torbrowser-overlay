@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<herd>mozilla</herd>
+	<maintainer>
+		<email>hasufell@gentoo.org</email>
+		<name>Julian Ospald</name>
+		<description>Maintainer. Assign bugs to him</description>
+	</maintainer>
+	<maintainer>
+		<email>poncho@spahan.ch</email>
+		<name>Poncho</name>
+		<description>Proxy maintainer. CC him on bugs</description>
+	</maintainer>
+	<use>
+		<flag name="bindist">Disable official Firefox branding (icons, name) which 
+			are not binary-redistributable according to upstream.</flag>
+		<flag name="custom-optimization">Fine-tune custom compiler
+			optimizations, setting this is not recommended.</flag>
+		<flag name="crashreporter">Enable crashreporter for mozilla upstream, debugging
+			symbols are not required for reporting crashes.</flag>
+		<flag name="ipc">Use inter-process communication between tabs and plugins.
+			Allows for greater stability in case of plugin crashes</flag>
+		<flag name="pgo">Add support for profile-guided optimization using gcc-4.5,
+			for faster binaries. This option will double the compile time.</flag>
+		<flag name="system-sqlite">Use the system-wide <pkg>dev-db/sqlite</pkg>
+			installation with secure-delete enabled</flag>
+		<flag name="torprofile">Install pre-configured profile folder by upstream into
+			"/usr/share/torbrowser/profile" (you still have to copy it in place)</flag>
+		<flag name="webm">Use system <pkg>media-libs/libvpx</pkg> for HTML5 WebM
+			video support.</flag>
+	</use>
+</pkgmetadata>
