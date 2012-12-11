@@ -1,4 +1,22 @@
 torbrowser-overlay
-==================
 
 Torbrowser without vidalia or tor
+https://www.torproject.org/projects/torbrowser.html.en
+
+This patched firefox build is _NOT_ recommended by TOR upstream but uses
+the exact same patches (excluding Vidalia-patch). Use this only if you know
+what you are doing!
+
+Copy the folder contents from '/usr/share/torbrowser/profile' (installed by
+www-misc/torbrowser-profile) into '~/.torbrowser/profile'.
+		
+This profile folder includes pre-configuration recommended by upstream,
+as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
+If you want to start from scratch just create the directories '~/.torbrowser/profile'.
+
+The update check when you first start torbrowser may not recognize this version.
+
+The torbroser-overlay isn't in layman's list of overlays.
+To add it manually, append
+https://raw.github.com/MeisterP/poncho-overlay/master/torbrowser-overlay.xml
+to the overlays section in /etc/layman/layman.cfg
