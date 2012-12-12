@@ -18,5 +18,6 @@ The update check when you first start torbrowser may not recognize this version.
 
 The torbroser-overlay isn't in layman's list of overlays.
 To add it manually, append
-https://raw.github.com/MeisterP/poncho-overlay/master/torbrowser-overlay.xml
-to the overlays section in /etc/layman/layman.cfg
+https://raw.github.com/MeisterP/torbrowser-overlay/master/torbrowser-overlay.xml
+to the overlays section in '/etc/layman/layman.cfg'.
+With newer versions of layman, you can put the file into '/etc/layman/overlays/'.

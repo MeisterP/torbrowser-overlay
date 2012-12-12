@@ -2,7 +2,7 @@
 <!DOCTYPE repositories SYSTEM "/dtd/repositories.dtd">
 <repositories xmlns="" version="1.0">
    <repo quality="experimental" status="unofficial">
-      <name>torbrowser-overlay</name>
+      <name>torbrowser</name>
       <description>Torbrowser without vidalia or tor</description>
       <homepage>https://github.com/MeisterP/torbrowser-overlay</homepage>
       <owner type="person">
