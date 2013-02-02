@@ -11,8 +11,10 @@ MY_PV="$(replace_version_separator 3 '-')"
 
 DESCRIPTION="Profile folder from the torbrowser bundle"
 HOMEPAGE="https://www.torproject.org/dist/torbrowser/linux/"
-SRC_URI="amd64? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-x86_64-${MY_PV}-dev-en-US.tar.gz )
-	x86? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-i686-${MY_PV}-dev-en-US.tar.gz )"
+#SRC_URI="amd64? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-x86_64-${MY_PV}-dev-en-US.tar.gz )
+#	x86? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-i686-${MY_PV}-dev-en-US.tar.gz )"
+SRC_URI="amd64? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-x86_64-${MY_PV}-alpha-1-dev-en-US.tar.gz )
+	x86? ( https://www.torproject.org/dist/${MY_PN}/linux/tor-browser-gnu-linux-i686-${MY_PV}-alpha-1-dev-en-US.tar.gz )"
 
 LICENSE="BSD GPL-2 MIT"
 SLOT="0"
