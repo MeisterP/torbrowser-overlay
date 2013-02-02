@@ -16,7 +16,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # Patch version
-PATCH="${MY_PN}-10.0-patches-0.9"
+PATCH="${MY_PN}-17.0-patches-0.4"
 # Upstream ftp release URI that's used by mozlinguas.eclass
 # We don't use the http mirror because it deletes old tarballs.
 MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
@@ -34,11 +34,12 @@ SLOT="0"
 LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	BSD
 	CCPL-Attribution-3.0"
-IUSE="bindist +ipc pgo selinux system-sqlite +torprofile +webm"
+IUSE="bindist gstreamer +jit pgo selinux system-sqlite +torprofile"
 
 # More URIs appended below...
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
+	http://dev.gentoo.org/~nirbheek/mozilla/patchsets/${PATCH}.tar.xz
 	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
@@ -46,23 +47,25 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
 	>=sys-devel/binutils-2.16.1
-	>=dev-libs/nss-3.13.6
-	>=dev-libs/nspr-4.9.2
+	>=dev-libs/nss-3.14.1
+	>=dev-libs/nspr-4.9.4
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
-	>=media-libs/libpng-1.5.9[apng]
+	>=media-libs/libpng-1.5.11[apng]
 	virtual/libffi
-	system-sqlite? ( >=dev-db/sqlite-3.7.7.1[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
-	webm? ( >=media-libs/libvpx-1.0.0
-		media-libs/alsa-lib )
+	gstreamer? ( media-plugins/gst-plugins-meta:0.10[ffmpeg] )
+	system-sqlite? ( >=dev-db/sqlite-3.7.13[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
+	>=media-libs/libvpx-1.0.0
+	kernel_linux? ( media-libs/alsa-lib )
 	selinux? ( sec-policy/selinux-mozilla )"
 DEPEND="${RDEPEND}
 	virtual/pkgconfig
 	pgo? (
 		>=sys-devel/gcc-4.5 )
-	webm? ( virtual/opengl
-		x86? ( ${ASM_DEPEND} )
-		amd64? ( ${ASM_DEPEND} ) )"
+	amd64? ( ${ASM_DEPEND}
+		virtual/opengl )
+	x86? ( ${ASM_DEPEND}
+		virtual/opengl )"
 PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
 
 SRC_URI="${SRC_URI}
@@ -112,9 +115,6 @@ pkg_setup() {
 
 src_prepare() {
 	# Apply our patches
-	EPATCH_EXCLUDE="5005_use_resource_urls_appropriately.patch
-		6012_fix_shlibsign.patch
-		6013_fix_abort_declaration.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${WORKDIR}/firefox"
@@ -160,6 +160,15 @@ src_prepare() {
 		-i "${S}"/config/system-headers \
 		-i "${S}"/js/src/config/system-headers || die "Sed failed"
 
+	# Don't exit with error when some libs are missing which we have in
+	# system.
+	sed '/^MOZ_PKG_FATAL_WARNINGS/s@= 1@= 0@' \
+		-i "${S}"/browser/installer/Makefile.in || die
+
+	# Don't error out when there's no files to be removed:
+	sed 's@\(xargs rm\)$@\1 -f@' \
+		-i "${S}"/toolkit/mozapps/installer/packager.mk || die
+
 	eautoreconf
 }
 
@@ -176,20 +185,27 @@ src_configure() {
 	mozconfig_init
 	mozconfig_config
 
+	# We must force enable jemalloc 3 threw .mozconfig
+	echo "export MOZ_JEMALLOC=1" >> ${S}/.mozconfig
+
 	mozconfig_annotate '' --prefix="${EPREFIX}"/usr
 	mozconfig_annotate '' --libdir="${EPREFIX}"/usr/$(get_libdir)/${PN}
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
 	mozconfig_annotate '' --disable-gconf
 	mozconfig_annotate '' --disable-mailnews
-	mozconfig_annotate '' --enable-canvas
-	mozconfig_annotate '' --enable-safe-browsing
 	mozconfig_annotate '' --with-system-png
 	mozconfig_annotate '' --enable-system-ffi
-	mozconfig_annotate 'regression' --disable-tracejit
 
 	# Other ff-specific settings
 	mozconfig_annotate '' --with-default-mozilla-five-home=${MOZILLA_FIVE_HOME}
 	mozconfig_annotate '' --target="${CTARGET:-${CHOST}}"
+	mozconfig_annotate '' --build="${CTARGET:-${CHOST}}"
+
+	mozconfig_use_enable gstreamer
+	mozconfig_use_enable system-sqlite
+	# Both methodjit and tracejit conflict with PaX
+	mozconfig_use_enable jit methodjit
+	mozconfig_use_enable jit tracejit
 
 	# Allow for a proper pgo build
 	if use pgo; then
@@ -250,8 +266,11 @@ src_install() {
 	obj_dir="${obj_dir%/*}"
 	cd "${S}/${obj_dir}"
 
-	# Pax mark xpcshell for hardened support, only used for startupcache creation.
-	pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
+	# Without methodjit and tracejit there's no conflict with PaX
+	if use jit; then
+		# Pax mark xpcshell for hardened support, only used for startupcache creation.
+		pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
+	fi
 
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
 	emake DESTDIR="${D}" install || die "emake install failed"
@@ -263,8 +282,15 @@ src_install() {
 	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || \
 		die "Failed to remove sdk and headers"
 
-	# Required in order to use plugins and even run firefox on hardened.
-	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{firefox,firefox-bin,plugin-container}
+	# Without methodjit and tracejit there's no conflict with PaX
+	if use jit; then
+		# Required in order to use plugins and even run firefox on hardened.
+		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{firefox,firefox-bin}
+	fi
+
+	# Plugin-container needs to be pax-marked for hardened to ensure plugins such as flash
+	# continue to work as expected.
+	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/plugin-container
 
 	# Plugins dir
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
