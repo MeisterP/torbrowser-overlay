@@ -1,23 +1,31 @@
-From 38a469e05779315cb2990be60c13fb167812e54d Mon Sep 17 00:00:00 2001
+From 39a2141abd8fd7c2723c4276a3501cb9cb120550 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
-Date: Thu, 4 Oct 2012 14:53:13 -0400
-Subject: [PATCH 24/24] Do not expose system colors to CSS or canvas.
+Date: Wed, 28 Nov 2012 15:08:40 -0500
+Subject: [PATCH 23/26] Do not expose system colors to CSS or canvas.
 
 ---
- content/canvas/src/nsCanvasRenderingContext2D.cpp  |   36 +++-
- .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   51 ++++--
- layout/style/nsCSSParser.cpp                       |   19 ++-
- layout/style/nsRuleNode.cpp                        |    4 +-
- widget/public/LookAndFeel.h                        |    9 +
- widget/src/xpwidgets/nsXPLookAndFeel.cpp           |  173 +++++++++++++++++++-
- widget/src/xpwidgets/nsXPLookAndFeel.h             |    5 +-
- 7 files changed, 269 insertions(+), 28 deletions(-)
+ content/canvas/src/nsCanvasRenderingContext2D.cpp  |   28 +++-
+ .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   34 +++-
+ .../canvas/src/nsCanvasRenderingContext2DAzure.h   |    5 +-
+ layout/style/nsRuleNode.cpp                        |    5 +-
+ widget/LookAndFeel.h                               |    9 +
+ widget/xpwidgets/nsXPLookAndFeel.cpp               |  173 +++++++++++++++++++-
+ widget/xpwidgets/nsXPLookAndFeel.h                 |    5 +-
+ 7 files changed, 239 insertions(+), 20 deletions(-)
 
 diff --git a/content/canvas/src/nsCanvasRenderingContext2D.cpp b/content/canvas/src/nsCanvasRenderingContext2D.cpp
-index 0cf97ce..6c47821 100644
+index 0dec654..7132e4f 100644
 --- a/content/canvas/src/nsCanvasRenderingContext2D.cpp
 +++ b/content/canvas/src/nsCanvasRenderingContext2D.cpp
-@@ -186,8 +186,9 @@ class nsCanvasGradient : public nsIDOMCanvasGradient
+@@ -32,6 +32,7 @@
+ #include "nsCSSParser.h"
+ #include "mozilla/css/StyleRule.h"
+ #include "mozilla/css/Declaration.h"
++#include "mozilla/css/Loader.h"
+ #include "nsComputedDOMStyle.h"
+ #include "nsStyleSet.h"
+ 
+@@ -159,8 +160,9 @@ class nsCanvasGradient MOZ_FINAL : public nsIDOMCanvasGradient
  public:
      NS_DECLARE_STATIC_IID_ACCESSOR(NS_CANVASGRADIENT_PRIVATE_IID)
  
@@ -29,16 +37,26 @@ index 0cf97ce..6c47821 100644
      {
      }
  
-@@ -203,7 +204,7 @@ public:
-             return NS_ERROR_DOM_INDEX_SIZE_ERR;
+@@ -181,8 +183,17 @@ public:
+             return NS_ERROR_DOM_SYNTAX_ERR;
+         }
  
++        nsIPresShell* presShell = nullptr;
++        if (mCSSLoader) {
++          nsIDocument *doc = mCSSLoader->GetDocument();
++          if (doc)
++            presShell = doc->GetShell();
++        }
++
          nscolor color;
--        nsCSSParser parser;
-+        nsCSSParser parser(mCSSLoader);
-         nsresult rv = parser.ParseColorString(nsString(colorstr),
-                                               nsnull, 0, &color);
-         if (NS_FAILED(rv))
-@@ -217,6 +218,7 @@ public:
+-        if (!nsRuleNode::ComputeColor(value, nullptr, nullptr, color)) {
++        if (!nsRuleNode::ComputeColor(value,
++                           presShell ? presShell->GetPresContext() : nullptr,
++                           nullptr, color)) {
+             return NS_ERROR_DOM_SYNTAX_ERR;
+         }
+ 
+@@ -194,6 +205,7 @@ public:
      NS_DECL_ISUPPORTS
  
  protected:
@@ -46,101 +64,43 @@ index 0cf97ce..6c47821 100644
      nsRefPtr<gfxPattern> mPattern;
  };
  
-@@ -875,7 +877,9 @@ nsCanvasRenderingContext2D::SetStyleFromStringOrInterface(const nsAString& aStr,
-                                 HTMLCanvasElement()->OwnerDoc() : nsnull;
- 
-         // Pass the CSS Loader object to the parser, to allow parser error
--        // reports to include the outer window ID.
-+        // reports to include the outer window ID.  The parser also uses it to
-+        // detect whether the caller is chrome in order to avoid exposing
-+        // system colors.
-         nsCSSParser parser(document ? document->CSSLoader() : nsnull);
-         rv = parser.ParseColorString(aStr, nsnull, 0, &color);
-         if (NS_FAILED(rv)) {
-@@ -1778,7 +1782,14 @@ nsCanvasRenderingContext2D::CreateLinearGradient(float x0, float y0, float x1, f
+@@ -1814,7 +1826,10 @@ nsCanvasRenderingContext2D::CreateLinearGradient(float x0, float y0, float x1, f
      if (!gradpat)
          return NS_ERROR_OUT_OF_MEMORY;
  
 -    nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasGradient(gradpat);
-+    // Pass the CSS Loader object to the parser, to allow parser error reports
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-+    nsIDocument* doc = mCanvasElement ? HTMLCanvasElement()->OwnerDoc()
-+                                      : nsnull;
-+    mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nsnull;
++    nsIDocument* doc = mCanvasElement ? mCanvasElement->OwnerDoc() : nullptr;
++    mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nullptr;
 +    nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasGradient(cssLoader,
 +                                                               gradpat);
      if (!grad)
          return NS_ERROR_OUT_OF_MEMORY;
  
-@@ -1800,7 +1811,14 @@ nsCanvasRenderingContext2D::CreateRadialGradient(float x0, float y0, float r0, f
+@@ -1836,7 +1851,10 @@ nsCanvasRenderingContext2D::CreateRadialGradient(float x0, float y0, float r0, f
      if (!gradpat)
          return NS_ERROR_OUT_OF_MEMORY;
  
 -    nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasGradient(gradpat);
-+    // Pass the CSS Loader object to the parser, to allow parser error reports
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-+    nsIDocument* doc = mCanvasElement ? HTMLCanvasElement()->OwnerDoc()
-+                                      : nsnull;
-+    mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nsnull;
++    nsIDocument* doc = mCanvasElement ? mCanvasElement->OwnerDoc() : nullptr;
++    mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nullptr;
 +    nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasGradient(cssLoader,
 +                                                               gradpat);
      if (!grad)
          return NS_ERROR_OUT_OF_MEMORY;
  
-@@ -1922,7 +1940,8 @@ nsCanvasRenderingContext2D::SetShadowColor(const nsAString& colorstr)
-                             HTMLCanvasElement()->OwnerDoc() : nsnull;
- 
-     // Pass the CSS Loader object to the parser, to allow parser error reports
--    // to include the outer window ID.
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-     nsCSSParser parser(document ? document->CSSLoader() : nsnull);
-     nscolor color;
-     nsresult rv = parser.ParseColorString(colorstr, nsnull, 0, &color);
-@@ -3694,7 +3713,8 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
-                               HTMLCanvasElement()->OwnerDoc() : nsnull;
- 
-     // Pass the CSS Loader object to the parser, to allow parser error reports
--    // to include the outer window ID.
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-     nsCSSParser parser(elementDoc ? elementDoc->CSSLoader() : nsnull);
-     nsresult rv = parser.ParseColorString(PromiseFlatString(aBGColor),
-                                           nsnull, 0, &bgColor);
 diff --git a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
-index e8dfb1e..cb5a5f5 100644
+index d86ba32..84c1927 100644
 --- a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
 +++ b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
-@@ -201,7 +201,10 @@ public:
-     }
+@@ -31,6 +31,7 @@
+ #include "nsCSSParser.h"
+ #include "mozilla/css/StyleRule.h"
+ #include "mozilla/css/Declaration.h"
++#include "mozilla/css/Loader.h"
+ #include "nsComputedDOMStyle.h"
+ #include "nsStyleSet.h"
  
-     nscolor color;
--    nsCSSParser parser;
-+    // Pass the CSS Loader object to the parser, to allow parser error reports
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-+    nsCSSParser parser(mCSSLoader);;
-     nsresult rv = parser.ParseColorString(nsString(colorstr),
-                                           nsnull, 0, &color);
-     if (NS_FAILED(rv)) {
-@@ -221,20 +224,24 @@ public:
-   }
- 
- protected:
--  nsCanvasGradientAzure(Type aType) : mType(aType)
-+  nsCanvasGradientAzure(mozilla::css::Loader* aLoader, Type aType)
-+      : mCSSLoader(aLoader)
-+      , mType(aType)
-   {}
- 
-   nsTArray<GradientStop> mRawStops;
-   RefPtr<GradientStops> mStops;
-+  mozilla::css::Loader* mCSSLoader; // not ref counted, it owns us
-   Type mType;
- };
- 
+@@ -140,9 +141,10 @@ NS_MEMORY_REPORTER_IMPLEMENT(CanvasAzureMemory,
  class nsCanvasRadialGradientAzure : public nsCanvasGradientAzure
  {
  public:
@@ -153,7 +113,7 @@ index e8dfb1e..cb5a5f5 100644
      , mCenter1(aBeginOrigin)
      , mCenter2(aEndOrigin)
      , mRadius1(aBeginRadius)
-@@ -251,8 +258,9 @@ public:
+@@ -159,8 +161,9 @@ public:
  class nsCanvasLinearGradientAzure : public nsCanvasGradientAzure
  {
  public:
@@ -165,123 +125,92 @@ index e8dfb1e..cb5a5f5 100644
      , mBegin(aBegin)
      , mEnd(aEnd)
    {
-@@ -1066,8 +1074,9 @@ nsCanvasRenderingContext2DAzure::SetStyleFromStringOrInterface(const nsAString&
-     nsIDocument* document = mCanvasElement ?
-                             HTMLCanvasElement()->OwnerDoc() : nsnull;
+@@ -363,8 +366,17 @@ nsCanvasGradientAzure::AddColorStop(float offset, const nsAString& colorstr)
+     return NS_ERROR_DOM_SYNTAX_ERR;
+   }
  
--    // Pass the CSS Loader object to the parser, to allow parser error
--    // reports to include the outer window ID.
-+    // Pass the CSS Loader object to the parser, to allow parser error reports
-+    // to include the outer window ID.  The parser also uses it to detect
-+    // whether the caller is chrome in order to avoid exposing system colors.
-     nsCSSParser parser(document ? document->CSSLoader() : nsnull);
-     rv = parser.ParseColorString(aStr, nsnull, 0, &color);
-     if (NS_FAILED(rv)) {
-@@ -1855,8 +1864,14 @@ nsCanvasRenderingContext2DAzure::CreateLinearGradient(float x0, float y0, float
-     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
++  nsIPresShell* presShell = nullptr;
++  if (mCSSLoader) {
++    nsIDocument *doc = mCSSLoader->GetDocument();
++    if (doc)
++      presShell = doc->GetShell();
++  }
++
+   nscolor color;
+-  if (!nsRuleNode::ComputeColor(value, nullptr, nullptr, color)) {
++  if (!nsRuleNode::ComputeColor(value,
++                          presShell ? presShell->GetPresContext() : nullptr,
++                          nullptr, color)) {
+     return NS_ERROR_DOM_SYNTAX_ERR;
+   }
+ 
+@@ -1788,8 +1800,10 @@ nsCanvasRenderingContext2DAzure::CreateLinearGradient(double x0, double y0, doub
+     return nullptr;
    }
  
 -  nsRefPtr<nsIDOMCanvasGradient> grad =
 -    new nsCanvasLinearGradientAzure(Point(x0, y0), Point(x1, y1));
-+  // Pass the CSS Loader object to the parser, to allow parser error reports
-+  // to include the outer window ID.  The parser also uses it to detect
-+  // whether the caller is chrome in order to avoid exposing system colors.
-+  nsIDocument* doc = mCanvasElement ? HTMLCanvasElement()->OwnerDoc()
-+                                    : nsnull;
-+  mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nsnull;
++  nsIDocument* doc = mCanvasElement ? mCanvasElement->OwnerDoc() : nullptr;
++  mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nullptr;
 +  nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasLinearGradientAzure(
 +                                     cssLoader, Point(x0, y0), Point(x1, y1));
  
-   *_retval = grad.forget().get();
-   return NS_OK;
-@@ -1875,8 +1890,14 @@ nsCanvasRenderingContext2DAzure::CreateRadialGradient(float x0, float y0, float
-     return NS_ERROR_DOM_INDEX_SIZE_ERR;
+   return grad.forget();
+ }
+@@ -1818,8 +1832,10 @@ nsCanvasRenderingContext2DAzure::CreateRadialGradient(double x0, double y0, doub
+     return nullptr;
    }
  
 -  nsRefPtr<nsIDOMCanvasGradient> grad =
 -    new nsCanvasRadialGradientAzure(Point(x0, y0), r0, Point(x1, y1), r1);
-+  // Pass the CSS Loader object to the parser, to allow parser error reports
-+  // to include the outer window ID.  The parser also uses it to detect
-+  // whether the caller is chrome in order to avoid exposing system colors.
-+  nsIDocument* doc = mCanvasElement ? HTMLCanvasElement()->OwnerDoc()
-+                                    : nsnull;
-+  mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nsnull;
++  nsIDocument* doc = mCanvasElement ? mCanvasElement->OwnerDoc() : nullptr;
++  mozilla::css::Loader* cssLoader = doc ? doc->CSSLoader() : nullptr;
 +  nsRefPtr<nsIDOMCanvasGradient> grad = new nsCanvasRadialGradientAzure(
 +                            cssLoader, Point(x0, y0), r0, Point(x1, y1), r1);
  
-   *_retval = grad.forget().get();
-   return NS_OK;
-@@ -2024,7 +2045,8 @@ nsCanvasRenderingContext2DAzure::SetShadowColor(const nsAString& colorstr)
-                           HTMLCanvasElement()->OwnerDoc() : nsnull;
+   return grad.forget();
+ }
+diff --git a/content/canvas/src/nsCanvasRenderingContext2DAzure.h b/content/canvas/src/nsCanvasRenderingContext2DAzure.h
+index 05ccf61..629d78a 100644
+--- a/content/canvas/src/nsCanvasRenderingContext2DAzure.h
++++ b/content/canvas/src/nsCanvasRenderingContext2DAzure.h
+@@ -71,11 +71,14 @@ public:
+   NS_IMETHOD AddColorStop(float offset, const nsAString& colorstr);
  
-   // Pass the CSS Loader object to the parser, to allow parser error reports
--  // to include the outer window ID.
-+  // to include the outer window ID.  The parser also uses it to detect
-+  // whether the caller is chrome in order to avoid exposing system colors.
-   nsCSSParser parser(document ? document->CSSLoader() : nsnull);
-   nscolor color;
-   nsresult rv = parser.ParseColorString(colorstr, nsnull, 0, &color);
-@@ -3847,7 +3869,8 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* aWindow, float aX, flo
-                             HTMLCanvasElement()->OwnerDoc() : nsnull;
+ protected:
+-  nsCanvasGradientAzure(Type aType) : mType(aType)
++  nsCanvasGradientAzure(mozilla::css::Loader* aLoader, Type aType)
++      : mCSSLoader(aLoader)
++      , mType(aType)
+   {}
  
-   // Pass the CSS Loader object to the parser, to allow parser error reports
--  // to include the outer window ID.
-+  // to include the outer window ID.  The parser also uses it to detect
-+  // whether the caller is chrome in order to avoid exposing system colors.
-   nsCSSParser parser(elementDoc ? elementDoc->CSSLoader() : nsnull);
-   nsresult rv = parser.ParseColorString(PromiseFlatString(aBGColor),
-                                         nsnull, 0, &bgColor);
-diff --git a/layout/style/nsCSSParser.cpp b/layout/style/nsCSSParser.cpp
-index ae1a474..30e179c 100644
---- a/layout/style/nsCSSParser.cpp
-+++ b/layout/style/nsCSSParser.cpp
-@@ -1216,8 +1216,25 @@ CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
-       // Should remove this limitation at some point.
-       return NS_ERROR_FAILURE;
-     }
-+
-+    // We do not want to expose system/native colors to content.  All callers
-+    // who are working with content should ensure that they set the CSS
-+    // loader (mChildLoader) so we can check here if the content is chrome.
-+    bool isChrome = true;
-+    if (mChildLoader) {
-+      nsIDocument *doc = mChildLoader->GetDocument();
-+      if (doc) {
-+        nsIPresShell *presShell = doc->GetShell();
-+        if (presShell) {
-+          nsPresContext* presCtxt = presShell->GetPresContext();
-+          if (presCtxt)
-+            isChrome = presCtxt->IsChrome();
-+        }
-+      }
-+    }
-     nscolor rgba;
--    nsresult rv = LookAndFeel::GetColor(LookAndFeel::ColorID(val), &rgba);
-+    nsresult rv = LookAndFeel::GetColor(LookAndFeel::ColorID(val), !isChrome,
-+                                        &rgba);
-     if (NS_FAILED(rv)) {
-       return rv;
-     }
+   nsTArray<mozilla::gfx::GradientStop> mRawStops;
+   mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
++  mozilla::css::Loader* mCSSLoader; // not ref counted, it owns us
+   Type mType;
+   virtual ~nsCanvasGradientAzure() {}
+ };
 diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
-index 827585a..d19524e 100644
+index 33ce21e..078af3e 100644
 --- a/layout/style/nsRuleNode.cpp
 +++ b/layout/style/nsRuleNode.cpp
-@@ -768,7 +768,9 @@ static bool SetColor(const nsCSSValue& aValue, const nscolor aParentColor,
-     PRInt32 intValue = aValue.GetIntValue();
+@@ -746,7 +746,10 @@ static bool SetColor(const nsCSSValue& aValue, const nscolor aParentColor,
+     int32_t intValue = aValue.GetIntValue();
      if (0 <= intValue) {
        LookAndFeel::ColorID colorID = (LookAndFeel::ColorID) intValue;
 -      if (NS_SUCCEEDED(LookAndFeel::GetColor(colorID, &aResult))) {
-+      bool useStandinsForNativeColors = !aPresContext->IsChrome();
++      bool useStandinsForNativeColors = aPresContext &&
++                                        !aPresContext->IsChrome();
 +      if (NS_SUCCEEDED(LookAndFeel::GetColor(colorID,
 +                                    useStandinsForNativeColors, &aResult))) {
          result = true;
        }
      }
-diff --git a/widget/public/LookAndFeel.h b/widget/public/LookAndFeel.h
-index aae3b28..bb7be3c 100644
---- a/widget/public/LookAndFeel.h
-+++ b/widget/public/LookAndFeel.h
-@@ -445,6 +445,15 @@ public:
+diff --git a/widget/LookAndFeel.h b/widget/LookAndFeel.h
+index e46bb13..59f00f5 100644
+--- a/widget/LookAndFeel.h
++++ b/widget/LookAndFeel.h
+@@ -446,6 +446,15 @@ public:
    static nsresult GetColor(ColorID aID, nscolor* aResult);
  
    /**
@@ -297,11 +226,11 @@ index aae3b28..bb7be3c 100644
     * GetInt() and GetFloat() return a int or float value for aID.  The result
     * might be distance, time, some flags or a int value which has particular
     * meaning.  See each document at definition of each ID for the detail.
-diff --git a/widget/src/xpwidgets/nsXPLookAndFeel.cpp b/widget/src/xpwidgets/nsXPLookAndFeel.cpp
-index 8053432..96937ac 100644
---- a/widget/src/xpwidgets/nsXPLookAndFeel.cpp
-+++ b/widget/src/xpwidgets/nsXPLookAndFeel.cpp
-@@ -502,6 +502,155 @@ nsXPLookAndFeel::IsSpecialColor(ColorID aID, nscolor &aColor)
+diff --git a/widget/xpwidgets/nsXPLookAndFeel.cpp b/widget/xpwidgets/nsXPLookAndFeel.cpp
+index 50c2c86..20ccfef 100644
+--- a/widget/xpwidgets/nsXPLookAndFeel.cpp
++++ b/widget/xpwidgets/nsXPLookAndFeel.cpp
+@@ -476,6 +476,155 @@ nsXPLookAndFeel::IsSpecialColor(ColorID aID, nscolor &aColor)
    return false;
  }
  
@@ -457,7 +386,7 @@ index 8053432..96937ac 100644
  //
  // All these routines will return NS_OK if they have a value,
  // in which case the nsLookAndFeel should use that value;
-@@ -509,7 +658,8 @@ nsXPLookAndFeel::IsSpecialColor(ColorID aID, nscolor &aColor)
+@@ -483,7 +632,8 @@ nsXPLookAndFeel::IsSpecialColor(ColorID aID, nscolor &aColor)
  // platform-specific nsLookAndFeel should use its own values instead.
  //
  nsresult
@@ -467,7 +396,7 @@ index 8053432..96937ac 100644
  {
    if (!sInitialized)
      Init();
-@@ -595,7 +745,10 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
+@@ -569,7 +719,10 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
    }
  #endif // DEBUG_SYSTEM_COLOR_USE
  
@@ -479,7 +408,7 @@ index 8053432..96937ac 100644
      aResult = sCachedColors[aID];
      return NS_OK;
    }
-@@ -629,6 +782,12 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
+@@ -603,6 +756,12 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, nscolor &aResult)
      return NS_OK;
    }
  
@@ -492,7 +421,7 @@ index 8053432..96937ac 100644
    if (sUseNativeColors && NS_SUCCEEDED(NativeGetColor(aID, aResult))) {
      if ((gfxPlatform::GetCMSMode() == eCMSMode_All) &&
           !IsSpecialColor(aID, aResult)) {
-@@ -719,7 +878,15 @@ namespace mozilla {
+@@ -693,7 +852,15 @@ namespace mozilla {
  nsresult
  LookAndFeel::GetColor(ColorID aID, nscolor* aResult)
  {
@@ -509,22 +438,22 @@ index 8053432..96937ac 100644
  }
  
  // static
-diff --git a/widget/src/xpwidgets/nsXPLookAndFeel.h b/widget/src/xpwidgets/nsXPLookAndFeel.h
-index ce06575..c0ecc32 100644
---- a/widget/src/xpwidgets/nsXPLookAndFeel.h
-+++ b/widget/src/xpwidgets/nsXPLookAndFeel.h
-@@ -84,7 +84,8 @@ public:
+diff --git a/widget/xpwidgets/nsXPLookAndFeel.h b/widget/xpwidgets/nsXPLookAndFeel.h
+index 69627d2..2729803 100644
+--- a/widget/xpwidgets/nsXPLookAndFeel.h
++++ b/widget/xpwidgets/nsXPLookAndFeel.h
+@@ -52,7 +52,8 @@ public:
    // otherwise we'll return NS_ERROR_NOT_AVAILABLE, in which case, the
    // platform-specific nsLookAndFeel should use its own values instead.
    //
 -  nsresult GetColorImpl(ColorID aID, nscolor &aResult);
 +  nsresult GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
 +                        nscolor &aResult);
-   virtual nsresult GetIntImpl(IntID aID, PRInt32 &aResult);
+   virtual nsresult GetIntImpl(IntID aID, int32_t &aResult);
    virtual nsresult GetFloatImpl(FloatID aID, float &aResult);
  
-@@ -111,6 +112,8 @@ protected:
-   void InitColorFromPref(PRInt32 aIndex);
+@@ -89,6 +90,8 @@ protected:
+   void InitColorFromPref(int32_t aIndex);
    virtual nsresult NativeGetColor(ColorID aID, nscolor &aResult) = 0;
    bool IsSpecialColor(ColorID aID, nscolor &aColor);
 +  bool ColorIsNotCSSAccessible(ColorID aID);

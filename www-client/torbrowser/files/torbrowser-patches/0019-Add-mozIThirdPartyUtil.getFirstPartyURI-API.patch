@@ -1,20 +1,20 @@
-From 36d57455893bcf6dc08e91a2784970f285c5e84b Mon Sep 17 00:00:00 2001
+From 81c1a8a664d433686367e44ebd49320be337a2f3 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Tue, 28 Aug 2012 18:35:33 -0700
-Subject: [PATCH 20/24] Add mozIThirdPartyUtil.getFirstPartyURI API
+Date: Wed, 28 Nov 2012 17:08:29 -0500
+Subject: [PATCH 19/26] Add mozIThirdPartyUtil.getFirstPartyURI API
 
 API allows you to get the url bar URI for a channel or nsIDocument.
 ---
- content/base/src/ThirdPartyUtil.cpp        |   59 ++++++++++++++++++++++++++++
+ content/base/src/ThirdPartyUtil.cpp        |   68 ++++++++++++++++++++++++++++
  content/base/src/ThirdPartyUtil.h          |    2 +
- netwerk/base/public/mozIThirdPartyUtil.idl |   21 ++++++++++
- 3 files changed, 82 insertions(+), 0 deletions(-)
+ netwerk/base/public/mozIThirdPartyUtil.idl |   21 +++++++++
+ 3 files changed, 91 insertions(+), 0 deletions(-)
 
 diff --git a/content/base/src/ThirdPartyUtil.cpp b/content/base/src/ThirdPartyUtil.cpp
-index 6a415e9..52b3dab 100644
+index 97a000e..ad1b0fa 100644
 --- a/content/base/src/ThirdPartyUtil.cpp
 +++ b/content/base/src/ThirdPartyUtil.cpp
-@@ -40,6 +40,9 @@
+@@ -7,6 +7,9 @@
  #include "nsIServiceManager.h"
  #include "nsIHttpChannelInternal.h"
  #include "nsIDOMWindow.h"
@@ -24,7 +24,7 @@ index 6a415e9..52b3dab 100644
  #include "nsILoadContext.h"
  #include "nsIPrincipal.h"
  #include "nsIScriptObjectPrincipal.h"
-@@ -54,6 +57,7 @@ ThirdPartyUtil::Init()
+@@ -21,6 +24,7 @@ ThirdPartyUtil::Init()
  
    nsresult rv;
    mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
@@ -32,7 +32,7 @@ index 6a415e9..52b3dab 100644
    return rv;
  }
  
-@@ -315,3 +319,58 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
+@@ -282,3 +286,67 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
  
    return NS_OK;
  }
@@ -43,6 +43,11 @@ index 6a415e9..52b3dab 100644
 +                                 nsIURI **aOutput)
 +{
 +  nsresult rv = NS_ERROR_NULL_POINTER;
++
++  if (!aOutput)
++    return rv;
++
++  *aOutput = nullptr;
 +
 +  if (!aChannel && aDoc) {
 +    aChannel = aDoc->GetChannel();
@@ -55,20 +60,25 @@ index 6a415e9..52b3dab 100644
 +  }
 +
 +  // If the channel was missing, closed or broken, try the
-+  // window hierarchy directly. 
++  // window hierarchy directly.
 +  //
-+  // This might fail to work for first-party loads themselves, but 
++  // This might fail to work for first-party loads themselves, but
 +  // we don't need this codepath for that case.
 +  if (NS_FAILED(rv) && aDoc) {
 +    nsCOMPtr<nsIDOMWindow> top;
 +    nsCOMPtr<nsIDOMDocument> topDDoc;
-+   
++    nsIURI *docURI = nullptr;
++
 +    if (aDoc->GetWindow()) {
 +      aDoc->GetWindow()->GetTop(getter_AddRefs(top));
 +      top->GetDocument(getter_AddRefs(topDDoc));
 +
 +      nsCOMPtr<nsIDocument> topDoc(do_QueryInterface(topDDoc));
-+      *aOutput = topDoc->GetOriginalURI();
++      docURI = topDoc->GetOriginalURI();
++      if (docURI) {
++        // Give us a mutable URI and also addref
++        rv = NS_EnsureSafeToReturn(docURI, aOutput);
++      }
 +    } else {
 +      // XXX: Chrome callers (such as NoScript) can end up here
 +      // through getImageData/canvas usage with no document state
@@ -90,20 +100,19 @@ index 6a415e9..52b3dab 100644
 +  return rv;
 +}
 +
-+
 diff --git a/content/base/src/ThirdPartyUtil.h b/content/base/src/ThirdPartyUtil.h
-index 58ddb15..c8eab11 100644
+index 3f50ac3..fe7b214 100644
 --- a/content/base/src/ThirdPartyUtil.h
 +++ b/content/base/src/ThirdPartyUtil.h
-@@ -42,6 +42,7 @@
+@@ -9,6 +9,7 @@
  #include "nsString.h"
  #include "mozIThirdPartyUtil.h"
  #include "nsIEffectiveTLDService.h"
 +#include "nsICookiePermission.h"
+ #include "mozilla/Attributes.h"
  
  class nsIURI;
- class nsIChannel;
-@@ -61,6 +62,7 @@ private:
+@@ -29,6 +30,7 @@ private:
    static already_AddRefed<nsIURI> GetURIFromWindow(nsIDOMWindow* aWin);
  
    nsCOMPtr<nsIEffectiveTLDService> mTLDService;
@@ -112,10 +121,10 @@ index 58ddb15..c8eab11 100644
  
  #endif
 diff --git a/netwerk/base/public/mozIThirdPartyUtil.idl b/netwerk/base/public/mozIThirdPartyUtil.idl
-index ad41985..fd2cb38 100644
+index 578d8db..963385c 100644
 --- a/netwerk/base/public/mozIThirdPartyUtil.idl
 +++ b/netwerk/base/public/mozIThirdPartyUtil.idl
-@@ -40,6 +40,7 @@
+@@ -7,6 +7,7 @@
  interface nsIURI;
  interface nsIDOMWindow;
  interface nsIChannel;
@@ -123,7 +132,7 @@ index ad41985..fd2cb38 100644
  
  /**
   * Utility functions for determining whether a given URI, channel, or window
-@@ -173,6 +174,26 @@ interface mozIThirdPartyUtil : nsISupports
+@@ -140,6 +141,26 @@ interface mozIThirdPartyUtil : nsISupports
     * @return the base domain.
     */
    AUTF8String getBaseDomain(in nsIURI aHostURI);
@@ -134,7 +143,7 @@ index ad41985..fd2cb38 100644
 +   *
 +   * Obtain the top-level url bar URI for either a channel or a document.
 +   * Either parameter may be null (but not both).
-+   * 
++   *
 +   * @param aChannel
 +   *        An arbitrary channel for some content element of a first party
 +   *        load. Can be null.
@@ -143,7 +152,7 @@ index ad41985..fd2cb38 100644
 +   *        An arbitrary third party document. Can be null.
 +   *
 +   * @return the first party url bar URI for the load.
-+   */ 
++   */
 +  nsIURI getFirstPartyURI(in nsIChannel aChannel,
 +                          in nsIDocument aDoc);
 +

@@ -1,58 +1,45 @@
-From 29ce940434ebbb8e54c0d9b8f84ccf6ec6bd71bc Mon Sep 17 00:00:00 2001
+From e62f1676c6b9ddaf6a3fa29075378263fbd9067d Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
-Date: Tue, 9 Oct 2012 11:21:06 -0400
-Subject: [PATCH 21/24] Add canvas image extraction prompt.
+Date: Tue, 27 Nov 2012 13:13:40 -0500
+Subject: [PATCH 20/26] Add canvas image extraction prompt.
 
 ---
- browser/base/content/browser.css                   |    1 +
  browser/base/content/browser.js                    |  102 ++++++++++++++++++++
  browser/base/content/browser.xul                   |    1 +
  .../en-US/chrome/browser/browser.properties        |    7 ++
- browser/themes/gnomestripe/browser/browser.css     |    2 +
- browser/themes/pinstripe/browser/browser.css       |    2 +
- browser/themes/winstripe/browser/browser.css       |    2 +
- content/canvas/src/CanvasUtils.cpp                 |   63 ++++++++++++
+ browser/themes/gnomestripe/browser.css             |    2 +
+ browser/themes/pinstripe/browser.css               |    2 +
+ browser/themes/winstripe/browser.css               |    2 +
+ content/canvas/src/CanvasUtils.cpp                 |   65 +++++++++++++
  content/canvas/src/CanvasUtils.h                   |    2 +
- content/canvas/src/nsCanvasRenderingContext2D.cpp  |   15 +++
- .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   15 +++
+ content/canvas/src/nsCanvasRenderingContext2D.cpp  |   16 +++
+ .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   16 +++
  content/html/content/public/nsHTMLCanvasElement.h  |    3 +
  content/html/content/src/Makefile.in               |    1 +
- content/html/content/src/nsHTMLCanvasElement.cpp   |   39 ++++++--
- 14 files changed, 246 insertions(+), 9 deletions(-)
+ content/html/content/src/nsHTMLCanvasElement.cpp   |   40 ++++++--
+ 13 files changed, 249 insertions(+), 10 deletions(-)
 
-diff --git a/browser/base/content/browser.css b/browser/base/content/browser.css
-index f033c2b..c709631 100644
---- a/browser/base/content/browser.css
-+++ b/browser/base/content/browser.css
-@@ -440,6 +440,7 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
-    created with a null anchorID, so in that case use a default anchor icon. */
- #notification-popup-box[anchorid="notification-popup-box"] > #default-notification-icon,
- #notification-popup-box[anchorid="geo-notification-icon"] > #geo-notification-icon,
-+#notification-popup-box[anchorid="canvas-notification-icon"] > #canvas-notification-icon,
- #notification-popup-box[anchorid="indexedDB-notification-icon"] > #indexedDB-notification-icon,
- #notification-popup-box[anchorid="addons-notification-icon"] > #addons-notification-icon,
- #notification-popup-box[anchorid="password-notification-icon"] > #password-notification-icon {
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index 20e3666..0c6bd46 100644
+index 9f77fd0..5316da6 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
-@@ -1522,6 +1522,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
-   BrowserOffline.init();
-   OfflineApps.init();
-   IndexedDBPromptHelper.init();
-+  CanvasPermissionPromptHelper.init();
-   gFormSubmitObserver.init();
-   AddonManager.addAddonListener(AddonsMgrListener);
- 
-@@ -1834,6 +1835,7 @@ function BrowserShutdown() {
-     BrowserOffline.uninit();
-     OfflineApps.uninit();
-     IndexedDBPromptHelper.uninit();
-+    CanvasPermissionPromptHelper.uninit();
-     AddonManager.removeAddonListener(AddonsMgrListener);
-   }
- 
-@@ -6656,6 +6658,106 @@ var IndexedDBPromptHelper = {
+@@ -1279,6 +1279,7 @@ var gBrowserInit = {
+     BrowserOffline.init();
+     OfflineApps.init();
+     IndexedDBPromptHelper.init();
++    CanvasPermissionPromptHelper.init();
+     gFormSubmitObserver.init();
+     SocialUI.init();
+     AddonManager.addAddonListener(AddonsMgrListener);
+@@ -1636,6 +1637,7 @@ var gBrowserInit = {
+       BrowserOffline.uninit();
+       OfflineApps.uninit();
+       IndexedDBPromptHelper.uninit();
++      CanvasPermissionPromptHelper.uninit();
+       AddonManager.removeAddonListener(AddonsMgrListener);
+       SocialUI.uninit();
+     }
+@@ -6126,6 +6128,106 @@ var IndexedDBPromptHelper = {
    }
  };
  
@@ -160,27 +147,27 @@ index 20e3666..0c6bd46 100644
  {
    if (TabView.isVisible()) {
 diff --git a/browser/base/content/browser.xul b/browser/base/content/browser.xul
-index ba2a7cb..1acea43 100644
+index 1982eb1..d4a20cd 100644
 --- a/browser/base/content/browser.xul
 +++ b/browser/base/content/browser.xul
-@@ -520,6 +520,7 @@
-             <image id="default-notification-icon" class="notification-anchor-icon" role="button"/>
+@@ -573,6 +573,7 @@
+             <image id="identity-notification-icon" class="notification-anchor-icon" role="button"/>
              <image id="geo-notification-icon" class="notification-anchor-icon" role="button"/>
              <image id="addons-notification-icon" class="notification-anchor-icon" role="button"/>
 +            <image id="canvas-notification-icon" class="notification-anchor-icon" role="button"/>
              <image id="indexedDB-notification-icon" class="notification-anchor-icon" role="button"/>
              <image id="password-notification-icon" class="notification-anchor-icon" role="button"/>
-           </box>
+             <image id="webapps-notification-icon" class="notification-anchor-icon" role="button"/>
 diff --git a/browser/locales/en-US/chrome/browser/browser.properties b/browser/locales/en-US/chrome/browser/browser.properties
-index 380e3c3..98154d1 100644
+index 1a9f457..4e61cb9 100644
 --- a/browser/locales/en-US/chrome/browser/browser.properties
 +++ b/browser/locales/en-US/chrome/browser/browser.properties
-@@ -197,6 +197,13 @@ offlineApps.usage=This website (%S) is now storing more than %SMB of data on you
+@@ -218,6 +218,13 @@ offlineApps.usage=This website (%S) is now storing more than %SMB of data on you
  offlineApps.manageUsage=Show settings
  offlineApps.manageUsageAccessKey=S
  
 +# Canvas permission prompt
-+canvas.siteprompt=This website (%S) attempted to access image data on a canvas.  Blank (white) image data was returned this time.
++canvas.siteprompt=This website (%S) attempted to access image data on a canvas. Since canvas image data can be used to discover information about your computer, blank image data was returned this time.
 +canvas.allow=Allow in the Future
 +canvas.allowAccessKey=A
 +canvas.never=Never for This Site
@@ -189,11 +176,11 @@ index 380e3c3..98154d1 100644
  # LOCALIZATION NOTE (indexedDB.usage): %1$S is the website host name
  # %2$S a number of megabytes.
  indexedDB.usage=This website (%1$S) is attempting to store more than %2$S MB of data on your computer for offline use.
-diff --git a/browser/themes/gnomestripe/browser/browser.css b/browser/themes/gnomestripe/browser/browser.css
-index edc0b72..8ba057e 100644
---- a/browser/themes/gnomestripe/browser/browser.css
-+++ b/browser/themes/gnomestripe/browser/browser.css
-@@ -1227,6 +1227,7 @@ toolbar[iconsize="small"] #feed-button {
+diff --git a/browser/themes/gnomestripe/browser.css b/browser/themes/gnomestripe/browser.css
+index f62d5a8..77df3a8 100644
+--- a/browser/themes/gnomestripe/browser.css
++++ b/browser/themes/gnomestripe/browser.css
+@@ -1185,6 +1185,7 @@ toolbar[iconsize="small"] #feed-button {
    list-style-image: url("moz-icon://stock/gtk-cancel?size=menu");
  }
  
@@ -201,7 +188,7 @@ index edc0b72..8ba057e 100644
  .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
  .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
    list-style-image: url(chrome://global/skin/icons/question-64.png);
-@@ -1281,6 +1282,7 @@ toolbar[iconsize="small"] #feed-button {
+@@ -1250,6 +1251,7 @@ toolbar[iconsize="small"] #feed-button {
    list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.png);
  }
  
@@ -209,11 +196,11 @@ index edc0b72..8ba057e 100644
  #indexedDB-notification-icon {
    list-style-image: url(chrome://global/skin/icons/question-16.png);
  }
-diff --git a/browser/themes/pinstripe/browser/browser.css b/browser/themes/pinstripe/browser/browser.css
-index 2a96556..f94a6f2 100644
---- a/browser/themes/pinstripe/browser/browser.css
-+++ b/browser/themes/pinstripe/browser/browser.css
-@@ -2404,10 +2404,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
+diff --git a/browser/themes/pinstripe/browser.css b/browser/themes/pinstripe/browser.css
+index 510af73..1f11603 100644
+--- a/browser/themes/pinstripe/browser.css
++++ b/browser/themes/pinstripe/browser.css
+@@ -2426,10 +2426,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
    -moz-image-region: rect(0px, 48px, 16px, 32px);
  }
  
@@ -226,11 +213,11 @@ index 2a96556..f94a6f2 100644
  .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
  .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
    list-style-image: url(chrome://global/skin/icons/question-64.png);
-diff --git a/browser/themes/winstripe/browser/browser.css b/browser/themes/winstripe/browser/browser.css
-index 0103c79..d352790 100644
---- a/browser/themes/winstripe/browser/browser.css
-+++ b/browser/themes/winstripe/browser/browser.css
-@@ -2294,6 +2294,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
+diff --git a/browser/themes/winstripe/browser.css b/browser/themes/winstripe/browser.css
+index 30fb26c..360d80a 100644
+--- a/browser/themes/winstripe/browser.css
++++ b/browser/themes/winstripe/browser.css
+@@ -2319,6 +2319,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
    -moz-image-region: rect(32px, 32px, 48px, 16px);
  }
  
@@ -238,7 +225,7 @@ index 0103c79..d352790 100644
  .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
  .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
    list-style-image: url(chrome://global/skin/icons/question-64.png);
-@@ -2346,6 +2347,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
+@@ -2382,6 +2383,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
    list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.png);
  }
  
@@ -247,15 +234,17 @@ index 0103c79..d352790 100644
    list-style-image: url(chrome://global/skin/icons/question-16.png);
  }
 diff --git a/content/canvas/src/CanvasUtils.cpp b/content/canvas/src/CanvasUtils.cpp
-index 2f822eb..d7d0591 100644
+index 4173891..2ec463f 100644
 --- a/content/canvas/src/CanvasUtils.cpp
 +++ b/content/canvas/src/CanvasUtils.cpp
-@@ -59,6 +59,15 @@
+@@ -24,9 +24,74 @@
  #include "CanvasUtils.h"
  #include "mozilla/gfx/Matrix.h"
  
 +#include "nsIScriptObjectPrincipal.h"
 +#include "nsIPermissionManager.h"
++#include "nsIObserverService.h"
++#include "mozilla/Services.h"
 +#include "mozIThirdPartyUtil.h"
 +#include "nsContentUtils.h"
 +#include "nsUnicharUtils.h"
@@ -265,10 +254,6 @@ index 2f822eb..d7d0591 100644
 +
  namespace mozilla {
  namespace CanvasUtils {
- 
-@@ -101,6 +110,60 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
-     aCanvasElement->SetWriteOnly();
- }
  
 +// Check site-specific permission and display prompt if appropriate.
 +bool
@@ -325,79 +310,81 @@ index 2f822eb..d7d0591 100644
 +}
 +
  void
- LogMessage (const nsCString& errorString)
- {
+ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
+                          nsIPrincipal *aPrincipal,
 diff --git a/content/canvas/src/CanvasUtils.h b/content/canvas/src/CanvasUtils.h
-index 36186dd..067ee46 100644
+index d464d0b..f266de6 100644
 --- a/content/canvas/src/CanvasUtils.h
 +++ b/content/canvas/src/CanvasUtils.h
-@@ -77,6 +77,8 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
+@@ -45,6 +45,8 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                                bool forceWriteOnly,
                                bool CORSUsed);
  
 +bool IsImageExtractionAllowed(nsIDocument *aDocument);
 +
- void LogMessage (const nsCString& errorString);
- void LogMessagef (const char *fmt, ...);
- 
+ // Make a double out of |v|, treating undefined values as 0.0 (for
+ // the sake of sparse arrays).  Return true iff coercion
+ // succeeded.
 diff --git a/content/canvas/src/nsCanvasRenderingContext2D.cpp b/content/canvas/src/nsCanvasRenderingContext2D.cpp
-index 36389b0..0cf97ce 100644
+index 1ee7a02..0dec654 100644
 --- a/content/canvas/src/nsCanvasRenderingContext2D.cpp
 +++ b/content/canvas/src/nsCanvasRenderingContext2D.cpp
-@@ -3886,6 +3886,21 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
-     if (!rightMost.valid() || !bottomMost.valid())
-         return NS_ERROR_DOM_SYNTAX_ERR;
+@@ -3946,6 +3946,22 @@ nsCanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
+ 
+     uint8_t* data = JS_GetUint8ClampedArrayData(darray, aCx);
  
 +    // Check for site-specific permission and return all-white, opaque pixel
 +    // data if no permission.  This check is not needed if the canvas was
 +    // created with a docshell (that is only done for special internal uses).
 +    bool usePlaceholder = false;
 +    if (mCanvasElement) {
-+      nsCOMPtr<nsIDocument> ownerDoc = HTMLCanvasElement()->OwnerDoc();
++      nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
 +      usePlaceholder = !ownerDoc ||
 +                          !CanvasUtils::IsImageExtractionAllowed(ownerDoc);
 +    }
 +
 +    if (usePlaceholder) {
-+      memset(aData, 0xFF, aDataLen);
++      memset(data, 0xFF, len.value());
++      *aRetval = darray;
 +      return NS_OK;
 +    }
 +
      /* Copy the surface contents to the buffer */
      nsRefPtr<gfxImageSurface> tmpsurf =
-         new gfxImageSurface(aData,
+         new gfxImageSurface(data,
 diff --git a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
-index 13baaa5..e8dfb1e 100644
+index 07b5236..d86ba32 100644
 --- a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
 +++ b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
-@@ -4038,6 +4038,21 @@ nsCanvasRenderingContext2DAzure::GetImageData_explicit(PRInt32 x, PRInt32 y, PRU
-     return NS_OK;
-   }
+@@ -4251,6 +4251,22 @@ nsCanvasRenderingContext2DAzure::GetImageDataArray(JSContext* aCx,
+ 
+   uint8_t* data = JS_GetUint8ClampedArrayData(darray, aCx);
  
 +  // Check for site-specific permission and return all-white, opaque pixel
 +  // data if no permission.  This check is not needed if the canvas was
 +  // created with a docshell (that is only done for special internal uses).
 +  bool usePlaceholder = false;
 +  if (mCanvasElement) {
-+    nsCOMPtr<nsIDocument> ownerDoc = HTMLCanvasElement()->OwnerDoc();
++    nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
 +    usePlaceholder = !ownerDoc ||
 +                        !CanvasUtils::IsImageExtractionAllowed(ownerDoc);
 +  }
 +
 +  if (usePlaceholder) {
-+    memset(aData, 0xFF, aDataLen);
++    memset(data, 0xFF, len.value());
++    *aRetval = darray;
 +    return NS_OK;
 +  }
 +
    IntRect srcRect(0, 0, mWidth, mHeight);
-   IntRect destRect(x, y, w, h);
+   IntRect destRect(aX, aY, aWidth, aHeight);
  
 diff --git a/content/html/content/public/nsHTMLCanvasElement.h b/content/html/content/public/nsHTMLCanvasElement.h
-index 86202a8..66176f2 100644
+index 2c11600..65da344 100644
 --- a/content/html/content/public/nsHTMLCanvasElement.h
 +++ b/content/html/content/public/nsHTMLCanvasElement.h
-@@ -188,13 +188,16 @@ protected:
-   nsresult UpdateContext(nsIPropertyBag *aNewContextOptions = nsnull);
+@@ -157,13 +157,16 @@ protected:
+   nsresult UpdateContext(nsIPropertyBag *aNewContextOptions = nullptr);
    nsresult ExtractData(const nsAString& aType,
                         const nsAString& aOptions,
 +                       bool aUsePlaceholder,
@@ -414,10 +401,10 @@ index 86202a8..66176f2 100644
    nsresult GetContextHelper(const nsAString& aContextId,
                              bool aForceThebes,
 diff --git a/content/html/content/src/Makefile.in b/content/html/content/src/Makefile.in
-index 019d297..3db4f7c 100644
+index 9466587..86368a2 100644
 --- a/content/html/content/src/Makefile.in
 +++ b/content/html/content/src/Makefile.in
-@@ -138,6 +138,7 @@ INCLUDES	+= \
+@@ -113,6 +113,7 @@ INCLUDES	+= \
  		-I$(srcdir)/../../../events/src \
  		-I$(srcdir)/../../../xbl/src \
  		-I$(srcdir)/../../../xul/content/src \
@@ -426,10 +413,10 @@ index 019d297..3db4f7c 100644
  		-I$(srcdir)/../../../../layout/style \
  		-I$(srcdir)/../../../../layout/tables \
 diff --git a/content/html/content/src/nsHTMLCanvasElement.cpp b/content/html/content/src/nsHTMLCanvasElement.cpp
-index a302f67..572a81b 100644
+index 961ebf1..13a6910 100644
 --- a/content/html/content/src/nsHTMLCanvasElement.cpp
 +++ b/content/html/content/src/nsHTMLCanvasElement.cpp
-@@ -60,6 +60,8 @@
+@@ -31,6 +31,8 @@
  
  #include "nsIWritablePropertyBag2.h"
  
@@ -438,7 +425,7 @@ index a302f67..572a81b 100644
  #define DEFAULT_CANVAS_WIDTH 300
  #define DEFAULT_CANVAS_HEIGHT 150
  
-@@ -213,25 +215,36 @@ nsHTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
+@@ -184,7 +186,10 @@ nsHTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
      return NS_ERROR_DOM_SECURITY_ERR;
    }
  
@@ -449,7 +436,17 @@ index a302f67..572a81b 100644
 +  return ToDataURLImpl(aType, aParams, usePlaceholder, aDataURL);
  }
  
-+// TODO: on FF trunk, we also need to patch mozFetchAsStream().
+ // nsHTMLCanvasElement::mozFetchAsStream
+@@ -200,7 +205,7 @@ nsHTMLCanvasElement::MozFetchAsStream(nsIInputStreamCallback *aCallback,
+   bool fellBackToPNG = false;
+   nsCOMPtr<nsIInputStream> inputData;
+ 
+-  rv = ExtractData(aType, EmptyString(), getter_AddRefs(inputData), fellBackToPNG);
++  rv = ExtractData(aType, EmptyString(), false, getter_AddRefs(inputData), fellBackToPNG);
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   nsCOMPtr<nsIAsyncInputStream> asyncData = do_QueryInterface(inputData, &rv);
+@@ -220,19 +225,26 @@ nsHTMLCanvasElement::MozFetchAsStream(nsIInputStreamCallback *aCallback,
  nsresult
  nsHTMLCanvasElement::ExtractData(const nsAString& aType,
                                   const nsAString& aOptions,
@@ -477,7 +474,7 @@ index a302f67..572a81b 100644
    }
  
    nsresult rv;
-@@ -241,12 +254,13 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
+@@ -242,12 +254,13 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
    NS_ConvertUTF16toUTF8 encoderType(aType);
  
   try_again:
@@ -493,7 +490,7 @@ index a302f67..572a81b 100644
      nsCString enccid("@mozilla.org/image/encoder;2?type=");
      enccid += encoderType;
  
-@@ -284,6 +298,7 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
+@@ -285,6 +298,7 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
  nsresult
  nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
                                     nsIVariant* aEncoderOptions,
@@ -501,7 +498,7 @@ index a302f67..572a81b 100644
                                     nsAString& aDataURL)
  {
    bool fallbackToPNG = false;
-@@ -339,13 +354,15 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
+@@ -340,13 +354,15 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
    }
  
    nsCOMPtr<nsIInputStream> stream;
@@ -519,7 +516,7 @@ index a302f67..572a81b 100644
    }
  
    NS_ENSURE_SUCCESS(rv, rv);
-@@ -376,19 +393,23 @@ nsHTMLCanvasElement::MozGetAsFile(const nsAString& aName,
+@@ -378,19 +394,23 @@ nsHTMLCanvasElement::MozGetAsFile(const nsAString& aName,
      return NS_ERROR_DOM_SECURITY_ERR;
    }
  

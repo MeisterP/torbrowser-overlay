@@ -1,7 +1,7 @@
-From cd983b1b57b1f4ae10c8deec5aa12ec957fdc855 Mon Sep 17 00:00:00 2001
+From 5aadfe392688fde8bd93ed549b1f2988268a7987 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Wed, 1 Feb 2012 15:45:16 -0800
-Subject: [PATCH 02/24] Make Permissions Manager memory-only
+Date: Tue, 4 Dec 2012 15:45:59 -0800
+Subject: [PATCH 02/26] Make Permissions Manager memory-only
 
 This patch exposes a pref 'permissions.memory_only' that properly isolates the
 permissions manager to memory, which is responsible for all user specified
@@ -16,21 +16,21 @@ https://trac.torproject.org/projects/tor/ticket/2950
  1 files changed, 31 insertions(+), 3 deletions(-)
 
 diff --git a/extensions/cookie/nsPermissionManager.cpp b/extensions/cookie/nsPermissionManager.cpp
-index 67eb216..12cc7cf 100644
+index 9c50080..4102408 100644
 --- a/extensions/cookie/nsPermissionManager.cpp
 +++ b/extensions/cookie/nsPermissionManager.cpp
-@@ -58,6 +58,10 @@
- #include "mozStorageHelper.h"
- #include "mozStorageCID.h"
- #include "nsXULAppAPI.h"
+@@ -24,6 +24,10 @@
+ #include "nsIPrincipal.h"
+ #include "nsContentUtils.h"
+ #include "nsIScriptSecurityManager.h"
 +#include "nsCOMPtr.h"
 +#include "nsIPrefService.h"
 +#include "nsIPrefBranch.h"
 +#include "nsIPrefBranch2.h"
  
- static nsPermissionManager *gPermissionManager = nsnull;
+ static nsPermissionManager *gPermissionManager = nullptr;
  
-@@ -203,6 +207,11 @@ nsPermissionManager::Init()
+@@ -301,6 +305,11 @@ nsPermissionManager::Init()
      mObserverService->AddObserver(this, "profile-do-change", true);
    }
  
@@ -42,7 +42,7 @@ index 67eb216..12cc7cf 100644
    if (IsChildProcess()) {
      // Get the permissions from the parent process
      InfallibleTArray<IPC::Permission> perms;
-@@ -251,8 +260,18 @@ nsPermissionManager::InitDB(bool aRemoveFile)
+@@ -356,8 +365,18 @@ nsPermissionManager::InitDB(bool aRemoveFile)
    if (!storage)
      return NS_ERROR_UNEXPECTED;
  
@@ -62,7 +62,7 @@ index 67eb216..12cc7cf 100644
    NS_ENSURE_SUCCESS(rv, rv);
  
    bool ready;
-@@ -262,7 +281,11 @@ nsPermissionManager::InitDB(bool aRemoveFile)
+@@ -367,7 +386,11 @@ nsPermissionManager::InitDB(bool aRemoveFile)
      rv = permissionsFile->Remove(false);
      NS_ENSURE_SUCCESS(rv, rv);
  
@@ -75,7 +75,7 @@ index 67eb216..12cc7cf 100644
      NS_ENSURE_SUCCESS(rv, rv);
  
      mDBConn->GetConnectionReady(&ready);
-@@ -783,7 +806,12 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
+@@ -1052,7 +1075,12 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
  {
    ENSURE_NOT_CHILD_PROCESS;
  
@@ -88,7 +88,7 @@ index 67eb216..12cc7cf 100644
 +  } else if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
      // The profile is about to change,
      // or is going away because the application is shutting down.
-     if (!nsCRT::strcmp(someData, NS_LITERAL_STRING("shutdown-cleanse").get())) {
+     mIsShuttingDown = true;
 -- 
 1.7.5.4
 

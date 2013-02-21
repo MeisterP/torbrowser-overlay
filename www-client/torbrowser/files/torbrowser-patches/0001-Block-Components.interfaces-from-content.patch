@@ -1,0 +1,37 @@
+From d96e65b539df362bd495b51d2db02e56eca76851 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Tue, 4 Dec 2012 15:41:09 -0800
+Subject: [PATCH 01/26] Block Components.interfaces from content
+
+This patch removes the ability of content script to access
+Components.interfaces.*.
+
+Components.interfaces is useful for fingerprinting the platform, OS, and
+Firebox version.
+
+It appears to have no other legitimate use. See also:
+https://bugzilla.mozilla.org/show_bug.cgi?id=429070
+https://trac.torproject.org/projects/tor/ticket/2874
+
+Note: We no longer block Components.lookupMethod, because we no longer rely on
+JS hooks for fingerprinting defenses.
+---
+ js/xpconnect/src/XPCComponents.cpp |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/js/xpconnect/src/XPCComponents.cpp b/js/xpconnect/src/XPCComponents.cpp
+index 3a14254..4040349 100644
+--- a/js/xpconnect/src/XPCComponents.cpp
++++ b/js/xpconnect/src/XPCComponents.cpp
+@@ -4838,7 +4838,7 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
+ NS_IMETHODIMP
+ nsXPCComponents::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
+ {
+-    static const char* allowed[] = { "interfaces", "interfacesByID", "results", nullptr};
++    static const char* allowed[] = { "results", nullptr};
+     *_retval = xpc_CheckAccessList(propertyName, allowed);
+     return NS_OK;
+ }
+-- 
+1.7.5.4
+

@@ -1,18 +1,40 @@
-From 2a80e84755c97cf4ff3ab63bda1bd5f0936d9594 Mon Sep 17 00:00:00 2001
+From ab1a01ca37e8ca848c2629d8b1d0768094d3a1ea Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 25 Apr 2012 15:03:46 -0700
-Subject: [PATCH 14/24] Add DDG and StartPage to Omnibox.
+Subject: [PATCH 14/26] Add DDG and StartPage to Omnibox.
 
 You mean there are search engines that don't require captchas if you don't
 have a cookie? Holy crap. Get those in there now.
 ---
+ .../en-US/chrome/browser-region/region.properties  |    8 +++---
  browser/locales/en-US/searchplugins/duckduckgo.xml |   29 ++++++++++++++++++++
  browser/locales/en-US/searchplugins/list.txt       |    2 +
  browser/locales/en-US/searchplugins/startpage.xml  |   11 +++++++
- 3 files changed, 42 insertions(+), 0 deletions(-)
+ 4 files changed, 46 insertions(+), 4 deletions(-)
  create mode 100644 browser/locales/en-US/searchplugins/duckduckgo.xml
  create mode 100644 browser/locales/en-US/searchplugins/startpage.xml
 
+diff --git a/browser/locales/en-US/chrome/browser-region/region.properties b/browser/locales/en-US/chrome/browser-region/region.properties
+index c3a980c..9c21f04 100644
+--- a/browser/locales/en-US/chrome/browser-region/region.properties
++++ b/browser/locales/en-US/chrome/browser-region/region.properties
+@@ -3,12 +3,12 @@
+ # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ 
+ # Default search engine
+-browser.search.defaultenginename=Google
++browser.search.defaultenginename=Startpage
+ 
+ # Search engine order (order displayed in the search bar dropdown)s
+-browser.search.order.1=Google
+-browser.search.order.2=Yahoo
+-browser.search.order.3=Bing
++browser.search.order.1=Startpage
++browser.search.order.2=DuckDuckGo
++browser.search.order.3=Google
+ 
+ # This is the default set of web based feed handlers shown in the reader
+ # selection UI
 diff --git a/browser/locales/en-US/searchplugins/duckduckgo.xml b/browser/locales/en-US/searchplugins/duckduckgo.xml
 new file mode 100644
 index 0000000..4f00b4d

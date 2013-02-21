@@ -1,7 +1,7 @@
-From 12579def59d67416b841f6b0a6eadfd94bba72e9 Mon Sep 17 00:00:00 2001
-From: Mike Perry <mikeperry-git@fscked.org>
-Date: Sun, 9 Oct 2011 22:50:07 -0700
-Subject: [PATCH 07/24] Make Tor Browser exit when not launched from Vidalia
+From 8fb01f1b02160e9fd6e91641694a80acbeb6c05f Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Tue, 4 Dec 2012 16:29:24 -0800
+Subject: [PATCH 07/26] Make Tor Browser exit when not launched from Vidalia
 
 Turns out the Windows 7 UI encourages users to "dock" their Tor Browser app
 for easy relaunch. If they manage to do this, we should fail closed rather
@@ -12,35 +12,34 @@ https://trac.torproject.org/projects/tor/ticket/4192. We can do a better
 localized fix w/ a translated alert menu later, if it seems like this might
 actually be common.
 ---
- browser/base/content/browser.js |   15 +++++++++++++++
- 1 files changed, 15 insertions(+), 0 deletions(-)
+ browser/base/content/browser.js |   14 +++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index f16a0c5..20e3666 100644
+index f46a33d..9f77fd0 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
-@@ -1217,6 +1217,21 @@ function BrowserStartup() {
+@@ -1096,6 +1096,20 @@ var gBrowserInit = {
+     // setup simple gestures support
+     gGestureSupport.init(true);
  
-   prepareForStartup();
++    // If this is not a TBB profile, exit. 
++    // Solves https://trac.torproject.org/projects/tor/ticket/4192
++    var foundPref = false;
++    try {
++      var ignored = gPrefService.getCharPref("torbrowser.version");
++      foundPref = true;
++    } catch(e) {
++      //dump("No pref: "+e);
++    }
++    if(!foundPref) {
++      var appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"]
++                           .getService(Components.interfaces.nsIAppStartup);
++      appStartup.quit(3); // Force all windows to close, and then quit.
++    }
  
-+  // If this is not a TBB profile, exit. 
-+  // Solves https://trac.torproject.org/projects/tor/ticket/4192
-+  var foundPref = false;
-+  try {
-+    foundPref = gPrefService.prefHasUserValue("torbrowser.version");
-+  } catch(e) {
-+    //dump("No pref: "+e);
-+  }
-+  if(!foundPref) {
-+    var appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"]
-+                         .getService(Components.interfaces.nsIAppStartup);
-+    appStartup.quit(3); // Force all windows to close, and then quit.
-+  }
-+
-+
-   if (uriToLoad && !isLoadingBlank) {
-     if (uriToLoad instanceof Ci.nsISupportsArray) {
-       let count = uriToLoad.Count();
+     if (uriToLoad && uriToLoad != "about:blank") {
+       if (uriToLoad instanceof Ci.nsISupportsArray) {
 -- 
 1.7.5.4
 

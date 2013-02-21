@@ -1,17 +1,17 @@
-From 8f97f2f36adb9e4416f3d19af10880c800c846c2 Mon Sep 17 00:00:00 2001
+From 8fc251b2c49b46f0d07a7f80f814f5dae3a73ae6 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
-Date: Thu, 4 Oct 2012 14:28:48 -0400
-Subject: [PATCH 10/24] Limit device and system specific CSS Media Queries.
+Date: Wed, 28 Nov 2012 09:49:40 -0500
+Subject: [PATCH 10/26] Limit device and system specific CSS Media Queries.
 
 ---
- layout/style/nsMediaFeatures.cpp |   71 ++++++++++++++++++++++++-------------
- 1 files changed, 46 insertions(+), 25 deletions(-)
+ layout/style/nsMediaFeatures.cpp |   68 +++++++++++++++++++++++++-------------
+ 1 files changed, 45 insertions(+), 23 deletions(-)
 
 diff --git a/layout/style/nsMediaFeatures.cpp b/layout/style/nsMediaFeatures.cpp
-index 6eca06e..5b1df7e 100644
+index d5741ea..5f2e6dd 100644
 --- a/layout/style/nsMediaFeatures.cpp
 +++ b/layout/style/nsMediaFeatures.cpp
-@@ -130,6 +130,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
+@@ -98,6 +98,9 @@ GetDeviceContextFor(nsPresContext* aPresContext)
  static nsSize
  GetDeviceSize(nsPresContext* aPresContext)
  {
@@ -21,7 +21,7 @@ index 6eca06e..5b1df7e 100644
      nsSize size;
      if (aPresContext->IsRootPaginatedDocument())
          // We want the page size, including unprintable areas and margins.
-@@ -140,6 +143,7 @@ GetDeviceSize(nsPresContext* aPresContext)
+@@ -108,6 +111,7 @@ GetDeviceSize(nsPresContext* aPresContext)
          GetDeviceContextFor(aPresContext)->
              GetDeviceSurfaceDimensions(size.width, size.height);
      return size;
@@ -29,36 +29,7 @@ index 6eca06e..5b1df7e 100644
  }
  
  static nsresult
-@@ -183,17 +187,17 @@ static nsresult
- GetDeviceOrientation(nsPresContext* aPresContext, const nsMediaFeature*,
-                      nsCSSValue& aResult)
- {
--    nsSize size = GetDeviceSize(aPresContext);
--    PRInt32 orientation;
--    if (size.width > size.height) {
--        orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
--    } else {
--        // Per spec, square viewports should be 'portrait'
--        orientation = NS_STYLE_ORIENTATION_PORTRAIT;
--    }
--
--    aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
--    return NS_OK;
-+  nsSize size = GetDeviceSize(aPresContext);
-+  PRInt32 orientation;
-+  if (size.width > size.height) {
-+      orientation = NS_STYLE_ORIENTATION_LANDSCAPE;
-+  } else {
-+      // Per spec, square viewports should be 'portrait'
-+      orientation = NS_STYLE_ORIENTATION_PORTRAIT;
-+  }
-+
-+  aResult.SetIntValue(orientation, eCSSUnit_Enumerated);
-+  return NS_OK;
- }
- 
- static nsresult
-@@ -236,13 +240,17 @@ static nsresult
+@@ -204,13 +208,17 @@ static nsresult
  GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
           nsCSSValue& aResult)
  {
@@ -67,9 +38,9 @@ index 6eca06e..5b1df7e 100644
 -    // 424386).
 -    // FIXME: On a monochrome device, return 0!
 -    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
--    PRUint32 depth;
+-    uint32_t depth;
 -    dx->GetDepth(depth);
-+    PRUint32 depth = 24; // Always return 24 to non-chrome callers.
++    uint32_t depth = 24; // Always return 24 to non-chrome callers.
 +
 +    if (aPresContext->IsChrome()) {
 +        // FIXME:  This implementation is bogus.  nsDeviceContext
@@ -83,25 +54,42 @@ index 6eca06e..5b1df7e 100644
      // The spec says to use bits *per color component*, so divide by 3,
      // and round down, since the spec says to use the smallest when the
      // color components differ.
-@@ -280,9 +288,14 @@ static nsresult
+@@ -248,18 +256,23 @@ static nsresult
  GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
                nsCSSValue& aResult)
  {
--    // Resolution values are in device pixels, not CSS pixels.
--    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
--    float dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
+-    // Resolution measures device pixels per CSS (inch/cm/pixel).  We
+-    // return it in device pixels per CSS inches.
+-    //
+-    // However, on platforms where the CSS viewport is not fixed to the
+-    // screen viewport, use the device resolution instead (bug 779527).
+-    nsIPresShell *shell = aPresContext->PresShell();
+-    float appUnitsPerInch = shell->GetIsViewportOverridden() ?
+-            GetDeviceContextFor(aPresContext)->AppUnitsPerPhysicalInch() :
+-            nsPresContext::AppUnitsPerCSSInch();
+-
+-    float dpi = appUnitsPerInch /
 +    float dpi = 96; // Always return 96 to non-chrome callers.
 +
 +    if (aPresContext->IsChrome()) {
-+      // Resolution values are in device pixels, not CSS pixels.
-+      nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
-+      dpi = float(dx->AppUnitsPerPhysicalInch()) / float(dx->AppUnitsPerDevPixel());
++        // Resolution measures device pixels per CSS (inch/cm/pixel).  We
++        // return it in device pixels per CSS inches.
++        //
++        // However, on platforms where the CSS viewport is not fixed to the
++        // screen viewport, use the device resolution instead (bug 779527).
++        nsIPresShell *shell = aPresContext->PresShell();
++        float appUnitsPerInch = shell->GetIsViewportOverridden() ?
++                GetDeviceContextFor(aPresContext)->AppUnitsPerPhysicalInch() :
++                nsPresContext::AppUnitsPerCSSInch();
++
++        dpi = appUnitsPerInch /
+                 float(aPresContext->AppUnitsPerDevPixel());
 +    }
 +
      aResult.SetFloatValue(dpi, eCSSUnit_Inch);
      return NS_OK;
  }
-@@ -311,8 +324,12 @@ static nsresult
+@@ -288,8 +301,12 @@ static nsresult
  GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                      nsCSSValue& aResult)
  {
@@ -116,10 +104,11 @@ index 6eca06e..5b1df7e 100644
    return NS_OK;
  }
  
-@@ -320,18 +337,21 @@ static nsresult
+@@ -297,20 +314,24 @@ static nsresult
  GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                  nsCSSValue& aResult)
  {
++  aResult.Reset();
 +  if (aPresContext->IsChrome()) {
      NS_ABORT_IF_FALSE(aFeature->mValueType == nsMediaFeature::eBoolInteger,
                        "unexpected type");
@@ -135,16 +124,20 @@ index 6eca06e..5b1df7e 100644
  GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                  nsCSSValue& aResult)
  {
-+  if (aPresContext->IsChrome()) {
-     aResult.Reset();
+-    aResult.Reset();
++  aResult.Reset();
  #ifdef XP_WIN
-     PRUint8 windowsThemeId =
-@@ -350,7 +370,8 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
++  if (aPresContext->IsChrome()) {
+     uint8_t windowsThemeId =
+         nsCSSRuleProcessor::GetWindowsThemeIdentifier();
+ 
+@@ -326,8 +347,9 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+             break;
          }
      }
++  }
  #endif
 -    return NS_OK;
-+  }
 +  return NS_OK;
  }
  

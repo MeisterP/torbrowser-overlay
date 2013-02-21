@@ -1,7 +1,7 @@
-From 88a390822d232ba037de1f15091977ca7e1064bf Mon Sep 17 00:00:00 2001
+From ab69ac8d9594555e284e130a45bb17dcfcdf23c7 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Wed, 1 Feb 2012 15:50:15 -0800
-Subject: [PATCH 05/24] Block all plugins except flash.
+Date: Tue, 4 Dec 2012 16:03:13 -0800
+Subject: [PATCH 05/26] Block all plugins except flash.
 
 We cannot use the @mozilla.org/extensions/blocklist;1 service, because we
 actually want to stop plugins from ever entering the browser's process space
@@ -17,12 +17,12 @@ on a better way. Until then, it is delta-darwinism for us.
  2 files changed, 35 insertions(+), 0 deletions(-)
 
 diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
-index 992bcd4..f56f231 100644
+index 858b428..c7ae680 100644
 --- a/dom/plugins/base/nsPluginHost.cpp
 +++ b/dom/plugins/base/nsPluginHost.cpp
-@@ -1968,6 +1968,35 @@ bool nsPluginHost::IsDuplicatePlugin(nsPluginTag * aPluginTag)
-   return false;
- }
+@@ -2052,6 +2052,35 @@ struct CompareFilesByTime
+ 
+ } // anonymous namespace
  
 +PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
 +{
@@ -56,7 +56,7 @@ index 992bcd4..f56f231 100644
  typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
  
  nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
-@@ -2101,6 +2130,10 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
+@@ -2156,6 +2185,10 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
        continue;
      }
  
@@ -68,10 +68,10 @@ index 992bcd4..f56f231 100644
      if (!pluginTag) {
        nsPluginFile pluginFile(localfile);
 diff --git a/dom/plugins/base/nsPluginHost.h b/dom/plugins/base/nsPluginHost.h
-index 39a8891..c262abf 100644
+index 3c48eec..2cba11d 100644
 --- a/dom/plugins/base/nsPluginHost.h
 +++ b/dom/plugins/base/nsPluginHost.h
-@@ -278,6 +278,8 @@ private:
+@@ -261,6 +261,8 @@ private:
    // Loads all cached plugins info into mCachedPlugins
    nsresult ReadPluginInfo();
  

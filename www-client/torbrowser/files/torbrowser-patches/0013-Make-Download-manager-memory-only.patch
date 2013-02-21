@@ -1,7 +1,7 @@
-From 28178fb406d86b317b13b16ade3b06e5e1500c7e Mon Sep 17 00:00:00 2001
+From 0cb96bdc00f9b1fa37916f92bc4fc5850c13f96f Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Wed, 25 Apr 2012 13:39:35 -0700
-Subject: [PATCH 13/24] Make Download manager memory only.
+Date: Tue, 4 Dec 2012 16:05:55 -0800
+Subject: [PATCH 13/26] Make Download manager memory only.
 
 Solves https://trac.torproject.org/projects/tor/ticket/4017.
 
@@ -18,10 +18,10 @@ this breaks enough times in conflict.
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/toolkit/components/downloads/nsDownloadManager.cpp b/toolkit/components/downloads/nsDownloadManager.cpp
-index 00a6e7d..2e83f61 100644
+index 024686f..7845544 100644
 --- a/toolkit/components/downloads/nsDownloadManager.cpp
 +++ b/toolkit/components/downloads/nsDownloadManager.cpp
-@@ -1992,7 +1992,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
+@@ -2002,7 +2002,7 @@ nsDownloadManager::Observe(nsISupports *aSubject,
      if (NS_LITERAL_STRING("memory").Equals(aData))
        return SwitchDatabaseTypeTo(DATABASE_MEMORY);
      else if (NS_LITERAL_STRING("disk").Equals(aData))
@@ -30,7 +30,7 @@ index 00a6e7d..2e83f61 100644
    }
    else if (strcmp(aTopic, "alertclickcallback") == 0) {
      nsCOMPtr<nsIDownloadManagerUI> dmui =
-@@ -2069,7 +2069,7 @@ nsDownloadManager::OnLeavePrivateBrowsingMode()
+@@ -2079,7 +2079,7 @@ nsDownloadManager::OnLeavePrivateBrowsingMode()
    (void)ResumeAllDownloads(false);
  
    // Switch back to the on-disk DB again
@@ -40,10 +40,10 @@ index 00a6e7d..2e83f61 100644
    mInPrivateBrowsing = false;
  }
 diff --git a/toolkit/components/downloads/nsDownloadManager.h b/toolkit/components/downloads/nsDownloadManager.h
-index 54312e4..cb63b52 100644
+index bbe7f39..6bdad89 100644
 --- a/toolkit/components/downloads/nsDownloadManager.h
 +++ b/toolkit/components/downloads/nsDownloadManager.h
-@@ -90,7 +90,7 @@ public:
+@@ -54,7 +54,7 @@ public:
  
    virtual ~nsDownloadManager();
    nsDownloadManager() :
@@ -51,7 +51,7 @@ index 54312e4..cb63b52 100644
 +      mDBType(DATABASE_MEMORY)
      , mInPrivateBrowsing(false)
  #ifdef DOWNLOAD_SCANNER
-     , mScanner(nsnull)
+     , mScanner(nullptr)
 -- 
 1.7.5.4
 

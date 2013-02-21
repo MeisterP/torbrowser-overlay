@@ -1,0 +1,77 @@
+From 56a087769b2a258659bae4f626b37755c0961d6d Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Wed, 28 Nov 2012 10:49:09 -0500
+Subject: [PATCH 21/26] Return client window coordinates for mouse event
+ screenX/Y (for dragend, 0,0 is returned).
+
+---
+ content/events/src/nsDOMMouseEvent.cpp |   22 ++++++++++++++++++++++
+ content/events/src/nsDOMTouchEvent.cpp |    6 ++++--
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/content/events/src/nsDOMMouseEvent.cpp b/content/events/src/nsDOMMouseEvent.cpp
+index 0817397..3d8b26a 100644
+--- a/content/events/src/nsDOMMouseEvent.cpp
++++ b/content/events/src/nsDOMMouseEvent.cpp
+@@ -301,6 +301,20 @@ nsDOMMouseEvent::GetMozMovementY(int32_t* aMovementY)
+ NS_METHOD nsDOMMouseEvent::GetScreenX(int32_t* aScreenX)
+ {
+   NS_ENSURE_ARG_POINTER(aScreenX);
++  bool isChrome = nsContentUtils::IsCallerChrome();
++  if (!isChrome)
++  {
++    // For non-chrome callers, return client coordinates instead.
++    // For some events, the result will be zero; specifically, for dragend
++    // events (there is no widget associated with dragend events, which
++    // causes GetClientX() to return zero).  Since dragend is for the drag
++    // originator and not for the receiver, it is probably not widely used
++    // (receivers get a drop event).  Therefore, returning 0 should not break
++    // many web pages.  Also, a few years ago Firefox returned 0.
++    // See:  https://bugzilla.mozilla.org/show_bug.cgi?id=466379
++    return GetClientX(aScreenX);
++  }
++
+   *aScreenX = nsDOMEvent::GetScreenCoords(mPresContext,
+                                           mEvent,
+                                           mEvent->refPoint).x;
+@@ -311,6 +325,14 @@ NS_IMETHODIMP
+ nsDOMMouseEvent::GetScreenY(int32_t* aScreenY)
+ {
+   NS_ENSURE_ARG_POINTER(aScreenY);
++  bool isChrome = nsContentUtils::IsCallerChrome();
++  if (!isChrome)
++  {
++    // For non-chrome callers, return client coordinates instead.
++    // See also the comment in nsDOMMouseEvent::GetScreenX().
++    return GetClientY(aScreenY);
++  }
++
+   *aScreenY = nsDOMEvent::GetScreenCoords(mPresContext,
+                                           mEvent,
+                                           mEvent->refPoint).y;
+diff --git a/content/events/src/nsDOMTouchEvent.cpp b/content/events/src/nsDOMTouchEvent.cpp
+index ccf4864..64ab0e8 100644
+--- a/content/events/src/nsDOMTouchEvent.cpp
++++ b/content/events/src/nsDOMTouchEvent.cpp
+@@ -44,14 +44,16 @@ nsDOMTouch::GetTarget(nsIDOMEventTarget** aTarget)
+ NS_IMETHODIMP
+ nsDOMTouch::GetScreenX(int32_t* aScreenX)
+ {
+-  *aScreenX = mScreenPoint.x;
++  bool isChrome = nsContentUtils::IsCallerChrome();
++  *aScreenX = isChrome ? mScreenPoint.x : mClientPoint.x;
+   return NS_OK;
+ }
+ 
+ NS_IMETHODIMP
+ nsDOMTouch::GetScreenY(int32_t* aScreenY)
+ {
+-  *aScreenY = mScreenPoint.y;
++  bool isChrome = nsContentUtils::IsCallerChrome();
++  *aScreenY = isChrome ? mScreenPoint.y : mClientPoint.y;
+   return NS_OK;
+ }
+ 
+-- 
+1.7.5.4
+

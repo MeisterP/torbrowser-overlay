@@ -1,7 +1,7 @@
-From cb3a6f45dd2c15d6b75084e1a4dded18ed638632 Mon Sep 17 00:00:00 2001
+From 6b7306a50a304bcf12b04784115f21f34b71864a Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
-Date: Wed, 1 Feb 2012 16:01:21 -0800
-Subject: [PATCH 11/24] Limit the number of fonts per document.
+Date: Wed, 5 Dec 2012 12:25:21 -0800
+Subject: [PATCH 11/26] Limit the number of fonts per document.
 
 We create two prefs:
 browser.display.max_font_count and browser.display.max_font_attempts.
@@ -14,28 +14,47 @@ browser.display.use_document_fonts was set to 0 for subsequent font queries.
 
 If a pref is not set or is negative, that limit does not apply.
 
+The use of "User Fonts" (aka WebFonts, aka @font-face fonts) are exempt from
+both of these limits. The patch also makes such fonts take precedence over
+local fonts. This vastly improves typography on many sites that would
+otherwise hit these limits.
+
 This is done to address:
 https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
 ---
+ gfx/thebes/gfxPangoFonts.cpp  |    1 +
  layout/base/nsPresContext.cpp |  100 +++++++++++++++++++++++++++++++++++++++++
  layout/base/nsPresContext.h   |    9 ++++
- layout/style/nsRuleNode.cpp   |   13 ++++-
- 3 files changed, 119 insertions(+), 3 deletions(-)
+ layout/style/nsCSSParser.cpp  |    1 +
+ layout/style/nsRuleNode.cpp   |   56 ++++++++++++++++++++++-
+ 5 files changed, 164 insertions(+), 3 deletions(-)
 
+diff --git a/gfx/thebes/gfxPangoFonts.cpp b/gfx/thebes/gfxPangoFonts.cpp
+index c94a299..88c8b8e 100644
+--- a/gfx/thebes/gfxPangoFonts.cpp
++++ b/gfx/thebes/gfxPangoFonts.cpp
+@@ -1408,6 +1408,7 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
+         const nsTArray< nsCountedRef<FcPattern> > *familyFonts = nullptr;
+ 
+         // Is this an @font-face family?
++        // XXX: Make use of this + pass to nsFont??
+         bool isUserFont = false;
+         if (mUserFontSet) {
+             // Have some @font-face definitions
 diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
-index e1587db..9690d9c 100644
+index d47460a..8064fb4 100644
 --- a/layout/base/nsPresContext.cpp
 +++ b/layout/base/nsPresContext.cpp
-@@ -98,6 +98,8 @@
- #include "FrameLayerBuilder.h"
+@@ -63,6 +63,8 @@
  #include "nsDOMMediaQueryList.h"
  #include "nsSMILAnimationController.h"
+ #include "mozilla/css/ImageLoader.h"
 +#include "nsString.h"
 +#include "nsUnicharUtils.h"
  
  #ifdef IBMBIDI
  #include "nsBidiPresUtils.h"
-@@ -706,6 +708,10 @@ nsPresContext::GetUserPreferences()
+@@ -712,6 +714,10 @@ nsPresContext::GetUserPreferences()
    // * use fonts?
    mUseDocumentFonts =
      Preferences::GetInt("browser.display.use_document_fonts") != 0;
@@ -46,7 +65,7 @@ index e1587db..9690d9c 100644
  
    // * replace backslashes with Yen signs? (bug 245770)
    mEnableJapaneseTransform =
-@@ -1300,6 +1306,100 @@ nsPresContext::GetDefaultFont(PRUint8 aFontID) const
+@@ -1328,6 +1334,100 @@ nsPresContext::GetDefaultFont(uint8_t aFontID, nsIAtom *aLanguage) const
    return font;
  }
  
@@ -148,10 +167,10 @@ index e1587db..9690d9c 100644
  nsPresContext::SetFullZoom(float aZoom)
  {
 diff --git a/layout/base/nsPresContext.h b/layout/base/nsPresContext.h
-index ecd01d8..552a69a 100644
+index 5f0f528..ffe4766 100644
 --- a/layout/base/nsPresContext.h
 +++ b/layout/base/nsPresContext.h
-@@ -548,6 +548,13 @@ public:
+@@ -467,6 +467,13 @@ public:
      }
    }
  
@@ -162,11 +181,11 @@ index ecd01d8..552a69a 100644
 +  PRBool FontUseCountReached(const nsFont &font);
 +  PRBool FontAttemptCountReached(const nsFont &font);
 +
-   PRInt32 MinFontSize() const {
-     return NS_MAX(mMinFontSize, mMinimumFontSizePref);
-   }
-@@ -1117,6 +1124,8 @@ protected:
-   PRUint32              mInterruptChecksToSkip;
+   /**
+    * Get the minimum font size for the specified language. If aLanguage
+    * is nullptr, then the document's language is used.
+@@ -1104,6 +1111,8 @@ protected:
+   uint32_t              mInterruptChecksToSkip;
  
    mozilla::TimeStamp    mReflowStartTime;
 +  PRInt32               mMaxFontAttempts;
@@ -174,36 +193,109 @@ index ecd01d8..552a69a 100644
  
    unsigned              mHasPendingInterrupt : 1;
    unsigned              mInterruptsEnabled : 1;
+diff --git a/layout/style/nsCSSParser.cpp b/layout/style/nsCSSParser.cpp
+index 37a19c4..30fd021 100644
+--- a/layout/style/nsCSSParser.cpp
++++ b/layout/style/nsCSSParser.cpp
+@@ -8719,6 +8719,7 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
+         return false;
+       }
+ 
++      // XXX: Getting closer...
+       // the style parameters to the nsFont constructor are ignored,
+       // because it's only being used to call EnumerateFamilies
+       nsFont font(family, 0, 0, 0, 0, 0, 0);
 diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
-index 27336bf..827585a 100644
+index 64504fb..86eff1f 100644
 --- a/layout/style/nsRuleNode.cpp
 +++ b/layout/style/nsRuleNode.cpp
-@@ -3091,6 +3091,7 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+@@ -42,6 +42,7 @@
+ #include "mozilla/dom/Element.h"
+ #include "mozilla/LookAndFeel.h"
+ #include "mozilla/Util.h"
++#include "gfxUserFontSet.h"
  
-   // See if there is a minimum font-size constraint to honor
-   nscoord minimumFontSize = mPresContext->MinFontSize();
-+  PRBool isXUL = PR_FALSE;
+ #if defined(_MSC_VER) || defined(__MINGW32__)
+ #include <malloc.h>
+@@ -2954,6 +2955,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
+     aPresContext->GetDefaultFont(kPresContext_DefaultVariableFont_ID,
+                                  aFont->mLanguage);
  
-   if (minimumFontSize < 0)
-     minimumFontSize = 0;
-@@ -3102,10 +3103,10 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
++  // XXX: Bleh. Disable these somehow?
+   // -moz-system-font: enum (never inherit!)
+   MOZ_STATIC_ASSERT(
+     NS_STYLE_FONT_CAPTION        == LookAndFeel::eFont_Caption &&
+@@ -3416,6 +3418,31 @@ static bool ExtractGeneric(const nsString& aFamily, bool aGeneric,
+   return true;
+ }
+ 
++struct smugglerStruct {
++  nsStyleFont *font;
++  gfxUserFontSet *userFonts;
++};
++
++/* This function forces the use of the first @font-face font we find */
++static bool ForceFirstWebFont(const nsString& aFamily, bool aGeneric,
++                              void *smuggled)
++{
++  smugglerStruct *sm = static_cast<smugglerStruct*>(smuggled);
++    
++  if (aGeneric) {
++    return true;
++  }
++
++  if (sm->userFonts->HasFamily(aFamily)) {
++    // Force use of this exact @font-face font since we have it.
++    sm->font->mFont.name = aFamily;
++
++    return false; // Stop enumeration. 
++  }
++
++  return true;
++}
++
+ const void*
+ nsRuleNode::ComputeFontData(void* aStartStruct,
+                             const nsRuleData* aRuleData,
+@@ -3439,14 +3466,16 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+ 
+   bool useDocumentFonts =
+     mPresContext->GetCachedBoolPref(kPresContext_UseDocumentFonts);
++  bool isXUL = PR_FALSE;
++  bool forcedWebFont = false;
+ 
+   // See if we are in the chrome
    // We only need to know this to determine if we have to use the
-   // document fonts (overriding the useDocumentFonts flag), or to
-   // determine if we have to override the minimum font-size constraint.
--  if ((!useDocumentFonts || minimumFontSize > 0) && mPresContext->IsChrome()) {
+   // document fonts (overriding the useDocumentFonts flag).
+-  if (!useDocumentFonts && mPresContext->IsChrome()) {
 +  if (mPresContext->IsChrome()) {
      // if we are not using document fonts, but this is a XUL document,
      // then we use the document fonts anyway
 -    useDocumentFonts = true;
-+    isXUL = PR_TRUE;
-     minimumFontSize = 0;
++    isXUL = true;
    }
  
-@@ -3120,9 +3121,13 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+   // Figure out if we are a generic font
+@@ -3460,9 +3489,28 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
      // generic?
      nsFont::GetGenericID(font->mFont.name, &generic);
  
-+    mPresContext->AddFontAttempt(font->mFont);
++    if (!isXUL) {
++      gfxUserFontSet *userFonts = mPresContext->GetUserFontSet();
++      if (userFonts) {
++        smugglerStruct sm;
++        sm.userFonts = userFonts;
++        sm.font = font;
++
++        if (!sm.font->mFont.EnumerateFamilies(ForceFirstWebFont, &sm)) {
++          isXUL = true; // Always allow WebFont use.
++          forcedWebFont = true;
++        }
++      }
++    }
++
++    if (!forcedWebFont && generic == kGenericFont_NONE)
++      mPresContext->AddFontAttempt(font->mFont);
 +
      // If we aren't allowed to use document fonts, then we are only entitled
      // to use the user's default variable-width font and fixed-width font
@@ -214,11 +306,11 @@ index 27336bf..827585a 100644
        // Extract the generic from the specified font family...
        nsAutoString genericName;
        if (!font->mFont.EnumerateFamilies(ExtractGeneric, &genericName)) {
-@@ -3158,6 +3163,8 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
-                                minimumFontSize, font);
+@@ -3498,6 +3546,8 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
+                                font);
    }
  
-+  if (font->mGenericID == kGenericFont_NONE)
++  if (!forcedWebFont && font->mGenericID == kGenericFont_NONE)
 +    mPresContext->AddFontUse(font->mFont);
    COMPUTE_END_INHERITED(Font, font)
  }
