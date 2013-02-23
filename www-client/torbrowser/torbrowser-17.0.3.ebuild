@@ -333,16 +333,15 @@ pkg_postinst() {
 	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
 	ewarn "the exact same patches (excluding Vidalia-patch). Use this only if you know"
 	ewarn "what you are doing!"
-	einfo ""
-	elog "Copy the folder contents from /usr/share/${PN}/profile (installed by"
-	elog "www-misc/torbrowser-profile) into ~/.${PN}/profile and run '${PN}'."
-	einfo
+	elog ""
+	elog "Copy the folder contents from /usr/share/${PN}/profile"
+	elog "into ~/.${PN}/profile and run '${PN}'."
+	elog ""
 	elog "This profile folder includes pre-configuration recommended by upstream,"
 	elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
 	elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
-	einfo
-	elog "The update check when you first start ${PN} does not recognize this version."
-	einfo
+	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
+	elog "in the connection settings to match your setup."
 
 	# Update mimedb for the new .desktop file
 	fdo-mime_desktop_database_update
