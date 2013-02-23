@@ -9,6 +9,7 @@ MOZ_ESR="1"
 
 MY_PN="firefox"
 MOZ_PV="${MY_PN}-${PV}"
+TOR_PV="2.3.25-4"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
@@ -33,14 +34,15 @@ SLOT="0"
 # icons are under CCPL-Attribution-3.0
 LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	BSD
-	CCPL-Attribution-3.0"
-IUSE="bindist gstreamer +jit pgo selinux system-sqlite +torprofile"
+	CC-BY-3.0"
+IUSE="bindist gstreamer +jit pgo selinux system-sqlite"
 
 # More URIs appended below...
 SRC_URI="${SRC_URI}
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~nirbheek/mozilla/patchsets/${PATCH}.tar.xz
-	http://gitweb.torproject.org/${PN}.git/blob_plain/HEAD:/build-scripts/branding/default256.png -> torbrowser256.png"
+	amd64? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-x86_64-${TOR_PV}-dev-en-US.tar.gz )
+	x86? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-i686-${TOR_PV}-dev-en-US.tar.gz )"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
@@ -65,8 +67,8 @@ DEPEND="${RDEPEND}
 	amd64? ( ${ASM_DEPEND}
 		virtual/opengl )
 	x86? ( ${ASM_DEPEND}
-		virtual/opengl )"
-PDEPEND="torprofile? ( www-misc/torbrowser-profile )"
+		virtual/opengl )
+	!www-misc/torbrowser-profile"
 
 SRC_URI="${SRC_URI}
 	${MOZ_FTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.bz2"
@@ -111,6 +113,11 @@ pkg_setup() {
 		CHECKREQS_DISK_BUILD="4G"
 	fi
 	check-reqs_pkg_setup
+}
+
+src_unpack() {
+	default
+	unzip -q -d "${WORKDIR}"/omni "${WORKDIR}"/tor-browser_en-US/App/Firefox/omni.ja || die
 }
 
 src_prepare() {
@@ -298,11 +305,23 @@ src_install() {
 	# Plugins dir
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
 
+	# Settins
+	insinto ${MOZILLA_FIVE_HOME}/defaults
+	doins -r "${WORKDIR}"/tor-browser_en-US/App/Firefox/defaults/profile
+	cd "${WORKDIR}"/omni/ || die
+	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "defaults/preferences/#tor.js" || die
+	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "chrome/en-US/locale/branding/browserconfig.properties" || die
+
+	# Profile
+	insinto /usr/share/${PN}
+	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile
+	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
+
 	# create wrapper to start torbrowser
 	# the class value should match the name of the desktop entry
 	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} --class torbrowser-torbrowser -no-remote -profile ~/.${PN}/profile"
 
-	newicon -s 256 "${DISTDIR}"/${PN}256.png ${PN}.png
+	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
 	make_desktop_entry ${PN} "Torbrowser" ${PN} "Network;WebBrowser"
 }
 
@@ -315,14 +334,12 @@ pkg_postinst() {
 	ewarn "the exact same patches (excluding Vidalia-patch). Use this only if you know"
 	ewarn "what you are doing!"
 	einfo ""
-	if use torprofile ; then
-		elog "Copy the folder contents from /usr/share/${PN}/profile (installed by"
-		elog "www-misc/torbrowser-profile) into ~/.${PN}/profile and run '${PN}'."
-		einfo
-		elog "This profile folder includes pre-configuration recommended by upstream,"
-		elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
-		elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
-	fi
+	elog "Copy the folder contents from /usr/share/${PN}/profile (installed by"
+	elog "www-misc/torbrowser-profile) into ~/.${PN}/profile and run '${PN}'."
+	einfo
+	elog "This profile folder includes pre-configuration recommended by upstream,"
+	elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
+	elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
 	einfo
 	elog "The update check when you first start ${PN} does not recognize this version."
 	einfo

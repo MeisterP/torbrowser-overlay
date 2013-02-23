@@ -14,7 +14,5 @@
 		for faster binaries. This option will double the compile time.</flag>
 	<flag name="system-sqlite">Use the system-wide <pkg>dev-db/sqlite</pkg>
 		installation with secure-delete enabled</flag>
-	<flag name="torprofile">Install pre-configured profile folder by upstream into
-		"/usr/share/torbrowser/profile" (you still have to copy it in place)</flag>
 </use>
 </pkgmetadata>
