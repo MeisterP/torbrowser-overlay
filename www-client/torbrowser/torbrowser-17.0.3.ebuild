@@ -80,6 +80,14 @@ fi
 
 QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${MY_PN}/firefox"
 
+# see mozcoreconf-2.eclass
+mozversion_is_new_enough() {
+	if [[ $(get_version_component_range 1) -ge 17 ]] ; then
+		return 0
+	fi
+	return 1
+}
+
 pkg_setup() {
 	moz_pkgsetup
 
@@ -188,6 +196,10 @@ src_configure() {
 	# mozconfig, CFLAGS and CXXFLAGS setup
 	#
 	####################################
+
+	# see mozconfig-3.eclass
+	cp browser/config/mozconfig .mozconfig \
+		|| die "cp browser/config/mozconfig failed"
 
 	mozconfig_init
 	mozconfig_config
