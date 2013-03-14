@@ -1,7 +1,7 @@
-From e62f1676c6b9ddaf6a3fa29075378263fbd9067d Mon Sep 17 00:00:00 2001
+From 43871b07e1ae9a55136f5a4d4454011eae5569f8 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Tue, 27 Nov 2012 13:13:40 -0500
-Subject: [PATCH 20/26] Add canvas image extraction prompt.
+Subject: [PATCH 20/27] Add canvas image extraction prompt.
 
 ---
  browser/base/content/browser.js                    |  102 ++++++++++++++++++++
@@ -20,10 +20,10 @@ Subject: [PATCH 20/26] Add canvas image extraction prompt.
  13 files changed, 249 insertions(+), 10 deletions(-)
 
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index 9f77fd0..5316da6 100644
+index bd2feed..50054e7 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
-@@ -1279,6 +1279,7 @@ var gBrowserInit = {
+@@ -1280,6 +1280,7 @@ var gBrowserInit = {
      BrowserOffline.init();
      OfflineApps.init();
      IndexedDBPromptHelper.init();
@@ -31,7 +31,7 @@ index 9f77fd0..5316da6 100644
      gFormSubmitObserver.init();
      SocialUI.init();
      AddonManager.addAddonListener(AddonsMgrListener);
-@@ -1636,6 +1637,7 @@ var gBrowserInit = {
+@@ -1637,6 +1638,7 @@ var gBrowserInit = {
        BrowserOffline.uninit();
        OfflineApps.uninit();
        IndexedDBPromptHelper.uninit();
@@ -39,7 +39,7 @@ index 9f77fd0..5316da6 100644
        AddonManager.removeAddonListener(AddonsMgrListener);
        SocialUI.uninit();
      }
-@@ -6126,6 +6128,106 @@ var IndexedDBPromptHelper = {
+@@ -6127,6 +6129,106 @@ var IndexedDBPromptHelper = {
    }
  };
  
@@ -177,7 +177,7 @@ index 1a9f457..4e61cb9 100644
  # %2$S a number of megabytes.
  indexedDB.usage=This website (%1$S) is attempting to store more than %2$S MB of data on your computer for offline use.
 diff --git a/browser/themes/gnomestripe/browser.css b/browser/themes/gnomestripe/browser.css
-index f62d5a8..77df3a8 100644
+index a90d500..fd5d042 100644
 --- a/browser/themes/gnomestripe/browser.css
 +++ b/browser/themes/gnomestripe/browser.css
 @@ -1185,6 +1185,7 @@ toolbar[iconsize="small"] #feed-button {
@@ -197,10 +197,10 @@ index f62d5a8..77df3a8 100644
    list-style-image: url(chrome://global/skin/icons/question-16.png);
  }
 diff --git a/browser/themes/pinstripe/browser.css b/browser/themes/pinstripe/browser.css
-index 510af73..1f11603 100644
+index cb98808..69b908f 100644
 --- a/browser/themes/pinstripe/browser.css
 +++ b/browser/themes/pinstripe/browser.css
-@@ -2426,10 +2426,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
+@@ -2433,10 +2433,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
    -moz-image-region: rect(0px, 48px, 16px, 32px);
  }
  
@@ -214,7 +214,7 @@ index 510af73..1f11603 100644
  .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
    list-style-image: url(chrome://global/skin/icons/question-64.png);
 diff --git a/browser/themes/winstripe/browser.css b/browser/themes/winstripe/browser.css
-index 30fb26c..360d80a 100644
+index d02eed6..70aab91 100644
 --- a/browser/themes/winstripe/browser.css
 +++ b/browser/themes/winstripe/browser.css
 @@ -2319,6 +2319,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {

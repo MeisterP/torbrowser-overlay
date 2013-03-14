@@ -1,7 +1,7 @@
-From 39a2141abd8fd7c2723c4276a3501cb9cb120550 Mon Sep 17 00:00:00 2001
+From 6cf784929d122dd2b83536bdd742e9a718027376 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 15:08:40 -0500
-Subject: [PATCH 23/26] Do not expose system colors to CSS or canvas.
+Subject: [PATCH 23/27] Do not expose system colors to CSS or canvas.
 
 ---
  content/canvas/src/nsCanvasRenderingContext2D.cpp  |   28 +++-
@@ -191,10 +191,10 @@ index 05ccf61..629d78a 100644
    virtual ~nsCanvasGradientAzure() {}
  };
 diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
-index 33ce21e..078af3e 100644
+index 86eff1f..732b1fe 100644
 --- a/layout/style/nsRuleNode.cpp
 +++ b/layout/style/nsRuleNode.cpp
-@@ -746,7 +746,10 @@ static bool SetColor(const nsCSSValue& aValue, const nscolor aParentColor,
+@@ -747,7 +747,10 @@ static bool SetColor(const nsCSSValue& aValue, const nscolor aParentColor,
      int32_t intValue = aValue.GetIntValue();
      if (0 <= intValue) {
        LookAndFeel::ColorID colorID = (LookAndFeel::ColorID) intValue;

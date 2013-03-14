@@ -1,7 +1,7 @@
-From b3e34b6997e2aa709177210b6a1517bb4262843a Mon Sep 17 00:00:00 2001
+From 27633d970ddfa360c553aaf3e8697354309f0839 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Mon, 14 Jan 2013 19:36:14 -0800
-Subject: [PATCH 25/26] nsIHTTPChannel.redirectTo API.
+Subject: [PATCH 25/27] nsIHTTPChannel.redirectTo API.
 
 Provides an API for HTTPS-Everywhere to perform redirects to https
 in a more secure and reliable way.
@@ -266,10 +266,10 @@ index c13c969..e16afd6 100644
    // For document loads we keep this protocol open after child's
    // OnStopRequest, and send this msg (instead of __delete__) to allow
 diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
-index dc49b81..ca55d02 100644
+index 6242ddc..bcfa0c9 100644
 --- a/netwerk/protocol/http/nsHttpChannel.cpp
 +++ b/netwerk/protocol/http/nsHttpChannel.cpp
-@@ -1580,18 +1580,17 @@ nsHttpChannel::HandleAsyncRedirectChannelToHttps()
+@@ -1584,18 +1584,17 @@ nsHttpChannel::HandleAsyncRedirectChannelToHttps()
          return;
      }
  
@@ -291,7 +291,7 @@ index dc49b81..ca55d02 100644
      nsCOMPtr<nsIURI> upgradedURI;
  
      rv = mURI->Clone(getter_AddRefs(upgradedURI));
-@@ -1613,6 +1612,36 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+@@ -1617,6 +1616,36 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
      else
          upgradedURI->SetPort(oldPort);
  
@@ -328,7 +328,7 @@ index dc49b81..ca55d02 100644
      nsCOMPtr<nsIIOService> ioService;
      rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
      NS_ENSURE_SUCCESS(rv, rv);
-@@ -1628,7 +1657,7 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+@@ -1632,7 +1661,7 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
      uint32_t flags = nsIChannelEventSink::REDIRECT_PERMANENT;
  
      PushRedirectAsyncFunc(
@@ -337,7 +337,7 @@ index dc49b81..ca55d02 100644
      rv = gHttpHandler->AsyncOnChannelRedirect(this, newChannel, flags);
  
      if (NS_SUCCEEDED(rv))
-@@ -1636,15 +1665,19 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+@@ -1640,15 +1669,19 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
  
      if (NS_FAILED(rv)) {
          AutoRedirectVetoNotifier notifier(this);
@@ -359,7 +359,7 @@ index dc49b81..ca55d02 100644
  {
      AutoRedirectVetoNotifier notifier(this);
  
-@@ -4374,7 +4407,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
+@@ -4399,7 +4432,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
      mAuthProvider->AddAuthorizationHeaders();
  
      // notify "http-on-modify-request" observers
@@ -368,7 +368,7 @@ index dc49b81..ca55d02 100644
  
      // Adjust mCaps according to our request headers:
      //  - If "Connection: close" is set as a request header, then do not bother
-@@ -4406,6 +4439,12 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
+@@ -4431,6 +4464,12 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
      if (mLoadGroup)
          mLoadGroup->AddRequest(this, nullptr);
  
@@ -381,7 +381,7 @@ index dc49b81..ca55d02 100644
      // Collect mAsyncOpenTime after we have called all obsrevers like
      // "http-on-modify-request" and load group observers that may set
      // mTimingEnabled flag.
-@@ -5536,7 +5575,7 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
+@@ -5561,7 +5600,7 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
      AddCookiesToRequest();
      
      // notify "http-on-modify-request" observers
@@ -391,7 +391,7 @@ index dc49b81..ca55d02 100644
      mIsPending = true;
  
 diff --git a/netwerk/protocol/http/nsHttpChannel.h b/netwerk/protocol/http/nsHttpChannel.h
-index 5b4ddb9..1c0c6b7 100644
+index b1f0848..a05e70d 100644
 --- a/netwerk/protocol/http/nsHttpChannel.h
 +++ b/netwerk/protocol/http/nsHttpChannel.h
 @@ -174,12 +174,14 @@ private:

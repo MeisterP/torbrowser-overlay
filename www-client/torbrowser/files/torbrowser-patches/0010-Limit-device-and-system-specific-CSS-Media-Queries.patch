@@ -1,7 +1,7 @@
-From 8fc251b2c49b46f0d07a7f80f814f5dae3a73ae6 Mon Sep 17 00:00:00 2001
+From 0c006870b9d96a8093ca66751e9738b4237c9251 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 09:49:40 -0500
-Subject: [PATCH 10/26] Limit device and system specific CSS Media Queries.
+Subject: [PATCH 10/27] Limit device and system specific CSS Media Queries.
 
 ---
  layout/style/nsMediaFeatures.cpp |   68 +++++++++++++++++++++++++-------------

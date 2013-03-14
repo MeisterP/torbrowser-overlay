@@ -1,7 +1,7 @@
-From d96e65b539df362bd495b51d2db02e56eca76851 Mon Sep 17 00:00:00 2001
+From 26ab2cbf5b925a3f1251bd536728a7e222b4f9e4 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 15:41:09 -0800
-Subject: [PATCH 01/26] Block Components.interfaces from content
+Subject: [PATCH 01/27] Block Components.interfaces from content
 
 This patch removes the ability of content script to access
 Components.interfaces.*.

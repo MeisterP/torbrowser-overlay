@@ -1,7 +1,7 @@
-From 81c1a8a664d433686367e44ebd49320be337a2f3 Mon Sep 17 00:00:00 2001
+From f98cbea138095a46570912a2f624b82dff109d55 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 28 Nov 2012 17:08:29 -0500
-Subject: [PATCH 19/26] Add mozIThirdPartyUtil.getFirstPartyURI API
+Subject: [PATCH 19/27] Add mozIThirdPartyUtil.getFirstPartyURI API
 
 API allows you to get the url bar URI for a channel or nsIDocument.
 ---

@@ -1,7 +1,7 @@
-From 7b028c106cfca269406641a8c7cd9380eafeecca Mon Sep 17 00:00:00 2001
+From 5130a82dcc2dd7385d7d1cd2b15daa1dc4577f5b Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 15:51:07 -0800
-Subject: [PATCH 03/26] Make Intermediate Cert Store memory-only.
+Subject: [PATCH 03/27] Make Intermediate Cert Store memory-only.
 
 This patch makes the intermediate SSL cert store exist in memory only.
 

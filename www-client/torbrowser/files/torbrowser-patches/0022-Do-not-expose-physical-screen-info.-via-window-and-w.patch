@@ -1,7 +1,7 @@
-From 0149732cf5201db298f4b13be4cd73ae6094f011 Mon Sep 17 00:00:00 2001
+From 73dd7935b3e9a226e868844bf9a92b257416c5ec Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 11:25:14 -0500
-Subject: [PATCH 22/26] Do not expose physical screen info. via window and
+Subject: [PATCH 22/27] Do not expose physical screen info. via window and
  window.screen.
 
 ---
@@ -12,7 +12,7 @@ Subject: [PATCH 22/26] Do not expose physical screen info. via window and
  4 files changed, 141 insertions(+), 0 deletions(-)
 
 diff --git a/dom/base/nsGlobalWindow.cpp b/dom/base/nsGlobalWindow.cpp
-index c06b715..b480ee5 100644
+index f675f87..48bd71d 100644
 --- a/dom/base/nsGlobalWindow.cpp
 +++ b/dom/base/nsGlobalWindow.cpp
 @@ -3745,6 +3745,10 @@ nsGlobalWindow::GetOuterWidth(int32_t* aOuterWidth)

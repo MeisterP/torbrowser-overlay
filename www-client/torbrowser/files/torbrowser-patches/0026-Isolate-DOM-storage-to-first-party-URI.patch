@@ -1,7 +1,7 @@
-From 580d7d145ac93a42b6f0b1cfad8a1965a02c5050 Mon Sep 17 00:00:00 2001
+From caf469aa331ab9d92cc83b378cf554f087625dc8 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
-Date: Tue, 15 Jan 2013 14:18:43 -0800
-Subject: [PATCH 26/26] Isolate DOM storage to first party URI
+Date: Thu, 28 Feb 2013 18:02:34 -0800
+Subject: [PATCH 26/27] Isolate DOM storage to first party URI
 
 Also prevents DOM storage from writing to disk (hardcoded).
 ---
@@ -23,7 +23,7 @@ Also prevents DOM storage from writing to disk (hardcoded).
  15 files changed, 255 insertions(+), 50 deletions(-)
 
 diff --git a/docshell/base/nsDocShell.cpp b/docshell/base/nsDocShell.cpp
-index 7a141d9..84a0043 100644
+index 0d56d9e..0726c07 100644
 --- a/docshell/base/nsDocShell.cpp
 +++ b/docshell/base/nsDocShell.cpp
 @@ -184,6 +184,7 @@
@@ -132,9 +132,9 @@ index 7a141d9..84a0043 100644
  NS_IMETHODIMP
  nsDocShell::CloneSessionStoragesTo(nsIDocShell* aDocShell)
  {
-@@ -12389,3 +12421,39 @@ nsDocShell::GetAsyncPanZoomEnabled(bool* aOut)
-     *aOut = false;
-     return NS_OK;
+@@ -12411,3 +12443,39 @@ nsDocShell::HasUnloadedParent()
+     }
+     return false;
  }
 +
 +nsresult
@@ -173,19 +173,19 @@ index 7a141d9..84a0043 100644
 +}
 +
 diff --git a/docshell/base/nsDocShell.h b/docshell/base/nsDocShell.h
-index 225a636..aeb00c9 100644
+index 427630a..4bcd341 100644
 --- a/docshell/base/nsDocShell.h
 +++ b/docshell/base/nsDocShell.h
-@@ -679,7 +679,7 @@ protected:
-     FrameType GetInheritedFrameType();
-     FrameType GetFrameType();
+@@ -681,7 +681,7 @@ protected:
+ 
+     bool HasUnloadedParent();
  
 -    // hash of session storages, keyed by domain
 +    // hash of session storages, keyed by domain&firstPartyHost
      nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
  
      // Dimensions of the docshell
-@@ -846,6 +846,10 @@ private:
+@@ -848,6 +848,10 @@ private:
      static unsigned long gNumberOfDocShells;
  #endif /* DEBUG */
  
@@ -255,7 +255,7 @@ index 986f4b4..4f26a04 100644
     * Clones all session storage objects and attaches them to the given docshell.
     * Useful when duplicating tabs and their states.
 diff --git a/dom/base/nsGlobalWindow.cpp b/dom/base/nsGlobalWindow.cpp
-index b480ee5..0cc147a 100644
+index 48bd71d..1e16c03 100644
 --- a/dom/base/nsGlobalWindow.cpp
 +++ b/dom/base/nsGlobalWindow.cpp
 @@ -8385,7 +8385,18 @@ nsGlobalWindow::GetLocalStorage(nsIDOMStorage ** aLocalStorage)

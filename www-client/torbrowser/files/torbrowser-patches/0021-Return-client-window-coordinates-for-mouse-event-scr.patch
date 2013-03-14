@@ -1,7 +1,7 @@
-From 56a087769b2a258659bae4f626b37755c0961d6d Mon Sep 17 00:00:00 2001
+From b0696055ca1d34426ae1c8ce2761404d3261525e Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 10:49:09 -0500
-Subject: [PATCH 21/26] Return client window coordinates for mouse event
+Subject: [PATCH 21/27] Return client window coordinates for mouse event
  screenX/Y (for dragend, 0,0 is returned).
 
 ---
