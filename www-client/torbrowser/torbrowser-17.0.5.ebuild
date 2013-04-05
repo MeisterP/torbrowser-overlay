@@ -9,7 +9,7 @@ MOZ_ESR="1"
 
 MY_PN="firefox"
 MOZ_PV="${MY_PN}-${PV}"
-TOR_PV="2.3.25-5"
+TOR_PV="2.3.25-6"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers

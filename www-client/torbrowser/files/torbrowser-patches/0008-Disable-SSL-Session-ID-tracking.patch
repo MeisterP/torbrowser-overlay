@@ -1,6 +1,6 @@
-From 0cdbc52ac00f33e532b5485cf12286a1dc11b981 Mon Sep 17 00:00:00 2001
-From: Mike Perry <mikeperry-git@fscked.org>
-Date: Wed, 7 Dec 2011 19:36:38 -0800
+From e700063f5d18e86077af8ecf7fb3f4d92f2d0ef4 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Sun, 31 Mar 2013 22:48:00 -0700
 Subject: [PATCH 08/27] Disable SSL Session ID tracking.
 
 We can't easily bind SSL Session ID tracking to url bar domain,
@@ -8,21 +8,21 @@ so we have to disable them to satisfy
 https://www.torproject.org/projects/torbrowser/design/#identifier-linkability.
 ---
  security/nss/lib/ssl/sslsock.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/security/nss/lib/ssl/sslsock.c b/security/nss/lib/ssl/sslsock.c
-index 0c4d0c7..8d23fc0 100644
+index 4f4b034..6ce5d11 100644
 --- a/security/nss/lib/ssl/sslsock.c
 +++ b/security/nss/lib/ssl/sslsock.c
-@@ -173,7 +173,7 @@ static sslOptions ssl_defaults = {
+@@ -141,7 +141,7 @@ static sslOptions ssl_defaults = {
      PR_FALSE,	/* enableSSL2         */ /* now defaults to off in NSS 3.13 */
-     PR_TRUE,	/* enableSSL3         */
-     PR_TRUE, 	/* enableTLS          */ /* now defaults to on in NSS 3.0 */
+     PR_FALSE,	/* unusedBit9         */
+     PR_FALSE, 	/* unusedBit10        */
 -    PR_FALSE,	/* noCache            */
 +    PR_TRUE,	/* noCache            */
      PR_FALSE,	/* fdx                */
      PR_FALSE,	/* v2CompatibleHello  */ /* now defaults to off in NSS 3.13 */
      PR_TRUE,	/* detectRollBack     */
 -- 
-1.7.5.4
+1.7.9.5
 
