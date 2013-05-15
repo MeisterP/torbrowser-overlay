@@ -1,4 +1,4 @@
-From 615c1d7bc870fee55ae37fff0f52b04185c03383 Mon Sep 17 00:00:00 2001
+From f097490e5043195bb0dfc27b288ff8b485b148e6 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Thu, 6 Dec 2012 14:19:34 -0800
 Subject: [PATCH 24/27] Isolate the Image Cache per url bar domain.
@@ -7,7 +7,7 @@ The image cache maintains its own table outside of the main cache, and does
 not obey cacheKeys by default.
 ---
  content/base/src/nsContentUtils.cpp                |   13 +-
- embedding/browser/webBrowser/nsContextMenuInfo.cpp |   27 ++-
+ embedding/browser/webBrowser/nsContextMenuInfo.cpp |   27 +-
  extensions/cookie/nsCookiePermission.cpp           |    3 +
  image/public/imgILoader.idl                        |    4 +-
  image/src/imgLoader.cpp                            |  262 +++++++++++++-------
@@ -149,7 +149,7 @@ index da26463..ecff309 100644
                          in nsIPrincipal aLoadingPrincipal,
                          in nsILoadGroup aLoadGroup,
 diff --git a/image/src/imgLoader.cpp b/image/src/imgLoader.cpp
-index ea51e8d..8f2e0c1 100644
+index ea51e8d..8e52af8 100644
 --- a/image/src/imgLoader.cpp
 +++ b/image/src/imgLoader.cpp
 @@ -39,6 +39,7 @@
@@ -672,7 +672,7 @@ index ea51e8d..8f2e0c1 100644
  
      // Try to add the new request into the cache.
 -    PutIntoCache(originalURI, entry);
-+    PutIntoCache(GetCacheKey(originalURI, firstPartyURI), entry);
++    PutIntoCache(GetCacheKey(firstPartyURI, originalURI), entry);
  
      rv = CreateNewProxyForRequest(request, loadGroup, aObserver,
                                    requestFlags, nullptr, _retval);
@@ -918,5 +918,5 @@ index e0c07c4..368df5f 100644
                           nullptr, getter_AddRefs(mIconRequest));
    if (NS_FAILED(rv)) return rv;
 -- 
-1.7.5.4
+1.7.9.5
 

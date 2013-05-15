@@ -1,7 +1,7 @@
-From 094f1e4c33656e3f0922d6fcb941deb672fa44a8 Mon Sep 17 00:00:00 2001
+From 81fde0b8f4af7bae20c49ac0ce0ea4df046a6701 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 5 Dec 2012 12:25:21 -0800
-Subject: [PATCH 11/27] Limit the number of fonts per document.
+Subject: [PATCH 11/28] Limit the number of fonts per document.
 
 We create two prefs:
 browser.display.max_font_count and browser.display.max_font_attempts.
@@ -22,13 +22,38 @@ otherwise hit these limits.
 This is done to address:
 https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
 ---
- gfx/thebes/gfxPangoFonts.cpp  |    1 +
- layout/base/nsPresContext.cpp |  100 +++++++++++++++++++++++++++++++++++++++++
- layout/base/nsPresContext.h   |    9 ++++
- layout/style/nsCSSParser.cpp  |    1 +
- layout/style/nsRuleNode.cpp   |   56 ++++++++++++++++++++++-
- 5 files changed, 164 insertions(+), 3 deletions(-)
+ gfx/thebes/gfxFont.cpp            |    2 +
+ gfx/thebes/gfxPangoFonts.cpp      |    1 +
+ gfx/thebes/gfxUserFontSet.cpp     |   28 ++++++++++-
+ gfx/thebes/gfxUserFontSet.h       |    3 ++
+ layout/base/nsPresContext.cpp     |  100 +++++++++++++++++++++++++++++++++++++
+ layout/base/nsPresContext.h       |    9 ++++
+ layout/style/nsCSSParser.cpp      |    1 +
+ layout/style/nsFontFaceLoader.cpp |    4 +-
+ layout/style/nsFontFaceLoader.h   |    2 +-
+ layout/style/nsRuleNode.cpp       |   56 +++++++++++++++++++--
+ 10 files changed, 198 insertions(+), 8 deletions(-)
 
+diff --git a/gfx/thebes/gfxFont.cpp b/gfx/thebes/gfxFont.cpp
+index e8392e0..af5c1c8 100644
+--- a/gfx/thebes/gfxFont.cpp
++++ b/gfx/thebes/gfxFont.cpp
+@@ -3045,6 +3045,7 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
+     }
+ 
+     // Not known in the user font set ==> check system fonts
++    // XXX: Fallback is bad..
+     if (!foundFamily) {
+         fe = gfxPlatformFontList::PlatformFontList()->
+             FindFontForFamily(aName, fontStyle, needsBold);
+@@ -3260,6 +3261,7 @@ gfxFontGroup::ForEachFontInternal(const nsAString& aFamilies,
+                     }
+                     if (!foundFamily) {
+                         gfxPlatform *pf = gfxPlatform::GetPlatform();
++                        // XXX: Fallback is bad
+                         rv = pf->ResolveFontName(family,
+                                                  gfxFontGroup::FontResolverProc,
+                                                  &data, aborted);
 diff --git a/gfx/thebes/gfxPangoFonts.cpp b/gfx/thebes/gfxPangoFonts.cpp
 index c94a299..88c8b8e 100644
 --- a/gfx/thebes/gfxPangoFonts.cpp
@@ -41,6 +66,83 @@ index c94a299..88c8b8e 100644
          bool isUserFont = false;
          if (mUserFontSet) {
              // Have some @font-face definitions
+diff --git a/gfx/thebes/gfxUserFontSet.cpp b/gfx/thebes/gfxUserFontSet.cpp
+index 020c35a..161b52f 100644
+--- a/gfx/thebes/gfxUserFontSet.cpp
++++ b/gfx/thebes/gfxUserFontSet.cpp
+@@ -15,6 +15,7 @@
+ #include "prlong.h"
+ #include "nsNetUtil.h"
+ #include "nsIProtocolHandler.h"
++#include "nsFont.h"
+ 
+ #include "woff.h"
+ 
+@@ -517,18 +518,41 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
+         aProxyEntry->mSrcIndex++;
+     }
+ 
++    /* If there are any urls, prefer them to local */
++    bool listHasURL = false; 
++    for (uint32_t i = aProxyEntry->mSrcIndex; i < numSrc; i++) {
++        const gfxFontFaceSrc& currSrc = aProxyEntry->mSrcList[i];
++        if (!currSrc.mIsLocal) {
++           listHasURL = true;
++           break;
++        }
++    }
++    nsPresContext *pres = GetPresContext();
++    /* If we have no pres context, simply fail this load */
++    if (!pres) listHasURL = true;
++
+     // load each src entry in turn, until a local face is found
+     // or a download begins successfully
+     while (aProxyEntry->mSrcIndex < numSrc) {
+         const gfxFontFaceSrc& currSrc = aProxyEntry->mSrcList[aProxyEntry->mSrcIndex];
+ 
+         // src local ==> lookup and load immediately
+-
+-        if (currSrc.mIsLocal) {
++        if (!listHasURL && currSrc.mIsLocal) {
++            nsFont font;
++            font.name = currSrc.mLocalName;
+             gfxFontEntry *fe =
+                 gfxPlatform::GetPlatform()->LookupLocalFont(aProxyEntry,
+                                                             currSrc.mLocalName);
++            pres->AddFontAttempt(font);
++
++            /* No more fonts for you */
++            if (pres->FontAttemptCountReached(font) || 
++                pres->FontUseCountReached(font)) {
++                break;
++            }
++
+             if (fe) {
++                pres->AddFontUse(font);
+                 LOG(("userfonts (%p) [src %d] loaded local: (%s) for (%s) gen: %8.8x\n",
+                      this, aProxyEntry->mSrcIndex,
+                      NS_ConvertUTF16toUTF8(currSrc.mLocalName).get(),
+diff --git a/gfx/thebes/gfxUserFontSet.h b/gfx/thebes/gfxUserFontSet.h
+index 1781a37..d6f7292 100644
+--- a/gfx/thebes/gfxUserFontSet.h
++++ b/gfx/thebes/gfxUserFontSet.h
+@@ -9,6 +9,7 @@
+ #include "gfxTypes.h"
+ #include "gfxFont.h"
+ #include "gfxFontUtils.h"
++#include "nsPresContext.h"
+ #include "nsRefPtrHashtable.h"
+ #include "nsAutoPtr.h"
+ #include "nsCOMPtr.h"
+@@ -230,6 +231,8 @@ public:
+ 
+     // increment the generation on font load
+     void IncrementGeneration();
++  
++    virtual nsPresContext *GetPresContext() { return NULL; }
+ 
+ protected:
+     // for a given proxy font entry, attempt to load the next resource
 diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
 index d47460a..8064fb4 100644
 --- a/layout/base/nsPresContext.cpp
@@ -205,6 +307,35 @@ index 37a19c4..30fd021 100644
        // the style parameters to the nsFont constructor are ignored,
        // because it's only being used to call EnumerateFamilies
        nsFont font(family, 0, 0, 0, 0, 0, 0);
+diff --git a/layout/style/nsFontFaceLoader.cpp b/layout/style/nsFontFaceLoader.cpp
+index 26c8a8d..2a803ae 100644
+--- a/layout/style/nsFontFaceLoader.cpp
++++ b/layout/style/nsFontFaceLoader.cpp
+@@ -86,9 +86,9 @@ nsFontFaceLoader::StartedLoading(nsIStreamLoader *aStreamLoader)
+                                        loadTimeout,
+                                        nsITimer::TYPE_ONE_SHOT);
+     }
+-  } else {
++  } else if (loadTimeout == 0) {
+     mFontEntry->mLoadingState = gfxProxyFontEntry::LOADING_SLOWLY;
+-  }
++  } // -1 disables fallback
+   mStreamLoader = aStreamLoader;
+ }
+ 
+diff --git a/layout/style/nsFontFaceLoader.h b/layout/style/nsFontFaceLoader.h
+index 9cd218d..0c7473d 100644
+--- a/layout/style/nsFontFaceLoader.h
++++ b/layout/style/nsFontFaceLoader.h
+@@ -48,7 +48,7 @@ public:
+ 
+   bool UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules);
+ 
+-  nsPresContext *GetPresContext() { return mPresContext; }
++  virtual nsPresContext *GetPresContext() { return mPresContext; }
+ 
+   virtual void ReplaceFontEntry(gfxProxyFontEntry *aProxy,
+                                 gfxFontEntry *aFontEntry);
 diff --git a/layout/style/nsRuleNode.cpp b/layout/style/nsRuleNode.cpp
 index 64504fb..86eff1f 100644
 --- a/layout/style/nsRuleNode.cpp
@@ -316,5 +447,5 @@ index 64504fb..86eff1f 100644
  }
  
 -- 
-1.7.5.4
+1.7.9.5
 

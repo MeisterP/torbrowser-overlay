@@ -1,30 +1,50 @@
-From cd87b7f64f035f67ec883c1b1ed4746454892781 Mon Sep 17 00:00:00 2001
+From aa6534432718dae0e3810dc441fc797ecf809c6e Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 17:38:51 -0800
-Subject: [PATCH 17/27] Randomize HTTP request order and pipeline depth.
+Subject: [PATCH 17/28] Randomize HTTP request order and pipeline depth.
 
-This is an experimental defense against
+This is an experimental defense against Website Traffic Fingerprinting:
 http://lorre.uni.lu/~andriy/papers/acmccs-wpes11-fingerprinting.pdf
 
 See:
 https://blog.torproject.org/blog/experimental-defense-website-traffic-fingerprinting
 
-This defense has been improved since that blog post to additionally randomize
-the order and concurrency of non-pipelined HTTP requests.
+This patch is different from the approach described in that post, as well as
+the 10.x ESR patch, as the pipelining code has changed significantly between
+the time of writing of that post and Firefox 17.
 
-This patch is also different from the 10.x ESR patch, as the pipelining
-code has changed. We may want to set network.http.pipelining.aggressive to get
-similar behavior...
+The main control nob for this patch is now the about:config pref
+"network.http.pipelining.max-optimistic-requests". The value of that pref
+represents the minimum number of pipelined requests we will attempt to batch
+together.
 
-The good news is we now randomize SPDY request order as well as pipeline
-request order (though SPDY is still disabled by default in TBB).
+The total outstanding pipeline size is randomized between that value and
+"network.http.pipelining.maxrequests" on a per-host basis.
+
+Care must be taken when evaluating this defense, as pipeline behavior is
+extremely sensitive to browser performance. In fact, a debug build alone is
+enough to significantly impair request availability to the pipeline (due
+slower document parsing and rendering). For this reason, we provide two
+separate debug log defines. For most evaluation circumstances, you want to
+define only WTF_TEST in an optimized build to only log request order,
+combination behavior, and cases where the pipeline is forcibly disabled.
+
+This patch may also have some minor impact on SPDY request order, but the SPDY
+implementation has not been altered directly. It has several stream queues
+that may also benefit from reordering and batching, as well as a more compact
+request representation that will allow more requests to be packed inside Tor
+cells. If you have interest in evaluating SPDY in a study of Website Traffic
+Fingerprinting, please contact me.
 ---
- netwerk/protocol/http/nsHttpConnectionMgr.cpp |   67 +++++++++++++++++++++++--
- netwerk/protocol/http/nsHttpConnectionMgr.h   |    3 +
- 2 files changed, 65 insertions(+), 5 deletions(-)
+ netwerk/protocol/http/nsHttpConnectionMgr.cpp |  351 +++++++++++++++++--------
+ netwerk/protocol/http/nsHttpConnectionMgr.h   |   15 +-
+ netwerk/protocol/http/nsHttpHandler.h         |    2 +
+ netwerk/protocol/http/nsHttpPipeline.cpp      |   62 ++++-
+ netwerk/protocol/http/nsHttpPipeline.h        |    3 +
+ 5 files changed, 327 insertions(+), 106 deletions(-)
 
 diff --git a/netwerk/protocol/http/nsHttpConnectionMgr.cpp b/netwerk/protocol/http/nsHttpConnectionMgr.cpp
-index 133c301..59d03c0 100644
+index 133c301..c98894c 100644
 --- a/netwerk/protocol/http/nsHttpConnectionMgr.cpp
 +++ b/netwerk/protocol/http/nsHttpConnectionMgr.cpp
 @@ -20,6 +20,8 @@
@@ -36,108 +56,548 @@ index 133c301..59d03c0 100644
  using namespace mozilla;
  using namespace mozilla::net;
  
-@@ -39,15 +41,46 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
+@@ -39,15 +41,26 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
      // insert into queue with smallest valued number first.  search in reverse
      // order under the assumption that many of the existing transactions will
      // have the same priority (usually 0).
 +    uint32_t len = pendingQ.Length();
-+    uint32_t begin = 0, end = len+1;
-+    int found_begin = 0;
  
 -    for (int32_t i=pendingQ.Length()-1; i>=0; --i) {
-+    if (pendingQ.IsEmpty()) {
-+        pendingQ.InsertElementAt(0, trans);
-+        return;
-+    }
-+
-+// #define PRESERVE_PRIORITY_ORDER 
-+#ifdef PRESERVE_PRIORITY_ORDER
-+    // XXX: Untested
-+    for (uint32_t i=0; i < len; ++i) {
-         nsHttpTransaction *t = pendingQ[i];
+-        nsHttpTransaction *t = pendingQ[i];
 -        if (trans->Priority() >= t->Priority()) {
 -            pendingQ.InsertElementAt(i+1, trans);
 -            return;
-+
-+        /* As soon as we see a priority >= us, our insertion
-+         * range starts there */
-+        if (!found_begin && t->Priority() >= trans->Priority()) {
-+            begin = i;
-+            found_begin = 1;
-+        }
-+        /* As soon as we see a priority > us, our insertion
-+         * range ends there */
-+        if (t->Priority() > trans->Priority()) {
-+            end = i;
-+            break;
-         }
+-        }
++    if (pendingQ.IsEmpty()) {
++        pendingQ.InsertElementAt(0, trans);
++        return;
      }
--    pendingQ.InsertElementAt(0, trans);
 +
-+    // XXX Verify that begin..end are all == trans->Priority()
-+#endif
+     pendingQ.InsertElementAt(0, trans);
 +
-+    // Choose random destination begin..end
-+    uint32_t count = end - begin;
-+    if (count == 0) count = 1;
++    // FIXME: Refactor into standalone helper (for nsHttpPipeline)
++    // Or at least simplify this function if this shuffle ends up
++    // being an improvement.
++    uint32_t i = 0;
++    for (i=0; i < len; ++i) {
++        uint32_t ridx = rand() % len;
 +
-+    // FIXME: rand() is not crypto-secure.. but meh, this code will probably
-+    // change like 2 dozen more times before merge, and rand() is probably 
-+    // good enough for our purposes anyways.
-+    pendingQ.InsertElementAt(begin + (rand()%count), trans);
++        nsHttpTransaction *tmp = pendingQ[i];
++        pendingQ[i] = pendingQ[ridx];
++        pendingQ[ridx] = tmp;
++    }
  }
  
  //-----------------------------------------------------------------------------
-@@ -68,6 +101,12 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
-     mCT.Init();
-     mAlternateProtocolHash.Init(16);
-     mSpdyPreferredHash.Init();
+@@ -919,22 +932,27 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent)
+     nsHttpTransaction *trans;
+     nsresult rv;
+     bool dispatchedSuccessfully = false;
++    int dispatchCount = 0;
++    int total = count;
+ 
+     // iterate the pending list until one is dispatched successfully. Keep
+     // iterating afterwards only until a transaction fails to dispatch.
+     for (uint32_t i = 0; i < count; ++i) {
+         trans = ent->mPendingQ[i];
+ 
+-        // When this transaction has already established a half-open
++        // When this entry has already established a half-open
+         // connection, we want to prevent any duplicate half-open
+         // connections from being established and bound to this
+-        // transaction. Allow only use of an idle persistent connection
+-        // (if found) for transactions referred by a half-open connection.
++        // transaction.
+         bool alreadyHalfOpen = false;
+-        for (int32_t j = 0; j < ((int32_t) ent->mHalfOpens.Length()); ++j) {
+-            if (ent->mHalfOpens[j]->Transaction() == trans) {
+-                alreadyHalfOpen = true;
+-                break;
++        if (ent->SupportsPipelining()) {
++            alreadyHalfOpen = (ent->UnconnectedHalfOpens() > 0);
++        } else {
++            for (int32_t j = 0; j < ((int32_t) ent->mHalfOpens.Length()); ++j) {
++                if (ent->mHalfOpens[j]->Transaction() == trans) {
++                    alreadyHalfOpen = true;
++                    break;
++                }
+             }
+         }
+ 
+@@ -953,16 +971,29 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent)
+             dispatchedSuccessfully = true;
+             count = ent->mPendingQ.Length();
+             --i;
++            dispatchCount++;
+             continue;
+         }
+ 
+-        if (dispatchedSuccessfully)
+-            return true;
++        // We want to keep walking the dispatch table to ensure requests
++        // get combined properly.
++        //if (dispatchedSuccessfully) {
++        //    return true;
++        //}
+ 
+         NS_ABORT_IF_FALSE(count == ((int32_t) ent->mPendingQ.Length()),
+                           "something mutated pending queue from "
+                           "GetConnection()");
+     }
 +
-+    nsresult rv;
-+    mRandomGenerator = do_GetService("@mozilla.org/security/random-generator;1", &rv);
-+    if (NS_FAILED(rv)) {
-+        mRandomGenerator = nullptr;
++#ifdef WTF_DEBUG
++    if (dispatchedSuccessfully) {
++        fprintf(stderr, "WTF-queue: Dispatched %d/%d pending transactions for %s\n",
++                dispatchCount, total, ent->mConnInfo->Host());
++        return true;
 +    }
++#endif
++
+     return false;
  }
  
- nsHttpConnectionMgr::~nsHttpConnectionMgr()
-@@ -1120,6 +1159,19 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, uint8_t cap
+@@ -1247,6 +1278,10 @@ nsHttpConnectionMgr::MakeNewConnection(nsConnectionEntry *ent,
+     if (AtActiveConnectionLimit(ent, trans->Caps()))
+         return NS_ERROR_NOT_AVAILABLE;
  
-     LOG(("   connection count = %d, limit %d\n", totalCount, maxPersistConns));
++#ifdef WTF_DEBUG
++        fprintf(stderr, "WTF: MakeNewConnection() is creating a transport (pipelines %d) for host %s\n",
++                ent->SupportsPipelining(), ent->mConnInfo->Host());
++#endif
+     nsresult rv = CreateTransport(ent, trans, trans->Caps(), false);
+     if (NS_FAILED(rv)) {
+         /* hard failure */
+@@ -1263,7 +1298,7 @@ nsHttpConnectionMgr::MakeNewConnection(nsConnectionEntry *ent,
+ }
  
-+    // Fuzz maxConns for website fingerprinting attack
-+    // We create a range of maxConns/5 up to 6*maxConns/5 
-+    // because this function is called repeatedly, and we'll
-+    // end up converging on the high side of concurrent connections
-+    // after a short while. 
-+    PRUint8 *bytes = nullptr;
-+    nsresult rv = mRandomGenerator->GenerateRandomBytes(1, &bytes);
-+    NS_ENSURE_SUCCESS(rv, rv);
-+
-+    bytes[0] = bytes[0] % (maxPersistConns + 1);
-+    maxPersistConns = (maxPersistConns/5) + bytes[0];
-+    NS_Free(bytes);
-+
-     // use >= just to be safe
-     bool result = (totalCount >= maxPersistConns);
-     LOG(("  result: %s", result ? "true" : "false"));
-@@ -1297,6 +1349,11 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
- 
-     maxdepth = PR_MIN(maxdepth, depthLimit);
- 
-+    if (maxdepth/2 > 1) { 
-+      // This is a crazy hack to randomize pipeline depth a bit more..
-+      maxdepth = 1 + maxdepth/2 + (rand() % (maxdepth/2));
-+    }
-+
+ bool
+-nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
++nsHttpConnectionMgr::AddToBestPipeline(nsConnectionEntry *ent,
+                                            nsHttpTransaction *trans,
+                                            nsHttpTransaction::Classifier classification,
+                                            uint16_t depthLimit)
+@@ -1300,40 +1335,100 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
      if (maxdepth < 2)
          return false;
  
+-    nsAHttpTransaction *activeTrans;
++    // Find out how many requests of this class we have
++    uint32_t sameClass = 0;
++    uint32_t allClasses = ent->mPendingQ.Length();
++    for (uint32_t i = 0; i < allClasses; ++i) {
++        if (trans != ent->mPendingQ[i] &&
++            classification == ent->mPendingQ[i]->Classification()) {
++            sameClass++;
++        }
++    }
+ 
++    nsAHttpTransaction *activeTrans;
++    nsHttpPipeline *pipeline;
+     nsHttpConnection *bestConn = nullptr;
+     uint32_t activeCount = ent->mActiveConns.Length();
+-    uint32_t bestConnLength = 0;
+-    uint32_t connLength;
++    uint32_t pipelineDepth;
++    uint32_t requestLen;
++    uint32_t totalDepth = 0;
++
++    // Now, try to find the best pipeline
++    nsTArray<nsHttpConnection *> validConns;
++    nsTArray<nsHttpConnection *> betterConns;
++    nsTArray<nsHttpConnection *> bestConns;
++    uint32_t numPipelines = 0;
+ 
+     for (uint32_t i = 0; i < activeCount; ++i) {
+         nsHttpConnection *conn = ent->mActiveConns[i];
+-        if (!conn->SupportsPipelining())
+-            continue;
+ 
+-        if (conn->Classification() != classification)
++        if (!conn->SupportsPipelining())
+             continue;
+ 
+         activeTrans = conn->Transaction();
++
+         if (!activeTrans ||
+             activeTrans->IsDone() ||
+             NS_FAILED(activeTrans->Status()))
+             continue;
+ 
+-        connLength = activeTrans->PipelineDepth();
++        pipeline = activeTrans->QueryPipeline();
++        if (!pipeline)
++            continue;
++
++        numPipelines++;
+ 
+-        if (maxdepth <= connLength)
++        pipelineDepth = activeTrans->PipelineDepth();
++        requestLen = pipeline->RequestDepth();
++
++        totalDepth += pipelineDepth;
++
++        // If we're within striking distance of our pipeline
++        // packaging goal, give a little slack on the depth
++        // limit to allow us to try to get there. Don't give
++        // too much slack, though, or we'll tend to have
++        // request packages of the same size when we have
++        // many content elements appear at once.
++        if (maxdepth +
++              PR_MIN(mMaxOptimisticPipelinedRequests,
++                     requestLen + allClasses)
++              <= pipelineDepth)
+             continue;
+ 
+-        if (!bestConn || (connLength < bestConnLength)) {
+-            bestConn = conn;
+-            bestConnLength = connLength;
+-        }
+-    }
++        validConns.AppendElement(conn);
++
++        // Prefer a pipeline that either has at least two requests
++        // queued already, or for which we can add multiple requests
++        if (requestLen + allClasses < mMaxOptimisticPipelinedRequests)
++            continue;
++
++        betterConns.AppendElement(conn);
++
++        // Prefer a pipeline with the same classification if 
++        // our current classes will put it over the line
++        if (conn->Classification() != classification)
++            continue;
++        if (requestLen + sameClass < mMaxOptimisticPipelinedRequests)
++            continue;
+ 
+-    if (!bestConn)
++        bestConns.AppendElement(conn);
++    }
++
++    const char *type;
++    if (bestConns.Length()) {
++        type = "best";
++        bestConn = bestConns[rand()%bestConns.Length()];
++    } else if (betterConns.Length()) {
++        type = "better";
++        bestConn = betterConns[rand()%betterConns.Length()];
++    } else if (validConns.Length() && totalDepth == 0) {
++        // We only use valid conns if it's a last resort
++        // (No other requests are pending or in flight)
++        type = "valid";
++        bestConn = validConns[rand()%validConns.Length()];
++    } else {
+         return false;
++    }
+ 
+     activeTrans = bestConn->Transaction();
+     nsresult rv = activeTrans->AddTransaction(trans);
+@@ -1343,6 +1438,15 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
+     LOG(("   scheduling trans %p on pipeline at position %d\n",
+          trans, trans->PipelinePosition()));
+ 
++#ifdef WTF_DEBUG
++    pipeline = activeTrans->QueryPipeline();
++    fprintf(stderr,
++            "WTF-depth: Added trans to %s of %d/%d/%d/%d pipelines. Request len %d/%d/%d for %s\n",
++            type, bestConns.Length(), betterConns.Length(), validConns.Length(),
++            numPipelines, pipeline->RequestDepth(), activeTrans->PipelineDepth(),
++            maxdepth, ent->mConnInfo->Host());
++#endif
++
+     if ((ent->PipelineState() == PS_YELLOW) && (trans->PipelinePosition() > 1))
+         ent->SetYellowConnection(bestConn);
+     return true;
+@@ -1403,26 +1507,12 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
+     nsHttpTransaction::Classifier classification = trans->Classification();
+     uint8_t caps = trans->Caps();
+ 
++    bool allowNewPipelines = true;
++
+     // no keep-alive means no pipelines either
+     if (!(caps & NS_HTTP_ALLOW_KEEPALIVE))
+         caps = caps & ~NS_HTTP_ALLOW_PIPELINING;
+ 
+-    // 0 - If this should use spdy then dispatch it post haste.
+-    // 1 - If there is connection pressure then see if we can pipeline this on
+-    //     a connection of a matching type instead of using a new conn
+-    // 2 - If there is an idle connection, use it!
+-    // 3 - if class == reval or script and there is an open conn of that type
+-    //     then pipeline onto shortest pipeline of that class if limits allow
+-    // 4 - If we aren't up against our connection limit,
+-    //     then open a new one
+-    // 5 - Try a pipeline if we haven't already - this will be unusual because
+-    //     it implies a low connection pressure situation where
+-    //     MakeNewConnection() failed.. that is possible, but unlikely, due to
+-    //     global limits
+-    // 6 - no connection is available - queue it
+-
+-    bool attemptedOptimisticPipeline = !(caps & NS_HTTP_ALLOW_PIPELINING);
+-
+     // step 0
+     // look for existing spdy connection - that's always best because it is
+     // essentially pipelining without head of line blocking
+@@ -1436,20 +1526,27 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
+         }
+     }
+ 
+-    // step 1
+-    // If connection pressure, then we want to favor pipelining of any kind
+-    if (IsUnderPressure(ent, classification) && !attemptedOptimisticPipeline) {
+-        attemptedOptimisticPipeline = true;
+-        if (AddToShortestPipeline(ent, trans,
+-                                  classification,
+-                                  mMaxOptimisticPipelinedRequests)) {
+-            return NS_OK;
+-        }
++    // step 1: Try a pipeline
++    if (caps & NS_HTTP_ALLOW_PIPELINING &&
++        AddToBestPipeline(ent, trans, classification,
++                          mMaxPipelinedRequests)) {
++        return NS_OK;
+     }
+ 
+-    // step 2
+-    // consider an idle persistent connection
+-    if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
++    // Step 2: Decide if we should forbid new pipeline creation.
++    //
++    // FIXME: We repurposed mMaxOptimisticPipelinedRequests here to mean:
++    // "Don't make a new pipeline until you have this many requests pending and 
++    // no potential connections to put them on". It might be nice to give this
++    // its own pref..
++    if (HasPipelines(ent) &&
++            ent->mPendingQ.Length() < mMaxOptimisticPipelinedRequests &&
++            trans->Classification() != nsAHttpTransaction::CLASS_SOLO &&
++            caps & NS_HTTP_ALLOW_PIPELINING)
++        allowNewPipelines = false;
++
++    // step 3: consider an idle persistent connection
++    if (allowNewPipelines && (caps & NS_HTTP_ALLOW_KEEPALIVE)) {
+         nsRefPtr<nsHttpConnection> conn;
+         while (!conn && (ent->mIdleConns.Length() > 0)) {
+             conn = ent->mIdleConns[0];
+@@ -1483,21 +1580,8 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
+         }
+     }
+ 
+-    // step 3
+-    // consider pipelining scripts and revalidations
+-    if (!attemptedOptimisticPipeline &&
+-        (classification == nsHttpTransaction::CLASS_REVALIDATION ||
+-         classification == nsHttpTransaction::CLASS_SCRIPT)) {
+-        attemptedOptimisticPipeline = true;
+-        if (AddToShortestPipeline(ent, trans,
+-                                  classification,
+-                                  mMaxOptimisticPipelinedRequests)) {
+-            return NS_OK;
+-        }
+-    }
+-
+-    // step 4
+-    if (!onlyReusedConnection) {
++    // step 4: Maybe make a connection? 
++    if (!onlyReusedConnection && allowNewPipelines) {
+         nsresult rv = MakeNewConnection(ent, trans);
+         if (NS_SUCCEEDED(rv)) {
+             // this function returns NOT_AVAILABLE for asynchronous connects
+@@ -1510,17 +1594,16 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
+             return rv;
+         }
+     }
++
++    // XXX: We dequeue and queue the same url here sometimes..
++#ifdef WTF_DEBUG
++    nsHttpRequestHead *head = trans->RequestHead();
++    fprintf(stderr, "WTF: Queuing url %s%s\n",
++            ent->mConnInfo->Host(),
++            head ? head->RequestURI().BeginReading() : "<unknown?>");
++#endif
+     
+-    // step 5
+-    if (caps & NS_HTTP_ALLOW_PIPELINING) {
+-        if (AddToShortestPipeline(ent, trans,
+-                                  classification,
+-                                  mMaxPipelinedRequests)) {
+-            return NS_OK;
+-        }
+-    }
+-    
+-    // step 6
++    // step 5: Queue it
+     return NS_ERROR_NOT_AVAILABLE;                /* queue it */
+ }
+ 
+@@ -1590,10 +1673,28 @@ nsHttpConnectionMgr::DispatchAbstractTransaction(nsConnectionEntry *ent,
+         if (!NS_SUCCEEDED(rv))
+             return rv;
+         transaction = pipeline;
++#ifdef WTF_DEBUG
++        if (HasPipelines(ent) &&
++                ent->mPendingQ.Length()+1 < mMaxOptimisticPipelinedRequests) {
++            fprintf(stderr, "WTF-new-bug: New pipeline created from %d idle conns for host %s with %d/%d pending\n",
++                    ent->mIdleConns.Length(), ent->mConnInfo->Host(), ent->mPendingQ.Length(),
++                    mMaxOptimisticPipelinedRequests);
++        } else {
++            fprintf(stderr, "WTF-new: New pipeline created from %d idle conns for host %s with %d/%d pending\n",
++                    ent->mIdleConns.Length(), ent->mConnInfo->Host(), ent->mPendingQ.Length(),
++                    mMaxOptimisticPipelinedRequests);
++        }
++#endif
+     }
+     else {
+         LOG(("   not using pipeline datastructure due to class solo.\n"));
+         transaction = aTrans;
++#ifdef WTF_TEST
++        nsHttpRequestHead *head = transaction->RequestHead();
++        fprintf(stderr, "WTF-order: Pipeline forbidden for url %s%s\n",
++                ent->mConnInfo->Host(),
++                head ? head->RequestURI().BeginReading() : "<unknown?>");
++#endif
+     }
+ 
+     nsRefPtr<nsConnectionHandle> handle = new nsConnectionHandle(conn);
+@@ -1691,28 +1792,20 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
+         NS_ABORT_IF_FALSE(((int32_t)ent->mActiveConns.IndexOf(conn)) != -1,
+                           "Sticky Connection Not In Active List");
+         trans->SetConnection(nullptr);
++#ifdef WTF_TEST
++        fprintf(stderr, "WTF-bad: Sticky connection status on 1 transaction to host %s\n",
++                ent->mConnInfo->Host());
++#endif
+         rv = DispatchTransaction(ent, trans, conn);
+-    }
+-    else
+-        rv = TryDispatchTransaction(ent, false, trans);
+-
+-    if (NS_SUCCEEDED(rv)) {
+-        LOG(("  ProcessNewTransaction Dispatch Immediately trans=%p\n", trans));
+         return rv;
+     }
+-    
+-    if (rv == NS_ERROR_NOT_AVAILABLE) {
+-        LOG(("  adding transaction to pending queue "
+-             "[trans=%p pending-count=%u]\n",
+-             trans, ent->mPendingQ.Length()+1));
+-        // put this transaction on the pending queue...
++    else {
++        // XXX: maybe check the queue first and directly call TryDispatch?
+         InsertTransactionSorted(ent->mPendingQ, trans);
+         NS_ADDREF(trans);
++        ProcessPendingQForEntry(ent);
+         return NS_OK;
+     }
+-
+-    LOG(("  ProcessNewTransaction Hard Error trans=%p rv=%x\n", trans, rv));
+-    return rv;
+ }
+ 
+ 
+@@ -2311,10 +2404,48 @@ nsHttpConnectionMgr::OnMsgSpeculativeConnect(int32_t, void *param)
+     if (preferredEntry)
+         ent = preferredEntry;
+ 
+-    if (!ent->mIdleConns.Length() && !RestrictConnections(ent) &&
+-        !AtActiveConnectionLimit(ent, trans->Caps())) {
++    if (ent->SupportsPipelining()) {
++        /* Only speculative connect if we're not pipelining and have no other pending
++         * unconnected half-opens.. */
++        if (ent->UnconnectedHalfOpens() == 0 && ent->mIdleConns.Length() == 0
++                && !RestrictConnections(ent) && !HasPipelines(ent)
++                && !AtActiveConnectionLimit(ent, trans->Caps())) {
++#ifdef WTF_DEBUG
++            fprintf(stderr, "WTF: Creating speculative connection because we have no pipelines\n");
++#endif
++            CreateTransport(ent, trans, trans->Caps(), true);
++        }
++    } else if (!ent->mIdleConns.Length() && !RestrictConnections(ent) &&
++            !AtActiveConnectionLimit(ent, trans->Caps())) {
++#ifdef WTF_DEBUG
++            fprintf(stderr, "WTF: Creating speculative connection because we can't pipeline\n");
++#endif
+         CreateTransport(ent, trans, trans->Caps(), true);
+     }
++
++}
++
++bool
++nsHttpConnectionMgr::HasPipelines(nsConnectionEntry *ent)
++{
++    uint32_t activeCount = ent->mActiveConns.Length();
++
++    if (!ent->SupportsPipelining()) {
++        return false;
++    }
++
++    for (uint32_t i = 0; i < activeCount; ++i) {
++        nsHttpConnection *conn = ent->mActiveConns[i];
++        if (!conn->SupportsPipelining())
++            continue;
++
++        nsAHttpTransaction *activeTrans = conn->Transaction();
++
++        if (activeTrans && !activeTrans->IsDone() &&
++            !NS_FAILED(activeTrans->Status()))
++            return true;
++    }
++    return false;
+ }
+ 
+ bool
+@@ -2661,6 +2792,10 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
+         nsRefPtr<nsHttpTransaction> temp = dont_AddRef(mEnt->mPendingQ[index]);
+         mEnt->mPendingQ.RemoveElementAt(index);
+         gHttpHandler->ConnMgr()->AddActiveConn(conn, mEnt);
++#ifdef WTF_DEBUG
++        fprintf(stderr, "WTF: Speculative half-opened connection is now ready for %s (pipelines %d)\n",
++                mEnt->mConnInfo->Host(), mEnt->SupportsPipelining());
++#endif
+         rv = gHttpHandler->ConnMgr()->DispatchTransaction(mEnt, temp, conn);
+     }
+     else {
+@@ -2852,9 +2987,13 @@ nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
+ {
+     NS_ADDREF(mConnInfo);
+     if (gHttpHandler->GetPipelineAggressive()) {
+-        mGreenDepth = kPipelineUnlimited;
++        // Randomize the pipeline depth (3..12)
++        mGreenDepth = gHttpHandler->GetMaxOptimisticPipelinedRequests()
++                      + rand() % (gHttpHandler->GetMaxPipelinedRequests()
++                                  - gHttpHandler->GetMaxOptimisticPipelinedRequests());
+         mPipelineState = PS_GREEN;
+     }
++
+     mInitialGreenDepth = mGreenDepth;
+     memset(mPipeliningClassPenalty, 0, sizeof(int16_t) * nsAHttpTransaction::CLASS_MAX);
+ }
+@@ -2892,8 +3031,9 @@ nsConnectionEntry::OnPipelineFeedbackInfo(
+         LOG(("Transaction completed at pipeline depth of %d. Host = %s\n",
+              depth, mConnInfo->Host()));
+ 
+-        if (depth >= 3)
+-            mGreenDepth = kPipelineUnlimited;
++        // Don't set this. We want to keep our initial random value..
++        //if (depth >= 3)
++        //    mGreenDepth = kPipelineUnlimited;
+     }
+ 
+     nsAHttpTransaction::Classifier classification;
+@@ -2921,6 +3061,11 @@ nsConnectionEntry::OnPipelineFeedbackInfo(
+                  mPipelineState, mConnInfo->Host()));
+             mPipelineState = PS_RED;
+             mPipeliningPenalty = 0;
++#ifdef WTF_TEST
++            fprintf(stderr, "WTF-bad: Red pipeline status disabled host %s\n",
++                    mConnInfo->Host());
++#endif
++
+         }
+ 
+         if (mLastCreditTime.IsNull())
 diff --git a/netwerk/protocol/http/nsHttpConnectionMgr.h b/netwerk/protocol/http/nsHttpConnectionMgr.h
-index 580710a..b22c669 100644
+index 580710a..7aecb68 100644
 --- a/netwerk/protocol/http/nsHttpConnectionMgr.h
 +++ b/netwerk/protocol/http/nsHttpConnectionMgr.h
-@@ -23,6 +23,7 @@
+@@ -23,11 +23,23 @@
  #include "nsIObserver.h"
  #include "nsITimer.h"
  #include "nsIX509Cert3.h"
@@ -145,15 +605,187 @@ index 580710a..b22c669 100644
  
  class nsHttpPipeline;
  
-@@ -585,6 +586,8 @@ private:
-     uint64_t mTimeOfNextWakeUp;
-     // Timer for next pruning of dead connections.
-     nsCOMPtr<nsITimer> mTimer;
-+    // Random number generator for reordering HTTP pipeline
-+    nsCOMPtr<nsIRandomGenerator>             mRandomGenerator;
+ class nsIHttpUpgradeListener;
  
-     // A 1s tick to call nsHttpConnection::ReadTimeoutTick on
-     // active http/1 connections and check for orphaned half opens.
++// We need our own optional debug define because pipelining behavior
++// is significantly altered by rendering speed (which is abysmal on
++// debug builds)
++#ifdef DEBUG
++# define WTF_DEBUG
++#endif
++
++#ifdef WTF_DEBUG
++# define WTF_TEST
++#endif
++
+ //-----------------------------------------------------------------------------
+ 
+ class nsHttpConnectionMgr : public nsIObserver
+@@ -478,6 +490,7 @@ private:
+     nsresult BuildPipeline(nsConnectionEntry *,
+                            nsAHttpTransaction *,
+                            nsHttpPipeline **);
++    bool     HasPipelines(nsConnectionEntry *);
+     bool     RestrictConnections(nsConnectionEntry *);
+     nsresult ProcessNewTransaction(nsHttpTransaction *);
+     nsresult EnsureSocketThreadTargetIfOnline();
+@@ -492,7 +505,7 @@ private:
+ 
+     nsresult MakeNewConnection(nsConnectionEntry *ent,
+                                nsHttpTransaction *trans);
+-    bool     AddToShortestPipeline(nsConnectionEntry *ent,
++    bool     AddToBestPipeline(nsConnectionEntry *ent,
+                                    nsHttpTransaction *trans,
+                                    nsHttpTransaction::Classifier classification,
+                                    uint16_t depthLimit);
+diff --git a/netwerk/protocol/http/nsHttpHandler.h b/netwerk/protocol/http/nsHttpHandler.h
+index 2963195..cd79069 100644
+--- a/netwerk/protocol/http/nsHttpHandler.h
++++ b/netwerk/protocol/http/nsHttpHandler.h
+@@ -215,6 +215,8 @@ public:
+                                      nsCString& hostLine);
+ 
+     bool GetPipelineAggressive()     { return mPipelineAggressive; }
++    uint32_t GetMaxPipelinedRequests()     { return mMaxPipelinedRequests; }
++    uint32_t GetMaxOptimisticPipelinedRequests()     { return mMaxOptimisticPipelinedRequests; }
+     void GetMaxPipelineObjectSize(int64_t *outVal)
+     {
+         *outVal = mMaxPipelineObjectSize;
+diff --git a/netwerk/protocol/http/nsHttpPipeline.cpp b/netwerk/protocol/http/nsHttpPipeline.cpp
+index 9e59878..a9e9911 100644
+--- a/netwerk/protocol/http/nsHttpPipeline.cpp
++++ b/netwerk/protocol/http/nsHttpPipeline.cpp
+@@ -87,6 +87,32 @@ nsHttpPipeline::~nsHttpPipeline()
+         free(mPushBackBuf);
+ }
+ 
++// Generate a shuffled request ordering sequence 
++void
++nsHttpPipeline::ShuffleTransOrder(uint32_t count)
++{
++   if (count < 2)
++       return;
++
++   uint32_t pos = mRequestQ[0]->PipelinePosition();
++   uint32_t i = 0;
++
++   for (i=0; i < count; ++i) {
++       uint32_t ridx = rand() % count;
++
++       nsAHttpTransaction *tmp = mRequestQ[i];
++       mRequestQ[i] = mRequestQ[ridx];
++       mRequestQ[ridx] = tmp;
++   }
++
++   for (i=0; i < count; ++i) {
++       mRequestQ[i]->SetPipelinePosition(pos);
++       pos++;
++   }
++
++   LOG(("nsHttpPipeline::ShuffleTransOrder: Shuffled %d transactions.\n", count));
++}
++
+ nsresult
+ nsHttpPipeline::AddTransaction(nsAHttpTransaction *trans)
+ {
+@@ -112,6 +138,8 @@ nsHttpPipeline::AddTransaction(nsAHttpTransaction *trans)
+     // the pipeline object.
+     trans->SetConnection(this);
+ 
++    ShuffleTransOrder(mRequestQ.Length());
++
+     if (mConnection && !mClosed && mRequestQ.Length() == 1)
+         mConnection->ResumeSend();
+ 
+@@ -760,8 +788,11 @@ nsHttpPipeline::CancelPipeline(nsresult originalReason)
+     if (respLen > 1)
+         mResponseQ.TruncateLength(1);
+ 
+-    DontReuse();
+-    Classify(nsAHttpTransaction::CLASS_SOLO);
++    /* Don't flag timed out connections as unreusable.. Tor is just slow :( */
++    if (originalReason != NS_ERROR_NET_TIMEOUT) {
++        DontReuse();
++        Classify(nsAHttpTransaction::CLASS_SOLO);
++    }
+ 
+     return total;
+ }
+@@ -842,8 +873,19 @@ nsHttpPipeline::FillSendBuf()
+ 
+     uint32_t n;
+     uint64_t avail;
++    uint64_t totalAvailable = Available();
++    uint64_t totalSent = 0;
++    uint64_t reqsSent = 0;
++    uint64_t alreadyPending = 0;
++
++    mSendBufIn->Available(&alreadyPending);
++
+     nsAHttpTransaction *trans;
+     nsITransport *transport = Transport();
++#ifdef WTF_TEST
++    nsRefPtr<nsHttpConnectionInfo> ci;
++    GetConnectionInfo(getter_AddRefs(ci));
++#endif
+ 
+     while ((trans = Request(0)) != nullptr) {
+         avail = trans->Available();
+@@ -864,6 +906,7 @@ nsHttpPipeline::FillSendBuf()
+             }
+ 
+             mSendingToProgress += n;
++            totalSent += n;
+             if (!mSuppressSendEvents && transport) {
+                 // Simulate a SENDING_TO event
+                 trans->OnTransportStatus(transport,
+@@ -874,6 +917,14 @@ nsHttpPipeline::FillSendBuf()
+ 
+         avail = trans->Available();
+         if (avail == 0) {
++#ifdef WTF_TEST
++            nsHttpRequestHead *head = trans->RequestHead();
++            fprintf(stderr, "WTF-order: Pipelined req %d/%d (%dB). Url: %s%s\n",
++                    trans->PipelinePosition(), PipelineDepth(), n,
++                    ci->Host(), head ? head->RequestURI().BeginReading() : "<unknown?>");
++#endif
++            reqsSent++;
++
+             // move transaction from request queue to response queue
+             mRequestQ.RemoveElementAt(0);
+             mResponseQ.AppendElement(trans);
+@@ -893,5 +944,12 @@ nsHttpPipeline::FillSendBuf()
+         else
+             mRequestIsPartial = true;
+     }
++
++#ifdef WTF_TEST
++    if (totalSent)
++      fprintf(stderr, "WTF-combine: Sent %d/%d bytes of %d combined pipelined requests for host %s\n",
++              alreadyPending+totalSent, totalAvailable, reqsSent, ci->Host());
++#endif
++
+     return NS_OK;
+ }
+diff --git a/netwerk/protocol/http/nsHttpPipeline.h b/netwerk/protocol/http/nsHttpPipeline.h
+index 746a196..4dc06c1 100644
+--- a/netwerk/protocol/http/nsHttpPipeline.h
++++ b/netwerk/protocol/http/nsHttpPipeline.h
+@@ -27,11 +27,14 @@ public:
+     nsHttpPipeline();
+     virtual ~nsHttpPipeline();
+ 
++    uint32_t RequestDepth() { return mRequestQ.Length(); }
++
+ private:
+     nsresult FillSendBuf();
+     
+     static NS_METHOD ReadFromPipe(nsIInputStream *, void *, const char *,
+                                   uint32_t, uint32_t, uint32_t *);
++    void ShuffleTransOrder(uint32_t);
+ 
+     // convenience functions
+     nsAHttpTransaction *Request(int32_t i)
 -- 
-1.7.5.4
+1.7.9.5
 
