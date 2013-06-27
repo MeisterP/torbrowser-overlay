@@ -9,7 +9,7 @@ MOZ_ESR="1"
 
 MY_PN="firefox"
 MOZ_PV="${MY_PN}-${PV}"
-TOR_PV="2.3.25-8"
+TOR_PV="2.3.25-10"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
@@ -17,10 +17,11 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # Patch version
-PATCH="${MY_PN}-17.0-patches-0.4"
+PATCH="${MY_PN}-17.0-patches-0.6"
 # Upstream ftp release URI that's used by mozlinguas.eclass
 # We don't use the http mirror because it deletes old tarballs.
 MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
+MOZ_HTTP_URI="http://ftp.mozilla.org/pub/${MY_PN}/releases/"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils fdo-mime autotools virtualx
 
