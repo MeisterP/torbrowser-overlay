@@ -218,6 +218,11 @@ src_configure() {
 	mozconfig_use_enable jit methodjit
 	mozconfig_use_enable jit tracejit
 
+	# torbrowser
+	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
+	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
+	echo "mk_add_options MOZ_APP_DISPLAYNAME=TorBrowser" >> "${S}"/.mozconfig
+
 	# Finalize and report settings
 	mozconfig_final
 
@@ -253,8 +258,6 @@ src_install() {
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
 	emake DESTDIR="${D}" install || die "emake install failed"
 
-	# remove default symlink in /usr/bin, because we add a proper wrapper-script later
-	rm "${ED}"/usr/bin/${MY_PN} || die "Failed to remove binary-symlink"
 	# we dont want development stuff for this kind of build, might as well
 	# conflict with other firefox-builds
 	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || \
@@ -263,7 +266,7 @@ src_install() {
 	# Without methodjit and tracejit there's no conflict with PaX
 	if use jit; then
 		# Required in order to use plugins and even run firefox on hardened.
-		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{firefox,firefox-bin}
+		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin}
 	fi
 
 	# Plugin-container needs to be pax-marked for hardened to ensure plugins such as flash
@@ -285,12 +288,8 @@ src_install() {
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile
 	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
 
-	# create wrapper to start torbrowser
-	# the class value should match the name of the desktop entry
-	make_wrapper ${PN} "/usr/$(get_libdir)/${PN}/${MY_PN}/${MY_PN} --class torbrowser-torbrowser -no-remote -profile ~/.${PN}/profile"
-
 	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
-	make_desktop_entry ${PN} "Torbrowser" ${PN} "Network;WebBrowser"
+	make_desktop_entry ${PN} "TorBrowser" ${PN} "Network;WebBrowser"
 }
 
 pkg_preinst() {
