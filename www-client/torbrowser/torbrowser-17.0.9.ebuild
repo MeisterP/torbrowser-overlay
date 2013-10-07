@@ -277,14 +277,12 @@ src_install() {
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
 
 	# Settins
-	insinto ${MOZILLA_FIVE_HOME}/defaults
-	doins -r "${WORKDIR}"/tor-browser_en-US/App/Firefox/defaults/profile
 	cd "${WORKDIR}"/omni/ || die
 	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "defaults/preferences/#tor.js" || die
 	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "chrome/en-US/locale/branding/browserconfig.properties" || die
 
 	# Profile
-	insinto /usr/share/${PN}
+	insinto ${MOZILLA_FIVE_HOME}/defaults
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile
 	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
 
@@ -300,13 +298,9 @@ pkg_postinst() {
 	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
 	ewarn "the exact same patches (excluding Vidalia-patch). Use this only if you know"
 	ewarn "what you are doing!"
-	elog ""
-	elog "Copy the folder contents from /usr/share/${PN}/profile"
-	elog "into ~/.${PN}/profile and run '${PN}'."
-	elog ""
-	elog "This profile folder includes pre-configuration recommended by upstream,"
-	elog "as well as the extensions Torbutton, NoScript and HTTPS-Everywhere."
-	elog "If you want to start from scratch just create the directories '~/.${PN}/profile'."
+	ewarn ""
+	ewarn "The profile moved to ~/.mozilla/torbrowser. It's auto generated"
+	ewarn "and manually copying isn't necessary anymore."
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
 	elog "in the connection settings to match your setup."
 
