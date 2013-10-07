@@ -3,7 +3,6 @@
 # $Header: $
 
 EAPI="3"
-VIRTUALX_REQUIRED="pgo"
 WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
@@ -36,7 +35,7 @@ SLOT="0"
 LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	BSD
 	CC-BY-3.0"
-IUSE="bindist gstreamer +jit pgo selinux system-sqlite"
+IUSE="bindist gstreamer +jit selinux system-sqlite"
 
 # More URIs appended below...
 SRC_URI="${SRC_URI}
@@ -63,8 +62,6 @@ RDEPEND="
 	selinux? ( sec-policy/selinux-mozilla )"
 DEPEND="${RDEPEND}
 	virtual/pkgconfig
-	pgo? (
-		>=sys-devel/gcc-4.5 )
 	amd64? ( ${ASM_DEPEND}
 		virtual/opengl )
 	x86? ( ${ASM_DEPEND}
@@ -109,14 +106,8 @@ pkg_setup() {
 		elog "You can disable it by emerging ${PN} _with_ the bindist USE-flag"
 	fi
 
-	if use pgo; then
-		einfo
-		ewarn "You will do a double build for profile guided optimization."
-		ewarn "This will result in your build taking at least twice as long as before."
-	fi
-
 	# Ensure we have enough disk space to compile
-	if use pgo || use debug || use test ; then
+	if use debug || use test ; then
 		CHECKREQS_DISK_BUILD="8G"
 	else
 		CHECKREQS_DISK_BUILD="4G"
@@ -227,11 +218,6 @@ src_configure() {
 	mozconfig_use_enable jit methodjit
 	mozconfig_use_enable jit tracejit
 
-	# Allow for a proper pgo build
-	if use pgo; then
-		echo "mk_add_options PROFILE_GEN_SCRIPT='\$(PYTHON) \$(OBJDIR)/_profile/pgo/profileserver.py'" >> "${S}"/.mozconfig
-	fi
-
 	# Finalize and report settings
 	mozconfig_final
 
@@ -245,43 +231,15 @@ src_configure() {
 }
 
 src_compile() {
-	if use pgo; then
-		addpredict /root
-		addpredict /etc/gconf
-		# Reset and cleanup environment variables used by GNOME/XDG
-		gnome2_environment_reset
-
-		# Firefox tries to use dri stuff when it's run, see bug 380283
-		shopt -s nullglob
-		cards=$(echo -n /dev/dri/card* | sed 's/ /:/g')
-		if test -n "${cards}"; then
-			# FOSS drivers are fine
-			addpredict "${cards}"
-		else
-			cards=$(echo -n /dev/ati/card* /dev/nvidiactl* | sed 's/ /:/g')
-			if test -n "${cards}"; then
-				# Binary drivers seem to cause access violations anyway, so
-				# let's use indirect rendering so that the device files aren't
-				# touched at all. See bug 394715.
-				export LIBGL_ALWAYS_INDIRECT=1
-			fi
-		fi
-		shopt -u nullglob
-
-		CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
-		MOZ_MAKE_FLAGS="${MAKEOPTS}" \
-		Xemake -f client.mk profiledbuild || die "Xemake failed"
-	else
-		CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
-		MOZ_MAKE_FLAGS="${MAKEOPTS}" \
-		emake -f client.mk || die "emake failed"
-	fi
+	CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
+	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
+	emake -f client.mk || die "emake failed"
 }
 
 src_install() {
 	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${MY_PN}"
 
-	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler, pgo, etc.
+	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler etc.
 	local obj_dir="$(echo */config.log)"
 	obj_dir="${obj_dir%/*}"
 	cd "${S}/${obj_dir}"
