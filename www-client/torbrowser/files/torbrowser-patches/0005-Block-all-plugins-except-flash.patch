@@ -1,7 +1,7 @@
-From 7c95e69c73f64e45f9a1f5821a1e96457f9ae83a Mon Sep 17 00:00:00 2001
+From df78c79c083df8116e4312806ca3a875295e35bd Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 16:03:13 -0800
-Subject: [PATCH 05/27] Block all plugins except flash.
+Subject: [PATCH 05/41] Block all plugins except flash.
 
 We cannot use the @mozilla.org/extensions/blocklist;1 service, because we
 actually want to stop plugins from ever entering the browser's process space
@@ -12,12 +12,12 @@ ruin our day, and censorship filters). Hence we rolled our own.
 See https://trac.torproject.org/projects/tor/ticket/3547#comment:6 for musings
 on a better way. Until then, it is delta-darwinism for us.
 ---
- dom/plugins/base/nsPluginHost.cpp |   33 +++++++++++++++++++++++++++++++++
- dom/plugins/base/nsPluginHost.h   |    2 ++
- 2 files changed, 35 insertions(+), 0 deletions(-)
+ dom/plugins/base/nsPluginHost.cpp | 33 +++++++++++++++++++++++++++++++++
+ dom/plugins/base/nsPluginHost.h   |  2 ++
+ 2 files changed, 35 insertions(+)
 
 diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
-index 858b428..c7ae680 100644
+index 858b4284..c7ae680 100644
 --- a/dom/plugins/base/nsPluginHost.cpp
 +++ b/dom/plugins/base/nsPluginHost.cpp
 @@ -2052,6 +2052,35 @@ struct CompareFilesByTime
@@ -81,5 +81,5 @@ index 3c48eec..2cba11d 100644
    // and removes it from the cache.
    void RemoveCachedPluginsInfo(const char *filePath,
 -- 
-1.7.5.4
+1.8.1.2
 

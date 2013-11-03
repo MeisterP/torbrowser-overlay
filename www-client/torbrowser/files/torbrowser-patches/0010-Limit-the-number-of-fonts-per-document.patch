@@ -1,7 +1,7 @@
-From 81fde0b8f4af7bae20c49ac0ce0ea4df046a6701 Mon Sep 17 00:00:00 2001
+From 4bb15bee452d544223eff6a63654dfdafe7e5812 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Wed, 5 Dec 2012 12:25:21 -0800
-Subject: [PATCH 11/28] Limit the number of fonts per document.
+Subject: [PATCH 10/41] Limit the number of fonts per document.
 
 We create two prefs:
 browser.display.max_font_count and browser.display.max_font_attempts.
@@ -22,16 +22,16 @@ otherwise hit these limits.
 This is done to address:
 https://www.torproject.org/projects/torbrowser/design/#fingerprinting-linkability
 ---
- gfx/thebes/gfxFont.cpp            |    2 +
- gfx/thebes/gfxPangoFonts.cpp      |    1 +
- gfx/thebes/gfxUserFontSet.cpp     |   28 ++++++++++-
- gfx/thebes/gfxUserFontSet.h       |    3 ++
- layout/base/nsPresContext.cpp     |  100 +++++++++++++++++++++++++++++++++++++
- layout/base/nsPresContext.h       |    9 ++++
- layout/style/nsCSSParser.cpp      |    1 +
- layout/style/nsFontFaceLoader.cpp |    4 +-
- layout/style/nsFontFaceLoader.h   |    2 +-
- layout/style/nsRuleNode.cpp       |   56 +++++++++++++++++++--
+ gfx/thebes/gfxFont.cpp            |   2 +
+ gfx/thebes/gfxPangoFonts.cpp      |   1 +
+ gfx/thebes/gfxUserFontSet.cpp     |  28 ++++++++++-
+ gfx/thebes/gfxUserFontSet.h       |   3 ++
+ layout/base/nsPresContext.cpp     | 100 ++++++++++++++++++++++++++++++++++++++
+ layout/base/nsPresContext.h       |   9 ++++
+ layout/style/nsCSSParser.cpp      |   1 +
+ layout/style/nsFontFaceLoader.cpp |   4 +-
+ layout/style/nsFontFaceLoader.h   |   2 +-
+ layout/style/nsRuleNode.cpp       |  56 +++++++++++++++++++--
  10 files changed, 198 insertions(+), 8 deletions(-)
 
 diff --git a/gfx/thebes/gfxFont.cpp b/gfx/thebes/gfxFont.cpp
@@ -144,7 +144,7 @@ index 1781a37..d6f7292 100644
  protected:
      // for a given proxy font entry, attempt to load the next resource
 diff --git a/layout/base/nsPresContext.cpp b/layout/base/nsPresContext.cpp
-index d47460a..8064fb4 100644
+index 92a3b62..6821c96 100644
 --- a/layout/base/nsPresContext.cpp
 +++ b/layout/base/nsPresContext.cpp
 @@ -63,6 +63,8 @@
@@ -447,5 +447,5 @@ index 64504fb..86eff1f 100644
  }
  
 -- 
-1.7.9.5
+1.8.1.2
 

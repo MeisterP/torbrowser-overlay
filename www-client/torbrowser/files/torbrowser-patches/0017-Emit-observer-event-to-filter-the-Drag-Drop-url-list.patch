@@ -1,7 +1,7 @@
-From 5e505dec0ee00899a1fa22e1759e856bb5381468 Mon Sep 17 00:00:00 2001
+From 1c64ef8e5c7bddb6b5162cd86c08823c3c24da8d Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Thu, 28 Feb 2013 18:10:16 -0800
-Subject: [PATCH 18/27] Emit observer event to filter the Drag+Drop url list
+Subject: [PATCH 17/41] Emit observer event to filter the Drag+Drop url list
 
 This patch creates an "on-modify-drag-list" observer that addons can listen
 to. For us, it supports Torbutton code that filters out Drag+Drop mime types
@@ -12,9 +12,9 @@ to release the object for it to get sniffed and cause the OS to load it
 without Tor. In fact, accidentally clicking for too long on an image is enough
 to cause proxy bypass on those systems.
 ---
- widget/xpwidgets/nsBaseDragService.cpp |    8 ++++++++
- widget/xpwidgets/nsBaseDragService.h   |    2 ++
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ widget/xpwidgets/nsBaseDragService.cpp | 8 ++++++++
+ widget/xpwidgets/nsBaseDragService.h   | 2 ++
+ 2 files changed, 10 insertions(+)
 
 diff --git a/widget/xpwidgets/nsBaseDragService.cpp b/widget/xpwidgets/nsBaseDragService.cpp
 index 805d83f..4c99b9c 100644
@@ -70,5 +70,5 @@ index cb00f8e..8b91899 100644
    nsCOMPtr<nsIDOMDocument> mSourceDocument;       // the document at the drag source. will be null
                                                    //  if it came from outside the app.
 -- 
-1.7.5.4
+1.8.1.2
 

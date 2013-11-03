@@ -1,7 +1,7 @@
-From aa6534432718dae0e3810dc441fc797ecf809c6e Mon Sep 17 00:00:00 2001
+From 2a7bb7d1509362feecdfc0909d34724feafc6571 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 17:38:51 -0800
-Subject: [PATCH 17/28] Randomize HTTP request order and pipeline depth.
+Subject: [PATCH 16/41] Randomize HTTP request order and pipeline depth.
 
 This is an experimental defense against Website Traffic Fingerprinting:
 http://lorre.uni.lu/~andriy/papers/acmccs-wpes11-fingerprinting.pdf
@@ -36,11 +36,11 @@ request representation that will allow more requests to be packed inside Tor
 cells. If you have interest in evaluating SPDY in a study of Website Traffic
 Fingerprinting, please contact me.
 ---
- netwerk/protocol/http/nsHttpConnectionMgr.cpp |  351 +++++++++++++++++--------
- netwerk/protocol/http/nsHttpConnectionMgr.h   |   15 +-
- netwerk/protocol/http/nsHttpHandler.h         |    2 +
- netwerk/protocol/http/nsHttpPipeline.cpp      |   62 ++++-
- netwerk/protocol/http/nsHttpPipeline.h        |    3 +
+ netwerk/protocol/http/nsHttpConnectionMgr.cpp | 351 ++++++++++++++++++--------
+ netwerk/protocol/http/nsHttpConnectionMgr.h   |  15 +-
+ netwerk/protocol/http/nsHttpHandler.h         |   2 +
+ netwerk/protocol/http/nsHttpPipeline.cpp      |  62 ++++-
+ netwerk/protocol/http/nsHttpPipeline.h        |   3 +
  5 files changed, 327 insertions(+), 106 deletions(-)
 
 diff --git a/netwerk/protocol/http/nsHttpConnectionMgr.cpp b/netwerk/protocol/http/nsHttpConnectionMgr.cpp
@@ -787,5 +787,5 @@ index 746a196..4dc06c1 100644
      // convenience functions
      nsAHttpTransaction *Request(int32_t i)
 -- 
-1.7.9.5
+1.8.1.2
 

@@ -1,15 +1,15 @@
-From 73dd7935b3e9a226e868844bf9a92b257416c5ec Mon Sep 17 00:00:00 2001
+From ed8b531fbf6081d9cc3744ed8787f24b32051e4a Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 11:25:14 -0500
-Subject: [PATCH 22/27] Do not expose physical screen info. via window and
+Subject: [PATCH 21/41] Do not expose physical screen info. via window and
  window.screen.
 
 ---
- dom/base/nsGlobalWindow.cpp |   46 ++++++++++++++++++++++
- dom/base/nsGlobalWindow.h   |    2 +
- dom/base/nsScreen.cpp       |   90 +++++++++++++++++++++++++++++++++++++++++++
- dom/base/nsScreen.h         |    3 +
- 4 files changed, 141 insertions(+), 0 deletions(-)
+ dom/base/nsGlobalWindow.cpp | 46 +++++++++++++++++++++++
+ dom/base/nsGlobalWindow.h   |  2 +
+ dom/base/nsScreen.cpp       | 90 +++++++++++++++++++++++++++++++++++++++++++++
+ dom/base/nsScreen.h         |  3 ++
+ 4 files changed, 141 insertions(+)
 
 diff --git a/dom/base/nsGlobalWindow.cpp b/dom/base/nsGlobalWindow.cpp
 index f675f87..48bd71d 100644
@@ -306,5 +306,5 @@ index 869d4fd..de18504 100644
    mozilla::dom::ScreenOrientation mOrientation;
  
 -- 
-1.7.5.4
+1.8.1.2
 

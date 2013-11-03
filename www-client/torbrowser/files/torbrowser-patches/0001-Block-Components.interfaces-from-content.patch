@@ -1,7 +1,7 @@
-From 26ab2cbf5b925a3f1251bd536728a7e222b4f9e4 Mon Sep 17 00:00:00 2001
+From b3ea41baf4c3ff455ab9c40ab090f8f77e34924d Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 15:41:09 -0800
-Subject: [PATCH 01/27] Block Components.interfaces from content
+Subject: [PATCH 01/41] Block Components.interfaces from content
 
 This patch removes the ability of content script to access
 Components.interfaces.*.
@@ -16,14 +16,14 @@ https://trac.torproject.org/projects/tor/ticket/2874
 Note: We no longer block Components.lookupMethod, because we no longer rely on
 JS hooks for fingerprinting defenses.
 ---
- js/xpconnect/src/XPCComponents.cpp |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ js/xpconnect/src/XPCComponents.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/js/xpconnect/src/XPCComponents.cpp b/js/xpconnect/src/XPCComponents.cpp
-index 3a14254..4040349 100644
+index e0b03fc..aa83318 100644
 --- a/js/xpconnect/src/XPCComponents.cpp
 +++ b/js/xpconnect/src/XPCComponents.cpp
-@@ -4838,7 +4838,7 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
+@@ -4837,7 +4837,7 @@ nsXPCComponents::CanCallMethod(const nsIID * iid, const PRUnichar *methodName, c
  NS_IMETHODIMP
  nsXPCComponents::CanGetProperty(const nsIID * iid, const PRUnichar *propertyName, char **_retval)
  {
@@ -33,5 +33,5 @@ index 3a14254..4040349 100644
      return NS_OK;
  }
 -- 
-1.7.5.4
+1.8.1.2
 

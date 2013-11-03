@@ -1,29 +1,29 @@
-From 43871b07e1ae9a55136f5a4d4454011eae5569f8 Mon Sep 17 00:00:00 2001
+From 28c36c029b4da5e8b18485ee72ae5cec5fd0691c Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Tue, 27 Nov 2012 13:13:40 -0500
-Subject: [PATCH 20/27] Add canvas image extraction prompt.
+Subject: [PATCH 19/41] Add canvas image extraction prompt.
 
 ---
- browser/base/content/browser.js                    |  102 ++++++++++++++++++++
- browser/base/content/browser.xul                   |    1 +
- .../en-US/chrome/browser/browser.properties        |    7 ++
- browser/themes/gnomestripe/browser.css             |    2 +
- browser/themes/pinstripe/browser.css               |    2 +
- browser/themes/winstripe/browser.css               |    2 +
- content/canvas/src/CanvasUtils.cpp                 |   65 +++++++++++++
- content/canvas/src/CanvasUtils.h                   |    2 +
- content/canvas/src/nsCanvasRenderingContext2D.cpp  |   16 +++
- .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   16 +++
- content/html/content/public/nsHTMLCanvasElement.h  |    3 +
- content/html/content/src/Makefile.in               |    1 +
- content/html/content/src/nsHTMLCanvasElement.cpp   |   40 ++++++--
+ browser/base/content/browser.js                    | 102 +++++++++++++++++++++
+ browser/base/content/browser.xul                   |   1 +
+ .../en-US/chrome/browser/browser.properties        |   7 ++
+ browser/themes/gnomestripe/browser.css             |   2 +
+ browser/themes/pinstripe/browser.css               |   2 +
+ browser/themes/winstripe/browser.css               |   2 +
+ content/canvas/src/CanvasUtils.cpp                 |  65 +++++++++++++
+ content/canvas/src/CanvasUtils.h                   |   2 +
+ content/canvas/src/nsCanvasRenderingContext2D.cpp  |  16 ++++
+ .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |  16 ++++
+ content/html/content/public/nsHTMLCanvasElement.h  |   3 +
+ content/html/content/src/Makefile.in               |   1 +
+ content/html/content/src/nsHTMLCanvasElement.cpp   |  40 ++++++--
  13 files changed, 249 insertions(+), 10 deletions(-)
 
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index bd2feed..50054e7 100644
+index 9b72016..6d56a21 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
-@@ -1280,6 +1280,7 @@ var gBrowserInit = {
+@@ -1266,6 +1266,7 @@ var gBrowserInit = {
      BrowserOffline.init();
      OfflineApps.init();
      IndexedDBPromptHelper.init();
@@ -31,7 +31,7 @@ index bd2feed..50054e7 100644
      gFormSubmitObserver.init();
      SocialUI.init();
      AddonManager.addAddonListener(AddonsMgrListener);
-@@ -1637,6 +1638,7 @@ var gBrowserInit = {
+@@ -1623,6 +1624,7 @@ var gBrowserInit = {
        BrowserOffline.uninit();
        OfflineApps.uninit();
        IndexedDBPromptHelper.uninit();
@@ -39,7 +39,7 @@ index bd2feed..50054e7 100644
        AddonManager.removeAddonListener(AddonsMgrListener);
        SocialUI.uninit();
      }
-@@ -6127,6 +6129,106 @@ var IndexedDBPromptHelper = {
+@@ -6119,6 +6121,106 @@ var IndexedDBPromptHelper = {
    }
  };
  
@@ -544,5 +544,5 @@ index 961ebf1..13a6910 100644
  
    nsAutoString type(aType);
 -- 
-1.7.5.4
+1.8.1.2
 

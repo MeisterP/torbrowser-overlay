@@ -1,12 +1,12 @@
-From b0696055ca1d34426ae1c8ce2761404d3261525e Mon Sep 17 00:00:00 2001
+From b4d847a0f98b64ca45c610ba4449eb0b399e8c54 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 10:49:09 -0500
-Subject: [PATCH 21/27] Return client window coordinates for mouse event
+Subject: [PATCH 20/41] Return client window coordinates for mouse event
  screenX/Y (for dragend, 0,0 is returned).
 
 ---
- content/events/src/nsDOMMouseEvent.cpp |   22 ++++++++++++++++++++++
- content/events/src/nsDOMTouchEvent.cpp |    6 ++++--
+ content/events/src/nsDOMMouseEvent.cpp | 22 ++++++++++++++++++++++
+ content/events/src/nsDOMTouchEvent.cpp |  6 ++++--
  2 files changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/content/events/src/nsDOMMouseEvent.cpp b/content/events/src/nsDOMMouseEvent.cpp
@@ -73,5 +73,5 @@ index ccf4864..64ab0e8 100644
  }
  
 -- 
-1.7.5.4
+1.8.1.2
 

@@ -1,7 +1,7 @@
-From 1c0ac4187521b5ee7f6de1a11df3bbc400fa1b53 Mon Sep 17 00:00:00 2001
+From bac4a434702d8ba476764f8ce5b9444907917aab Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 28 Aug 2012 18:07:37 -0700
-Subject: [PATCH 16/27] Prevent WebSocket DNS leak.
+Subject: [PATCH 15/41] Prevent WebSocket DNS leak.
 
 This is due to an improper implementation of the WebSocket spec by Mozilla.
 
@@ -23,9 +23,9 @@ While we're at it, we also prevent the DNS service from being used to look up
 anything other than IP addresses if socks_remote_dns is set to true, so this
 bug can't turn up in other components or due to 3rd party addons.
 ---
- netwerk/dns/nsDNSService2.cpp                   |   24 ++++++++++++++++++++++-
- netwerk/dns/nsDNSService2.h                     |    1 +
- netwerk/protocol/websocket/WebSocketChannel.cpp |    8 +++++-
+ netwerk/dns/nsDNSService2.cpp                   | 24 +++++++++++++++++++++++-
+ netwerk/dns/nsDNSService2.h                     |  1 +
+ netwerk/protocol/websocket/WebSocketChannel.cpp |  8 ++++++--
  3 files changed, 30 insertions(+), 3 deletions(-)
 
 diff --git a/netwerk/dns/nsDNSService2.cpp b/netwerk/dns/nsDNSService2.cpp
@@ -129,5 +129,5 @@ index 56a71ab..345df6e 100644
    return NS_OK;
  }
 -- 
-1.7.5.4
+1.8.1.2
 

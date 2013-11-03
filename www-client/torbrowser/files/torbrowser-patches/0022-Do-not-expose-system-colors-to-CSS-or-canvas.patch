@@ -1,24 +1,24 @@
-From 6f70c68258eb81dc898622f1f2629d71441fb1d3 Mon Sep 17 00:00:00 2001
+From ed49149b6d84e1fbad5d15aa1363a686743d3c3a Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Wed, 28 Nov 2012 15:08:40 -0500
-Subject: [PATCH 23/28] Do not expose system colors to CSS or canvas.
+Subject: [PATCH 22/41] Do not expose system colors to CSS or canvas.
 
 This patch also contains a hack to use properly contrasting colors if the
 desktop theme specifies white on black for text colors (see
 https://trac.torproject.org/projects/tor/ticket/7920). These color choices are
 also not exposed to content.
 ---
- content/canvas/src/nsCanvasRenderingContext2D.cpp  |   28 ++-
- .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |   34 +++-
- .../canvas/src/nsCanvasRenderingContext2DAzure.h   |    5 +-
- layout/base/nsLayoutUtils.cpp                      |   50 +++++
- layout/base/nsLayoutUtils.h                        |    4 +
- layout/generic/nsFrame.cpp                         |    6 +-
- layout/style/nsRuleNode.cpp                        |    5 +-
- widget/LookAndFeel.h                               |   12 ++
- widget/xpwidgets/nsXPLookAndFeel.cpp               |  214 +++++++++++++++++++-
- widget/xpwidgets/nsXPLookAndFeel.h                 |    5 +-
- 10 files changed, 342 insertions(+), 21 deletions(-)
+ content/canvas/src/nsCanvasRenderingContext2D.cpp  |  28 ++-
+ .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |  34 +++-
+ .../canvas/src/nsCanvasRenderingContext2DAzure.h   |   5 +-
+ layout/base/nsLayoutUtils.cpp                      |  51 +++++
+ layout/base/nsLayoutUtils.h                        |   4 +
+ layout/generic/nsFrame.cpp                         |   6 +-
+ layout/style/nsRuleNode.cpp                        |   5 +-
+ widget/LookAndFeel.h                               |  12 ++
+ widget/xpwidgets/nsXPLookAndFeel.cpp               | 214 ++++++++++++++++++++-
+ widget/xpwidgets/nsXPLookAndFeel.h                 |   5 +-
+ 10 files changed, 343 insertions(+), 21 deletions(-)
 
 diff --git a/content/canvas/src/nsCanvasRenderingContext2D.cpp b/content/canvas/src/nsCanvasRenderingContext2D.cpp
 index 0dec654..7132e4f 100644
@@ -198,7 +198,7 @@ index 05ccf61..629d78a 100644
    virtual ~nsCanvasGradientAzure() {}
  };
 diff --git a/layout/base/nsLayoutUtils.cpp b/layout/base/nsLayoutUtils.cpp
-index 87b0d34..65515d9 100644
+index 87b0d34..00a4994 100644
 --- a/layout/base/nsLayoutUtils.cpp
 +++ b/layout/base/nsLayoutUtils.cpp
 @@ -76,6 +76,7 @@
@@ -209,7 +209,7 @@ index 87b0d34..65515d9 100644
  
  #include "mozilla/Preferences.h"
  
-@@ -3134,13 +3135,62 @@ ShouldDarkenColors(nsPresContext* aPresContext)
+@@ -3134,13 +3135,63 @@ ShouldDarkenColors(nsPresContext* aPresContext)
  nscolor
  nsLayoutUtils::GetColor(nsIFrame* aFrame, nsCSSProperty aProperty)
  {
@@ -249,8 +249,9 @@ index 87b0d34..65515d9 100644
 +      const nsStyleDisplay* displayData = bgFrame->GetStyleDisplay();
 +      uint8_t widgetType = displayData->mAppearance;
 +      nsITheme *theme = presContext->GetTheme();
-+      if (widgetType && theme->ThemeSupportsWidget(presContext, bgFrame,
-+                                                   widgetType)) {
++      if (theme && widgetType && theme->ThemeSupportsWidget(presContext,
++                                                            bgFrame,
++                                                            widgetType)) {
 +        bool isDisabled = false;
 +        nsIContent* frameContent = bgFrame->GetContent();
 +        if (frameContent && frameContent->IsElement()) {
@@ -627,5 +628,5 @@ index 69627d2..2729803 100644
    static int OnPrefChanged(const char* aPref, void* aClosure);
  
 -- 
-1.7.9.5
+1.8.1.2
 

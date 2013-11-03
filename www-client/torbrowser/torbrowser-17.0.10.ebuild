@@ -8,7 +8,7 @@ MOZ_ESR="1"
 
 MY_PN="firefox"
 MOZ_PV="${MY_PN}-${PV}"
-TOR_PV="2.3.25-13"
+TOR_PV="2.3.25-14"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
@@ -129,7 +129,7 @@ src_prepare() {
 	# Torbrowser patches for firefox 10.0.5esr, check regularly/for every version-bump
 	# https://gitweb.torproject.org/torbrowser.git/history/HEAD:/src/current-patches
 	# exclude vidalia patch, cause we don't force the user to use it
-	EPATCH_EXCLUDE="0007-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
+	# EPATCH_EXCLUDE="0007-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"

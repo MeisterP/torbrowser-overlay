@@ -1,0 +1,311 @@
+From 9730111ade5f0e7846d51f60434f736fa171f597 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Wed, 28 Nov 2012 17:08:29 -0500
+Subject: [PATCH 18/41] Add mozIThirdPartyUtil.getFirstPartyURI API
+
+API allows you to get the url bar URI for a channel or nsIDocument.
+---
+ content/base/src/ThirdPartyUtil.cpp        | 178 +++++++++++++++++++++++++++++
+ content/base/src/ThirdPartyUtil.h          |   3 +
+ netwerk/base/public/mozIThirdPartyUtil.idl |  43 +++++++
+ 3 files changed, 224 insertions(+)
+
+diff --git a/content/base/src/ThirdPartyUtil.cpp b/content/base/src/ThirdPartyUtil.cpp
+index 97a000e..36c2d25 100644
+--- a/content/base/src/ThirdPartyUtil.cpp
++++ b/content/base/src/ThirdPartyUtil.cpp
+@@ -7,10 +7,16 @@
+ #include "nsIServiceManager.h"
+ #include "nsIHttpChannelInternal.h"
+ #include "nsIDOMWindow.h"
++#include "nsICookiePermission.h"
++#include "nsIDOMDocument.h"
++#include "nsIDocument.h"
+ #include "nsILoadContext.h"
+ #include "nsIPrincipal.h"
+ #include "nsIScriptObjectPrincipal.h"
+ #include "nsThreadUtils.h"
++#include "nsPrintfCString.h"
++#include "nsIConsoleService.h"
++#include "nsContentUtils.h"
+ 
+ NS_IMPL_ISUPPORTS1(ThirdPartyUtil, mozIThirdPartyUtil)
+ 
+@@ -21,6 +27,7 @@ ThirdPartyUtil::Init()
+ 
+   nsresult rv;
+   mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
++  mCookiePermissions = do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
+   return rv;
+ }
+ 
+@@ -45,6 +52,21 @@ ThirdPartyUtil::IsThirdPartyInternal(const nsCString& aFirstDomain,
+   return NS_OK;
+ }
+ 
++// Return true if aURI's scheme is white listed, in which case
++// getFirstPartyURI() will not require that the firstPartyURI contains a host.
++bool ThirdPartyUtil::SchemeIsWhiteListed(nsIURI *aURI)
++{
++  if (!aURI)
++    return false;
++
++  nsCAutoString scheme;
++  nsresult rv = aURI->GetScheme(scheme);
++  NS_ENSURE_SUCCESS(rv, false);
++
++  return (scheme.Equals("about") || scheme.Equals("moz-safe-about")
++          || scheme.Equals("chrome"));
++}
++
+ // Get the URI associated with a window.
+ already_AddRefed<nsIURI>
+ ThirdPartyUtil::GetURIFromWindow(nsIDOMWindow* aWin)
+@@ -282,3 +304,159 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
+ 
+   return NS_OK;
+ }
++
++NS_IMETHODIMP
++ThirdPartyUtil::GetFirstPartyURI(nsIChannel *aChannel,
++                                 nsIDocument *aDoc,
++                                 nsIURI **aOutput)
++{
++  nsresult rv = NS_ERROR_NULL_POINTER;
++
++  if (!aOutput)
++    return rv;
++
++  *aOutput = nullptr;
++
++  if (!aChannel && aDoc) {
++    aChannel = aDoc->GetChannel();
++  }
++
++  // If aChannel is specified or available, use the official route
++  // for sure
++  if (aChannel) {
++    rv = mCookiePermissions->GetOriginatingURI(aChannel, aOutput);
++    if (NS_SUCCEEDED(rv) && *aOutput) {
++      // At this point, about: and chrome: URLs have been mapped to file: or
++      // jar: URLs.  Try to recover the original URL.
++      nsCAutoString scheme;
++      nsresult rv2 = (*aOutput)->GetScheme(scheme);
++      NS_ENSURE_SUCCESS(rv2, rv2);
++      if (scheme.Equals("file") || scheme.Equals("jar")) {
++        nsCOMPtr<nsIURI> originalURI;
++        rv2 = aChannel->GetOriginalURI(getter_AddRefs(originalURI));
++        if (NS_SUCCEEDED(rv2) && originalURI) {
++          NS_RELEASE(*aOutput);
++          NS_ADDREF(*aOutput = originalURI);
++        }
++      }
++    }
++  }
++
++  // If the channel was missing, closed or broken, try the
++  // window hierarchy directly.
++  //
++  // This might fail to work for first-party loads themselves, but
++  // we don't need this codepath for that case.
++  if (NS_FAILED(rv) && aDoc) {
++    nsCOMPtr<nsIDOMWindow> top;
++    nsCOMPtr<nsIDOMDocument> topDDoc;
++    nsIURI *docURI = nullptr;
++
++    if (aDoc->GetWindow()) {
++      aDoc->GetWindow()->GetTop(getter_AddRefs(top));
++      top->GetDocument(getter_AddRefs(topDDoc));
++
++      nsCOMPtr<nsIDocument> topDoc(do_QueryInterface(topDDoc));
++      docURI = topDoc->GetOriginalURI();
++      if (docURI) {
++        // Give us a mutable URI and also addref
++        rv = NS_EnsureSafeToReturn(docURI, aOutput);
++      }
++    } else {
++      // XXX: Chrome callers (such as NoScript) can end up here
++      // through getImageData/canvas usage with no document state
++      // (no Window and a document URI of about:blank). Propogate
++      // rv fail (by doing nothing), and hope caller recovers.
++    }
++
++    if (*aOutput)
++      rv = NS_OK;
++  }
++
++  if (*aOutput && !SchemeIsWhiteListed(*aOutput)) {
++    // If URI scheme is not whitelisted and the URI lacks a hostname, force a
++    // failure.
++    nsCAutoString host;
++    rv = (*aOutput)->GetHost(host);
++    if (NS_SUCCEEDED(rv) && (host.Length() == 0)) {
++      rv = NS_ERROR_FAILURE;
++    }
++  }
++
++  // Log failure to error console.
++  if (NS_FAILED(rv)) {
++    nsCOMPtr<nsIConsoleService> console
++                              (do_GetService(NS_CONSOLESERVICE_CONTRACTID));
++    if (console) {
++      nsCString spec;
++      if (*aOutput)
++        (*aOutput)->GetSpec(spec);
++      if (spec.Length() > 0) {
++        nsPrintfCString msg("getFirstPartyURI: no host in first party URI %s",
++                            spec.get()); // TODO: L10N
++        console->LogStringMessage(NS_ConvertUTF8toUTF16(msg).get());
++      } else {
++        nsPrintfCString msg("getFirstPartyURI failed: 0x%x", rv);
++        console->LogStringMessage(NS_ConvertUTF8toUTF16(msg).get());
++      }
++    }
++
++    if (*aOutput) {
++      // discard return object.
++      (*aOutput)->Release();
++      *aOutput = nullptr;
++    }
++  }
++
++  // TODO: We could provide a route through the loadgroup + notification
++  // callbacks too, but either channel or document was always available
++  // in the cases where this function was originally needed (the image cache).
++  // The notification callbacks also appear to suffers from the same limitation
++  // as the document path. See nsICookiePermissions.GetOriginatingURI() for
++  // details.
++
++  return rv;
++}
++
++NS_IMETHODIMP
++ThirdPartyUtil::GetFirstPartyHostForIsolation(nsIURI *aFirstPartyURI,
++                                              nsACString& aHost)
++{
++  if (!aFirstPartyURI)
++    return NS_ERROR_INVALID_ARG;
++
++  if (!SchemeIsWhiteListed(aFirstPartyURI)) {
++    nsresult rv = aFirstPartyURI->GetHost(aHost);
++    return (aHost.Length() > 0) ? NS_OK : rv;
++  }
++
++  // This URI lacks a host, so construct and return a pseudo-host.
++  aHost = "--NoFirstPartyHost-";
++
++  // Append the scheme.  To ensure that the pseudo-hosts are consistent
++  // when the hacky "moz-safe-about" scheme is used, map it back to "about".
++  nsCAutoString scheme;
++  nsresult rv = aFirstPartyURI->GetScheme(scheme);
++  NS_ENSURE_SUCCESS(rv, rv);
++  if (scheme.Equals("moz-safe-about"))
++    aHost.Append("about");
++  else
++    aHost.Append(scheme);
++
++  // Append the URL's file name (e.g., -browser.xul) or its path (e.g.,
++  // -home for about:home)
++  nsCAutoString s;
++  nsCOMPtr<nsIURL> url = do_QueryInterface(aFirstPartyURI);
++  if (url)
++    url->GetFileName(s);
++  else
++    aFirstPartyURI->GetPath(s);
++
++  if (s.Length() > 0) {
++    aHost.Append("-");
++    aHost.Append(s);
++  }
++
++  aHost.Append("--");
++  return NS_OK;
++}
+diff --git a/content/base/src/ThirdPartyUtil.h b/content/base/src/ThirdPartyUtil.h
+index 3f50ac3..3cf442e 100644
+--- a/content/base/src/ThirdPartyUtil.h
++++ b/content/base/src/ThirdPartyUtil.h
+@@ -9,6 +9,7 @@
+ #include "nsString.h"
+ #include "mozIThirdPartyUtil.h"
+ #include "nsIEffectiveTLDService.h"
++#include "nsICookiePermission.h"
+ #include "mozilla/Attributes.h"
+ 
+ class nsIURI;
+@@ -26,9 +27,11 @@ public:
+ private:
+   nsresult IsThirdPartyInternal(const nsCString& aFirstDomain,
+     nsIURI* aSecondURI, bool* aResult);
++  bool SchemeIsWhiteListed(nsIURI *aURI);
+   static already_AddRefed<nsIURI> GetURIFromWindow(nsIDOMWindow* aWin);
+ 
+   nsCOMPtr<nsIEffectiveTLDService> mTLDService;
++  nsCOMPtr<nsICookiePermission> mCookiePermissions;
+ };
+ 
+ #endif
+diff --git a/netwerk/base/public/mozIThirdPartyUtil.idl b/netwerk/base/public/mozIThirdPartyUtil.idl
+index 578d8db..b602ac3 100644
+--- a/netwerk/base/public/mozIThirdPartyUtil.idl
++++ b/netwerk/base/public/mozIThirdPartyUtil.idl
+@@ -7,6 +7,7 @@
+ interface nsIURI;
+ interface nsIDOMWindow;
+ interface nsIChannel;
++interface nsIDocument;
+ 
+ /**
+  * Utility functions for determining whether a given URI, channel, or window
+@@ -140,6 +141,48 @@ interface mozIThirdPartyUtil : nsISupports
+    * @return the base domain.
+    */
+   AUTF8String getBaseDomain(in nsIURI aHostURI);
++
++
++  /**
++   * getFirstPartyURI
++   *
++   * Obtain the top-level url bar URI for either a channel or a document.
++   * Either parameter may be null (but not both).
++   *
++   * @param aChannel
++   *        An arbitrary channel for some content element of a first party
++   *        load. Can be null.
++   *
++   * @param aDoc
++   *        An arbitrary third party document. Can be null.
++   *
++   * @return the first party url bar URI for the load.
++   *
++   * @throws if the URI cannot be obtained or the URI lacks a hostname and the
++   *         URI's scheme is not white listed.
++   */
++  nsIURI getFirstPartyURI(in nsIChannel aChannel,
++                          in nsIDocument aDoc);
++
++  /**
++   * getFirstPartyHostForIsolation
++   *
++   * Obtain the host or pseudo-host for aFirstPartyURI.  Some examples:
++   *    aFirstPartyURI                        Return Value
++   *    --------------                        ------------
++   *    https://news.google.com/nwshp?hl=en   "news.google.com"
++   *    about:home                            "--NoFirstPartyHost-about-home--"
++   *    chrome://browser/content/browser.xul  "--NoFirstPartyHost-chrome-browser.xul--"
++   *
++   * @param aFirstPartyURI
++   *        The first party URI.
++   *
++   * @return host or pseudo host.
++   *
++   * @throws if the URI lacks a host and the scheme is not a whitelisted one
++   *         for which we generate a pseudo host.
++   */
++  AUTF8String getFirstPartyHostForIsolation(in nsIURI aFirstPartyURI);
+ };
+ 
+ %{ C++
+-- 
+1.8.1.2
+

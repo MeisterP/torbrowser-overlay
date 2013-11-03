@@ -1,21 +1,21 @@
-From 27633d970ddfa360c553aaf3e8697354309f0839 Mon Sep 17 00:00:00 2001
+From ce2f30b6633cc01cdd05421998ef6239996a393d Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Mon, 14 Jan 2013 19:36:14 -0800
-Subject: [PATCH 25/27] nsIHTTPChannel.redirectTo API.
+Subject: [PATCH 24/41] nsIHTTPChannel.redirectTo API.
 
 Provides an API for HTTPS-Everywhere to perform redirects to https
 in a more secure and reliable way.
 ---
- netwerk/protocol/http/HttpBaseChannel.cpp          |   13 +++++
- netwerk/protocol/http/HttpBaseChannel.h            |   10 ++++
- netwerk/protocol/http/HttpChannelChild.cpp         |   34 ++++++++----
- netwerk/protocol/http/HttpChannelParent.cpp        |   12 ++++-
- netwerk/protocol/http/HttpChannelParent.h          |    4 +-
- netwerk/protocol/http/PHttpChannel.ipdl            |    4 +-
- netwerk/protocol/http/nsHttpChannel.cpp            |   57 ++++++++++++++++---
- netwerk/protocol/http/nsHttpChannel.h              |    8 ++-
- netwerk/protocol/http/nsIHttpChannel.idl           |   14 +++++-
- .../protocol/viewsource/nsViewSourceChannel.cpp    |   10 +++-
+ netwerk/protocol/http/HttpBaseChannel.cpp          | 13 +++++
+ netwerk/protocol/http/HttpBaseChannel.h            | 10 ++++
+ netwerk/protocol/http/HttpChannelChild.cpp         | 34 +++++++++----
+ netwerk/protocol/http/HttpChannelParent.cpp        | 12 ++++-
+ netwerk/protocol/http/HttpChannelParent.h          |  4 +-
+ netwerk/protocol/http/PHttpChannel.ipdl            |  4 +-
+ netwerk/protocol/http/nsHttpChannel.cpp            | 57 ++++++++++++++++++----
+ netwerk/protocol/http/nsHttpChannel.h              |  8 +--
+ netwerk/protocol/http/nsIHttpChannel.idl           | 14 +++++-
+ .../protocol/viewsource/nsViewSourceChannel.cpp    | 10 +++-
  10 files changed, 139 insertions(+), 27 deletions(-)
 
 diff --git a/netwerk/protocol/http/HttpBaseChannel.cpp b/netwerk/protocol/http/HttpBaseChannel.cpp
@@ -470,5 +470,5 @@ index 643ed0e..c63c2a5 100644
 +}
 +
 -- 
-1.7.5.4
+1.8.1.2
 

@@ -1,14 +1,14 @@
-From 0d1a840e58117d83d910d3eb09e9f7deaaeabbff Mon Sep 17 00:00:00 2001
+From 7cdd6f0ac4b4b236ca5177e0fc5e7621fd012878 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Tue, 4 Dec 2012 16:01:42 -0800
-Subject: [PATCH 04/27] Add a string-based cacheKey.
+Subject: [PATCH 04/41] Add a string-based cacheKey.
 
 Used for isolating cache according to same-origin policy.
 ---
- netwerk/base/public/nsICachingChannel.idl |    7 +++++++
- netwerk/protocol/http/nsHttpChannel.cpp   |   22 ++++++++++++++++++++++
- netwerk/protocol/http/nsHttpChannel.h     |    1 +
- 3 files changed, 30 insertions(+), 0 deletions(-)
+ netwerk/base/public/nsICachingChannel.idl |  7 +++++++
+ netwerk/protocol/http/nsHttpChannel.cpp   | 22 ++++++++++++++++++++++
+ netwerk/protocol/http/nsHttpChannel.h     |  1 +
+ 3 files changed, 30 insertions(+)
 
 diff --git a/netwerk/base/public/nsICachingChannel.idl b/netwerk/base/public/nsICachingChannel.idl
 index 3119dd9..fd2ec89 100644
@@ -81,5 +81,5 @@ index d66415f..b1f0848 100644
      // auth specific data
      nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
 -- 
-1.7.5.4
+1.8.1.2
 

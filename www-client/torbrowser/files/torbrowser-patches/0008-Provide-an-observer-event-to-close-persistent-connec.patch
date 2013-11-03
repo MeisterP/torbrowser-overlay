@@ -1,14 +1,14 @@
-From 41c163c0497ef16faaf103debf5bf7ef8244849a Mon Sep 17 00:00:00 2001
+From a25d4e7ca4e2887c5ce56a7564c38d174618e920 Mon Sep 17 00:00:00 2001
 From: Mike Perry <mikeperry-git@torproject.org>
 Date: Fri, 7 Sep 2012 16:18:26 -0700
-Subject: [PATCH 09/27] Provide an observer event to close persistent
+Subject: [PATCH 08/41] Provide an observer event to close persistent
  connections
 
 We need to prevent linkability across "New Identity", which includes closing
 keep-alive connections.
 ---
- netwerk/protocol/http/nsHttpHandler.cpp |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
+ netwerk/protocol/http/nsHttpHandler.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
 diff --git a/netwerk/protocol/http/nsHttpHandler.cpp b/netwerk/protocol/http/nsHttpHandler.cpp
 index d897a2c..e33ff08 100644
@@ -36,5 +36,5 @@ index d897a2c..e33ff08 100644
      return NS_OK;
  }
 -- 
-1.7.5.4
+1.8.1.2
 

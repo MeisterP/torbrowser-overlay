@@ -1,29 +1,29 @@
-From caf469aa331ab9d92cc83b378cf554f087625dc8 Mon Sep 17 00:00:00 2001
+From 5f8be4e4c5e87dd6eacd1378c7debed0a11f0377 Mon Sep 17 00:00:00 2001
 From: Kathleen Brade <brade@pearlcrescent.com>
 Date: Thu, 28 Feb 2013 18:02:34 -0800
-Subject: [PATCH 26/27] Isolate DOM storage to first party URI
+Subject: [PATCH 25/41] Isolate DOM storage to first party URI
 
 Also prevents DOM storage from writing to disk (hardcoded).
 ---
- docshell/base/nsDocShell.cpp                       |   78 ++++++++++++++++++-
- docshell/base/nsDocShell.h                         |    6 +-
- docshell/base/nsIDocShell.idl                      |   33 ++++++++-
- dom/base/nsGlobalWindow.cpp                        |   13 +++-
- dom/interfaces/storage/nsIDOMStorageManager.idl    |   11 +++-
- dom/interfaces/storage/nsPIDOMStorage.h            |    8 +-
- dom/src/storage/StorageChild.cpp                   |    6 +-
- dom/src/storage/StorageChild.h                     |    3 +-
- dom/src/storage/nsDOMStorage.cpp                   |   44 ++++++++---
- dom/src/storage/nsDOMStorage.h                     |   14 +++-
- dom/src/storage/nsDOMStorageDBWrapper.cpp          |   41 ++++++++---
- dom/src/storage/nsDOMStorageDBWrapper.h            |   14 ++-
- dom/src/storage/nsDOMStorageMemoryDB.cpp           |   21 +++++-
- dom/src/storage/nsDOMStoragePersistentDB.cpp       |    8 ++-
- .../windowwatcher/src/nsWindowWatcher.cpp          |    5 +-
- 15 files changed, 255 insertions(+), 50 deletions(-)
+ docshell/base/nsDocShell.cpp                       | 79 ++++++++++++++++++++--
+ docshell/base/nsDocShell.h                         |  6 +-
+ docshell/base/nsIDocShell.idl                      | 33 ++++++++-
+ dom/base/nsGlobalWindow.cpp                        | 13 +++-
+ dom/interfaces/storage/nsIDOMStorageManager.idl    | 11 ++-
+ dom/interfaces/storage/nsPIDOMStorage.h            |  8 ++-
+ dom/src/storage/StorageChild.cpp                   |  6 +-
+ dom/src/storage/StorageChild.h                     |  3 +-
+ dom/src/storage/nsDOMStorage.cpp                   | 44 +++++++++---
+ dom/src/storage/nsDOMStorage.h                     | 14 ++--
+ dom/src/storage/nsDOMStorageDBWrapper.cpp          | 46 ++++++++++---
+ dom/src/storage/nsDOMStorageDBWrapper.h            | 14 ++--
+ dom/src/storage/nsDOMStorageMemoryDB.cpp           | 21 +++++-
+ dom/src/storage/nsDOMStoragePersistentDB.cpp       |  8 ++-
+ .../windowwatcher/src/nsWindowWatcher.cpp          |  5 +-
+ 15 files changed, 261 insertions(+), 50 deletions(-)
 
 diff --git a/docshell/base/nsDocShell.cpp b/docshell/base/nsDocShell.cpp
-index 0d56d9e..0726c07 100644
+index eac3165..1cef3f9 100644
 --- a/docshell/base/nsDocShell.cpp
 +++ b/docshell/base/nsDocShell.cpp
 @@ -184,6 +184,7 @@
@@ -132,7 +132,7 @@ index 0d56d9e..0726c07 100644
  NS_IMETHODIMP
  nsDocShell::CloneSessionStoragesTo(nsIDocShell* aDocShell)
  {
-@@ -12411,3 +12443,39 @@ nsDocShell::HasUnloadedParent()
+@@ -12416,3 +12448,40 @@ nsDocShell::HasUnloadedParent()
      }
      return false;
  }
@@ -147,15 +147,15 @@ index 0d56d9e..0726c07 100644
 +    if (!aOrigin)
 +        return NS_ERROR_FAILURE;
 +
++    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                            do_GetService(THIRDPARTYUTIL_CONTRACTID);
++    if (!thirdPartyUtil)
++      return NS_ERROR_FAILURE;
++
 +    aResult.Append(aOrigin);
 +
 +    nsCOMPtr<nsIURI> firstPartyURI = aFirstPartyURI;
 +    if (!firstPartyURI) {
-+        nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
-+                                do_GetService(THIRDPARTYUTIL_CONTRACTID);
-+        if (!thirdPartyUtil)
-+          return NS_ERROR_FAILURE;
-+
 +        nsCOMPtr<nsIDocument> doc(do_GetInterface(GetAsSupports(this)));
 +        nsresult rv = thirdPartyUtil->GetFirstPartyURI(nullptr, doc,
 +                                               getter_AddRefs(firstPartyURI));
@@ -163,11 +163,12 @@ index 0d56d9e..0726c07 100644
 +    }
 +
 +    nsCAutoString host;
-+    nsresult rv = firstPartyURI->GetHost(host);
-+    if (NS_SUCCEEDED(rv) && (host.Length() > 0)) {
-+        aResult.AppendLiteral("&");
-+        aResult.Append(host);
-+    }
++    nsresult rv = thirdPartyUtil->GetFirstPartyHostForIsolation(firstPartyURI,
++                                                                host);
++    NS_ENSURE_SUCCESS(rv, rv);
++
++    aResult.AppendLiteral("&");
++    aResult.Append(host);
 +
 +    return NS_OK;
 +}
@@ -533,10 +534,18 @@ index 7add846..b795397 100644
    virtual already_AddRefed<nsIDOMStorage> Clone();
    virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
 diff --git a/dom/src/storage/nsDOMStorageDBWrapper.cpp b/dom/src/storage/nsDOMStorageDBWrapper.cpp
-index bd2581b..048738a 100644
+index bd2581b..04942fd 100644
 --- a/dom/src/storage/nsDOMStorageDBWrapper.cpp
 +++ b/dom/src/storage/nsDOMStorageDBWrapper.cpp
-@@ -47,7 +47,6 @@ nsDOMStorageDBWrapper::~nsDOMStorageDBWrapper()
+@@ -17,6 +17,7 @@
+ #include "mozIStorageService.h"
+ #include "mozIStorageValueArray.h"
+ #include "mozIStorageFunction.h"
++#include "mozIThirdPartyUtil.h"
+ #include "nsPrintfCString.h"
+ #include "nsNetUtil.h"
+ 
+@@ -47,7 +48,6 @@ nsDOMStorageDBWrapper::~nsDOMStorageDBWrapper()
  void
  nsDOMStorageDBWrapper::Close()
  {
@@ -544,7 +553,7 @@ index bd2581b..048738a 100644
    mChromePersistentDB.Close();
  }
  
-@@ -56,13 +55,13 @@ nsDOMStorageDBWrapper::Init()
+@@ -56,13 +56,13 @@ nsDOMStorageDBWrapper::Init()
  {
    nsresult rv;
  
@@ -560,7 +569,7 @@ index bd2581b..048738a 100644
    NS_ENSURE_SUCCESS(rv, rv);
  
    rv = mPrivateBrowsingDB.Init();
-@@ -74,16 +73,14 @@ nsDOMStorageDBWrapper::Init()
+@@ -74,16 +74,14 @@ nsDOMStorageDBWrapper::Init()
  nsresult
  nsDOMStorageDBWrapper::FlushAndDeleteTemporaryTables(bool force)
  {
@@ -580,7 +589,7 @@ index bd2581b..048738a 100644
  }
  
  #define IMPL_FORWARDER_GUTS(_return, _code)                                \
-@@ -243,7 +240,8 @@ nsDOMStorageDBWrapper::GetUsage(const nsACString& aDomain,
+@@ -243,8 +241,12 @@ nsDOMStorageDBWrapper::GetUsage(const nsACString& aDomain,
  }
  
  nsresult
@@ -588,27 +597,30 @@ index bd2581b..048738a 100644
 +nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI *aFirstPartyURI,
 +                                              nsIURI* aUri, nsACString& aKey)
  {
++  if (!aFirstPartyURI)
++    return NS_ERROR_FAILURE;
++
    nsresult rv;
  
-@@ -264,6 +262,17 @@ nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey)
+   rv = CreateDomainScopeDBKey(aUri, aKey);
+@@ -264,6 +266,16 @@ nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey)
      aKey.Append(nsPrintfCString("%d", port));
    }
  
-+  // Isolate scope keys to the URL bar domain by appending &firstPartyHost
-+  // if available.
-+  if (aFirstPartyURI) {
-+    nsCAutoString host;
-+    rv = aFirstPartyURI->GetHost(host);
-+    if (NS_SUCCEEDED(rv) && (host.Length() > 0)) {
-+      aKey.AppendLiteral("&");
-+      aKey.Append(host);
-+    }
-+  }
++  // Isolate scope keys to the URL bar domain by appending &firstPartyHost.
++  nsCAutoString host;
++  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                     do_GetService(THIRDPARTYUTIL_CONTRACTID);
++  rv = thirdPartyUtil->GetFirstPartyHostForIsolation(aFirstPartyURI, host);
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  aKey.AppendLiteral("&");
++  aKey.Append(host);
 +
    return NS_OK;
  }
  
-@@ -317,7 +326,8 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(const nsACString& aAsciiDomain,
+@@ -317,11 +329,15 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(const nsACString& aAsciiDomain,
  }
  
  nsresult
@@ -618,20 +630,26 @@ index bd2581b..048738a 100644
                                                bool aIncludeSubDomains,
                                                bool aEffectiveTLDplus1Only,
                                                nsACString& aKey)
-@@ -351,6 +361,17 @@ nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
+ {
++  if (!aFirstPartyURI)
++    return NS_ERROR_FAILURE;
++
+   nsresult rv;
+ 
+   nsCAutoString subdomainsDBKey;
+@@ -351,6 +367,16 @@ nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
    if (!aIncludeSubDomains)
      subdomainsDBKey.AppendLiteral(":");
  
-+  // Isolate quota keys to the URL bar domain by appending &firstPartyHost
-+  // if available.
-+  if (aFirstPartyURI) {
-+    nsCAutoString host;
-+    rv = aFirstPartyURI->GetHost(host);
-+    if (NS_SUCCEEDED(rv) && (host.Length() > 0)) {
-+      subdomainsDBKey.AppendLiteral("&");
-+      subdomainsDBKey.Append(host);
-+    }
-+  }
++  // Isolate scope keys to the URL bar domain by appending &firstPartyHost.
++  nsCAutoString host;
++  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                     do_GetService(THIRDPARTYUTIL_CONTRACTID);
++  rv = thirdPartyUtil->GetFirstPartyHostForIsolation(aFirstPartyURI, host);
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  subdomainsDBKey.AppendLiteral("&");
++  subdomainsDBKey.Append(host);
 +
    aKey.Assign(subdomainsDBKey);
    return NS_OK;
@@ -772,5 +790,5 @@ index 6abbed7..0bad9ed 100644
          storage);
      }
 -- 
-1.7.5.4
+1.8.1.2
 

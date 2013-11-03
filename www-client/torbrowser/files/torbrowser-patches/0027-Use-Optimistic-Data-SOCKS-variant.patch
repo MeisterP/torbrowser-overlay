@@ -1,7 +1,7 @@
-From 64548e75e1cb68a2449b001629c0ee0d10636d90 Mon Sep 17 00:00:00 2001
+From 5663a717df8dff02f17a9813829fb8f23d338904 Mon Sep 17 00:00:00 2001
 From: Tao Wang <t55wang@uwaterloo.ca>
 Date: Tue, 2 Apr 2013 15:56:49 -0700
-Subject: [PATCH 28/28] Use Optimistic Data SOCKS variant.
+Subject: [PATCH 27/41] Use Optimistic Data SOCKS variant.
 
 This patch alters Firefox's SOCKS handshake to preemptively send data before
 it is actually connected. This allows us to save a round trip during
@@ -10,9 +10,9 @@ connection setup.
 See:
 https://gitweb.torproject.org/torspec.git/blob/HEAD:/proposals/181-optimistic-data-client.txt
 ---
- netwerk/base/src/nsSocketTransport2.cpp |   20 ++++++++++++++++++--
- netwerk/base/src/nsSocketTransport2.h   |    4 +++-
- netwerk/socket/nsSOCKSIOLayer.cpp       |    4 +++-
+ netwerk/base/src/nsSocketTransport2.cpp | 20 ++++++++++++++++++--
+ netwerk/base/src/nsSocketTransport2.h   |  4 +++-
+ netwerk/socket/nsSOCKSIOLayer.cpp       |  4 +++-
  3 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/netwerk/base/src/nsSocketTransport2.cpp b/netwerk/base/src/nsSocketTransport2.cpp
@@ -78,5 +78,5 @@ index 24edc78..64f6001 100644
  
  private:
 -- 
-1.7.9.5
+1.8.1.2
 
