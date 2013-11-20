@@ -8,7 +8,7 @@ MOZ_ESR="1"
 
 MY_PN="firefox"
 MOZ_PV="${MY_PN}-${PV}"
-TOR_PV="2.3.25-14"
+TOR_PV="2.3.25-15"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
@@ -56,7 +56,12 @@ RDEPEND="
 	>=media-libs/libpng-1.5.11[apng]
 	virtual/libffi
 	gstreamer? ( media-plugins/gst-plugins-meta:0.10[ffmpeg] )
-	system-sqlite? ( >=dev-db/sqlite-3.7.13[fts3,secure-delete,threadsafe,unlock-notify,debug=] )
+	system-sqlite? ( || (
+		>=dev-db/sqlite-3.7.16:3[secure-delete,debug=]
+		=dev-db/sqlite-3.7.15*[fts3,secure-delete,threadsafe,unlock-notify,debug=]
+		=dev-db/sqlite-3.7.14*[fts3,secure-delete,threadsafe,unlock-notify,debug=]
+		=dev-db/sqlite-3.7.13*[fts3,secure-delete,threadsafe,unlock-notify,debug=]
+	) )
 	>=media-libs/libvpx-1.0.0
 	kernel_linux? ( media-libs/alsa-lib )
 	selinux? ( sec-policy/selinux-mozilla )"
@@ -126,10 +131,8 @@ src_prepare() {
 	EPATCH_FORCE="yes" \
 	epatch "${WORKDIR}/firefox"
 
-	# Torbrowser patches for firefox 10.0.5esr, check regularly/for every version-bump
-	# https://gitweb.torproject.org/torbrowser.git/history/HEAD:/src/current-patches
-	# exclude vidalia patch, cause we don't force the user to use it
-	# EPATCH_EXCLUDE="0007-Make-Tor-Browser-exit-when-not-launched-from-Vidalia.patch" \
+	# Torbrowser patches for firefox, check regularly/for every version-bump
+	# https://gitweb.torproject.org/torbrowser.git/tree/HEAD:/src/current-patches/firefox
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"
@@ -148,8 +151,7 @@ src_prepare() {
 		-e "s:gnomevfs::" "${S}/"xulrunner/confvars.sh \
 		|| die "Failed to remove gnomevfs extension"
 
-	# Ensure that plugins dir is enabled as default
-	# and is different from firefox-location
+	# Ensure that plugins dir is enabled as default and is different from firefox-location
 	sed -i -e "s:/usr/lib/mozilla/plugins:/usr/$(get_libdir)/${PN}/${MY_PN}/plugins:" \
 		"${S}"/xpcom/io/nsAppFileLocationProvider.cpp || die "sed failed to replace plugin path!"
 
@@ -238,11 +240,17 @@ src_configure() {
 src_compile() {
 	CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
-	emake -f client.mk || die "emake failed"
+	emake -f client.mk
+	if [ $? -ne 0 ]; then
+		ewarn "Build has failed, please see https://bugs.gentoo.org/show_bug.cgi?id=465728 for"
+		ewarn "possible solutions such as MAKEOPTS=-j1"
+		die
+	fi
 }
 
 src_install() {
 	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${MY_PN}"
+	DICTPATH="\"${EPREFIX}/usr/share/myspell\""
 
 	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler etc.
 	local obj_dir="$(echo */config.log)"
@@ -255,13 +263,29 @@ src_install() {
 		pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
 	fi
 
+	# Add torbrowser default prefs
+	cp "${WORKDIR}/omni/defaults/preferences/#tor.js" \
+		"${S}/${obj_dir}/dist/bin/defaults/preferences/all-gentoo.js" || die
+
+	# Set default homepage
+	cp "${WORKDIR}/omni/chrome/en-US/locale/branding/browserconfig.properties" \
+		"${S}/${obj_dir}/dist/bin/chrome/en-US/locale/branding/browserconfig.properties" || die
+
+	# Set default path to search for dictionaries.
+	echo "pref(\"spellchecker.dictionary_path\", ${DICTPATH});" \
+		>> "${S}/${obj_dir}/dist/bin/defaults/preferences/all-gentoo.js" || die
+
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
 	emake DESTDIR="${D}" install || die "emake install failed"
 
-	# we dont want development stuff for this kind of build, might as well
-	# conflict with other firefox-builds
-	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || \
-		die "Failed to remove sdk and headers"
+	# Install icons and .desktop for menu entry
+	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
+	make_desktop_entry ${PN} "TorBrowser" ${PN} "Network;WebBrowser"
+
+	# Add StartupNotify=true bug 237317
+	if use startup-notification ; then
+		echo "StartupNotify=true" >> "${ED}/usr/share/applications/${PN}-${PN}.desktop"
+	fi
 
 	# Without methodjit and tracejit there's no conflict with PaX
 	if use jit; then
@@ -276,18 +300,14 @@ src_install() {
 	# Plugins dir
 	keepdir /usr/$(get_libdir)/${PN}/${MY_PN}/plugins
 
-	# Settins
-	cd "${WORKDIR}"/omni/ || die
-	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "defaults/preferences/#tor.js" || die
-	zip -u "${ED}"${MOZILLA_FIVE_HOME}/omni.ja "chrome/en-US/locale/branding/browserconfig.properties" || die
+	# we dont want development files
+	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || \
+		die "Failed to remove sdk and headers"
 
 	# Profile
 	insinto ${MOZILLA_FIVE_HOME}/defaults
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile
 	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
-
-	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
-	make_desktop_entry ${PN} "TorBrowser" ${PN} "Network;WebBrowser"
 }
 
 pkg_preinst() {
@@ -295,12 +315,13 @@ pkg_preinst() {
 }
 
 pkg_postinst() {
+	ewarn ""
 	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
-	ewarn "the exact same patches (excluding Vidalia-patch). Use this only if you know"
-	ewarn "what you are doing!"
+	ewarn "the exact same patches. Use this only if you know what you are doing!"
 	ewarn ""
 	ewarn "The profile moved to ~/.mozilla/torbrowser. It's auto generated"
 	ewarn "and manually copying isn't necessary anymore."
+	ewarn ""
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
 	elog "in the connection settings to match your setup."
 
