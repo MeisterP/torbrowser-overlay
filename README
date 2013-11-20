@@ -1,18 +1,17 @@
 torbrowser-overlay
 
-Torbrowser without vidalia or tor
+Torbrowser without Vidalia or Tor
 https://www.torproject.org/projects/torbrowser.html.en
 
-This patched firefox build is _NOT_ recommended by TOR upstream but uses
-the exact same patches (excluding Vidalia-patch). Use this only if you know
-what you are doing!
+This patched firefox build is _NOT_ recommended by Tor upstream but uses
+the exact same patches. Use this only if you know what you are doing!
 
-Copy the folder contents from '/usr/share/torbrowser/profile'
-into '~/.torbrowser/profile'.
+The profile moved to '~/.mozilla/torbrowser'. It's auto generated
+and manually copying isn't necessary anymore.
 		
 This profile folder includes pre-configuration recommended by upstream,
 as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
-If you want to start from scratch just create the directories '~/.torbrowser/profile'.
+If you want to start from scratch just remove the directory '~/.mozilla/torbrowser'.
 
 Torbrowser uses port 9150 to connect to Tor. You can change the port
 in the connection settings to match your setup."
