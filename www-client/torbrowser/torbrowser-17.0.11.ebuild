@@ -35,7 +35,7 @@ SLOT="0"
 LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	BSD
 	CC-BY-3.0"
-IUSE="bindist gstreamer +jit selinux system-sqlite"
+IUSE="gstreamer +jit selinux system-sqlite"
 
 # More URIs appended below...
 SRC_URI="${SRC_URI}
@@ -103,14 +103,6 @@ pkg_setup() {
 		XDG_SESSION_COOKIE \
 		XAUTHORITY
 
-	if ! use bindist; then
-		einfo
-		elog "You are enabling official branding. You may not redistribute this build"
-		elog "to any users on your network or the internet. Doing so puts yourself into"
-		elog "a legal problem with Mozilla Foundation"
-		elog "You can disable it by emerging ${PN} _with_ the bindist USE-flag"
-	fi
-
 	# Ensure we have enough disk space to compile
 	if use debug || use test ; then
 		CHECKREQS_DISK_BUILD="8G"
@@ -137,6 +129,12 @@ src_prepare() {
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"
+
+	# patch fails to apply git binary patches
+	epatch "${FILESDIR}/0011-Rebrand-Firefox-to-TorBrowser-no-binary.patch"
+
+	# see https://gitweb.torproject.org/torbrowser.git/blob/HEAD:/build-scripts/linux.mk#l85
+	cp "${FILESDIR}"/branding/* "${S}"/browser/branding/official || die
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
@@ -221,7 +219,14 @@ src_configure() {
 	mozconfig_use_enable jit methodjit
 	mozconfig_use_enable jit tracejit
 
-	# torbrowser
+	# TorBrowser
+	# see https://gitweb.torproject.org/torbrowser.git/blob/HEAD:/build-scripts/config/mozconfig-lin-x86_64
+	mozconfig_annotate 'torbrowser' --enable-official-branding
+	mozconfig_annotate 'torbrowser' --disable-tests
+	mozconfig_annotate 'torbrowser' --disable-debug
+	mozconfig_annotate 'torbrowser' --disable-maintenance-service
+	mozconfig_annotate 'torbrowser' --disable-crashreporter
+	mozconfig_annotate 'torbrowser' --disable-webrtc
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 	echo "mk_add_options MOZ_APP_DISPLAYNAME=TorBrowser" >> "${S}"/.mozconfig
@@ -280,7 +285,14 @@ src_install() {
 	emake DESTDIR="${D}" install || die "emake install failed"
 
 	# Install icons and .desktop for menu entry
-	newicon -s 128 "${WORKDIR}"/tor-browser_en-US/App/Firefox/icons/mozicon128.png ${PN}.png
+	local size sizes icon_path
+	sizes="16 24 32 48 256"
+	icon_path="${FILESDIR}/branding"
+	for size in ${sizes}; do
+		newicon -s ${size} "${icon_path}/default${size}.png" ${PN}.png
+	done
+	# The 128x128 icon has a different name
+	newicon -s 128 "${icon_path}/mozicon128.png" ${PN}.png
 	make_desktop_entry ${PN} "TorBrowser" ${PN} "Network;WebBrowser"
 
 	# Add StartupNotify=true bug 237317

@@ -6,8 +6,6 @@
 	<name>Poncho</name>
 </maintainer>
 <use>
-	<flag name="bindist">Disable official Firefox branding (icons, name) which
-		are not binary-redistributable according to upstream.</flag>
 	<flag name="custom-optimization">Fine-tune custom compiler
 		optimizations, setting this is not recommended.</flag>
 	<flag name="system-sqlite">Use the system-wide <pkg>dev-db/sqlite</pkg>
