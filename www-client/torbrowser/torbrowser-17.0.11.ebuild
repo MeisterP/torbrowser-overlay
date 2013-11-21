@@ -133,6 +133,7 @@ src_prepare() {
 
 	# Torbrowser patches for firefox, check regularly/for every version-bump
 	# https://gitweb.torproject.org/torbrowser.git/tree/HEAD:/src/current-patches/firefox
+	EPATCH_EXCLUDE="0011-Rebrand-Firefox-to-TorBrowser.patch" \
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${FILESDIR}/${PN}-patches"
