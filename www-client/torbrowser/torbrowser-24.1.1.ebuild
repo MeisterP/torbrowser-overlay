@@ -7,8 +7,8 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-MOZ_PV="${MY_PN}-${PV}"
-TOR_PV="2.3.25-15"
+TOR_PV="3.0-rc-1"
+COMMIT_ID="25d490116f43e91c27b3f5701c6e5df04df300a6"
 
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
@@ -17,10 +17,6 @@ fi
 
 # Patch version
 PATCH="${MY_PN}-24.0-patches-0.6"
-# Upstream ftp release URI that's used by mozlinguas.eclass
-# We don't use the http mirror because it deletes old tarballs.
-MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
-MOZ_HTTP_URI="http://ftp.mozilla.org/pub/${MY_PN}/releases/"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils autotools
 
@@ -37,12 +33,12 @@ LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	CC-BY-3.0"
 IUSE="gstreamer +jit pulseaudio selinux system-cairo system-icu system-jpeg system-sqlite"
 
-# More URIs appended below...
-SRC_URI="${SRC_URI}
+BASE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV//-/}"
+SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${COMMIT_ID}.tar.gz
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~nirbheek/mozilla/patchsets/${PATCH}.tar.xz
-	amd64? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-x86_64-${TOR_PV}-dev-en-US.tar.gz )
-	x86? ( https://www.torproject.org/dist/${PN}/linux/tor-browser-gnu-linux-i686-${TOR_PV}-dev-en-US.tar.gz )"
+	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz )
+	amd64? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz )"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
@@ -73,15 +69,9 @@ DEPEND="${RDEPEND}
 		virtual/opengl )
 	!www-misc/torbrowser-profile"
 
-SRC_URI="${SRC_URI}
-	${MOZ_FTP_URI}/${MOZ_PV}/source/firefox-${MOZ_PV}.source.tar.bz2"
-if [[ ${MOZ_ESR} == 1 ]]; then
-	S="${WORKDIR}/mozilla-esr${PV%%.*}"
-else
-	S="${WORKDIR}/mozilla-release"
-fi
-
 QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${MY_PN}/firefox"
+
+S="${WORKDIR}/tor-browser-${COMMIT_ID:0:7}"
 
 # see mozcoreconf-2.eclass
 mozversion_is_new_enough() {
@@ -94,7 +84,6 @@ mozversion_is_new_enough() {
 pkg_setup() {
 	moz_pkgsetup
 
-	# Avoid PGO profiling problems due to enviroment leakage
 	# These should *always* be cleaned up anyway
 	unset DBUS_SESSION_BUS_ADDRESS \
 		DISPLAY \
@@ -112,29 +101,15 @@ pkg_setup() {
 	check-reqs_pkg_setup
 }
 
-src_unpack() {
-	default
-	unzip -q -d "${WORKDIR}"/omni "${WORKDIR}"/tor-browser_en-US/App/Firefox/omni.ja || die
-}
-
 src_prepare() {
 	# Apply our patches
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
 	epatch "${WORKDIR}/firefox"
 
-	# Torbrowser patches for firefox, check regularly/for every version-bump
-	# https://gitweb.torproject.org/torbrowser.git/tree/HEAD:/src/current-patches/firefox
-	EPATCH_EXCLUDE="0011-Rebrand-Firefox-to-TorBrowser.patch" \
-	EPATCH_SUFFIX="patch" \
-	EPATCH_FORCE="yes" \
-	epatch "${FILESDIR}/${PN}-patches"
-
-	# patch fails to apply git binary patches
-	epatch "${FILESDIR}/0011-Rebrand-Firefox-to-TorBrowser-no-binary.patch"
-
-	# see https://gitweb.torproject.org/torbrowser.git/blob/HEAD:/build-scripts/linux.mk#l85
-	cp "${FILESDIR}"/branding/* "${S}"/browser/branding/official || die
+	# Revert "Change the default Firefox profile directory to be TBB-relative"
+	epatch -R "${FILESDIR}/tor-browser.git-fd1784437a94d107c789fcff6107fdd94959d4c3.patch"
+	epatch -R "${FILESDIR}/tor-browser.git-61fc3446feeb44eb3898da30a2d829cd45859021.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
@@ -184,10 +159,6 @@ src_configure() {
 	#
 	####################################
 
-	# see mozconfig-3.eclass
-	cp browser/config/mozconfig .mozconfig \
-		|| die "cp browser/config/mozconfig failed"
-
 	mozconfig_init
 	mozconfig_config
 
@@ -220,16 +191,8 @@ src_configure() {
 	mozconfig_use_enable jit ion
 
 	# TorBrowser
-	# see https://gitweb.torproject.org/torbrowser.git/blob/HEAD:/build-scripts/config/mozconfig-lin-x86_64
-	mozconfig_annotate 'torbrowser' --enable-official-branding
-	mozconfig_annotate 'torbrowser' --disable-tests
-	mozconfig_annotate 'torbrowser' --disable-debug
-	mozconfig_annotate 'torbrowser' --disable-maintenance-service
-	mozconfig_annotate 'torbrowser' --disable-crashreporter
-	mozconfig_annotate 'torbrowser' --disable-webrtc
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	echo "mk_add_options MOZ_APP_DISPLAYNAME=TorBrowser" >> "${S}"/.mozconfig
 
 	# Finalize and report settings
 	mozconfig_final
@@ -261,13 +224,32 @@ src_install() {
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
 	pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
 
-	# Add torbrowser default prefs
-	cp "${WORKDIR}/omni/defaults/preferences/#tor.js" \
-		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
+	# Add an emty default prefs
+	touch "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
 
+	# Add torbrowser version and disable the flash-plugin by default
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/versions
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/mkbundle-linux.sh#l40
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/descriptors/linux/gitian-firefox.yml#l76
+	grep -v -e '^pref(\"torbrowser.version\",' -e '^pref(\"plugin.state.flash\",' \
+		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js.fixed" || die
+	mv "${S}/${obj_dir}"/dist/bin/browser/defaults/preferences/000-tor-browser.js{.fixed,} || die
+
+	# Set torbrowser version
+	echo "pref(\"torbrowser.version\", \"$TOR_PV-Linux\");" \
+		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" || die
+
+	# Disable adobe-flash by default
+	echo "pref(\"plugin.state.flash\", 0);" \
+		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" || die
+
+	# FIXME: about:tor always reports connected (part of torbuttone)
 	# Set default homepage
-	cp "${WORKDIR}/omni/chrome/en-US/locale/branding/browserconfig.properties" \
-		"${S}/${obj_dir}/dist/bin/chrome/en-US/locale/branding/browserconfig.properties" || die
+	# needs to be changed in torbutton?
+	#mkdir -p "${S}"/"${obj_dir}"/dist/bin/chrome/en-US/locale/branding
+	#echo "browser.startup.homepage=https://check.torproject.org/?lang=en-US&small=1&uptodate=1" \
+	#	>> "${S}/${obj_dir}/dist/bin/chrome/en-US/locale/branding/browserconfig.properties" || die
 
 	# Set default path to search for dictionaries.
 	echo "pref(\"spellchecker.dictionary_path\", ${DICTPATH});" \
@@ -278,16 +260,14 @@ src_install() {
 			>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
 	fi
 
-	echo "pref(\"extensions.autoDisableScopes\", 3);" >> \
-		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
-
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
 	emake DESTDIR="${D}" install || die "emake install failed"
 
-	# Install icons and .desktop for menu entry
 	local size sizes icon_path
 	sizes="16 24 32 48 256"
-	icon_path="${FILESDIR}/branding"
+	icon_path="${S}/browser/branding/official"
+
+	# Install icons and .desktop for menu entry
 	for size in ${sizes}; do
 		newicon -s ${size} "${icon_path}/default${size}.png" ${PN}.png
 	done
@@ -300,20 +280,22 @@ src_install() {
 		echo "StartupNotify=true" >> "${ED}/usr/share/applications/${PN}-${PN}.desktop"
 	fi
 
-	# Without methodjit and tracejit there's no conflict with PaX
-	if use jit; then
-		# Required in order to use plugins and even run firefox on hardened.
-		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
-	fi
+	# Required in order to use plugins and even run torbrowser on hardened.
+	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
 
 	# we dont want development files
 	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || \
 		die "Failed to remove sdk and headers"
 
-	# Profile
-	insinto ${MOZILLA_FIVE_HOME}/defaults
-	doins -r "${WORKDIR}"/tor-browser_en-US/Data/profile
-	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/changelog
+	# FIXME: https://trac.torproject.org/projects/tor/ticket/10160
+	# Profile without the tor-launcher extension
+	local torlauncher="${WORKDIR}"/tor-browser_en-US/Data/Browser/profile.default/extensions/tor-launcher@torproject.org.xpi
+	dodoc "${torlauncher}" && rm -rf "${torlauncher}" || die "Failed to remove tor-launcher"
+
+	dodoc "${WORKDIR}"/tor-browser_en-US/Docs/ChangeLog.txt
+
+	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
+	doins -r "${WORKDIR}"/tor-browser_en-US/Data/Browser/profile.default/{extensions,preferences,bookmarks.html}
 }
 
 pkg_preinst() {
