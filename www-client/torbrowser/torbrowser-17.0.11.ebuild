@@ -22,7 +22,7 @@ PATCH="${MY_PN}-17.0-patches-0.6"
 MOZ_FTP_URI="ftp://ftp.mozilla.org/pub/${MY_PN}/releases/"
 MOZ_HTTP_URI="http://ftp.mozilla.org/pub/${MY_PN}/releases/"
 
-inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils fdo-mime autotools virtualx
+inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils autotools
 
 DESCRIPTION="Torbrowser without vidalia or tor"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
@@ -338,8 +338,6 @@ pkg_postinst() {
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
 	elog "in the connection settings to match your setup."
 
-	# Update mimedb for the new .desktop file
-	fdo-mime_desktop_database_update
 	gnome2_icon_cache_update
 }
 
