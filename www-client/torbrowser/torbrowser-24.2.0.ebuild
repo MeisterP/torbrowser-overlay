@@ -19,8 +19,9 @@ PATCH="${MY_PN}-24.0-patches-0.5"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 multilib pax-utils autotools
 
-DESCRIPTION="Torbrowser without vidalia or tor"
-HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
+DESCRIPTION="The Tor Browser"
+HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
+	https://gitweb.torproject.org/tor-browser.git"
 
 KEYWORDS=""
 SLOT="0"

@@ -27,11 +27,10 @@ distribution's package manager and it handles everything else, including:
 www-client/torbrowser
 =====================
 
-https://www.torproject.org/projects/torbrowser.html.en
+https://www.torproject.org/projects/torbrowser.html
+https://gitweb.torproject.org/tor-browser.git
 
-Torbrowser without Vidalia or Tor
-
-This patched firefox build is _NOT_ recommended by Tor upstream but uses
+This patched firefox/torbrowser build is _NOT_ recommended by Tor upstream but uses
 the exact same patches. Use this only if you know what you are doing!
 
 The profile moved to '~/.mozilla/torbrowser'. It's auto generated
