@@ -22,7 +22,7 @@ inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-3 
 DESCRIPTION="Torbrowser without vidalia or tor"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
 
-KEYWORDS="~amd64 ~x86"
+KEYWORDS=""
 SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
