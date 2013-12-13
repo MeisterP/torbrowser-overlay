@@ -1,0 +1,794 @@
+From 5f8be4e4c5e87dd6eacd1378c7debed0a11f0377 Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Thu, 28 Feb 2013 18:02:34 -0800
+Subject: [PATCH 25/41] Isolate DOM storage to first party URI
+
+Also prevents DOM storage from writing to disk (hardcoded).
+---
+ docshell/base/nsDocShell.cpp                       | 79 ++++++++++++++++++++--
+ docshell/base/nsDocShell.h                         |  6 +-
+ docshell/base/nsIDocShell.idl                      | 33 ++++++++-
+ dom/base/nsGlobalWindow.cpp                        | 13 +++-
+ dom/interfaces/storage/nsIDOMStorageManager.idl    | 11 ++-
+ dom/interfaces/storage/nsPIDOMStorage.h            |  8 ++-
+ dom/src/storage/StorageChild.cpp                   |  6 +-
+ dom/src/storage/StorageChild.h                     |  3 +-
+ dom/src/storage/nsDOMStorage.cpp                   | 44 +++++++++---
+ dom/src/storage/nsDOMStorage.h                     | 14 ++--
+ dom/src/storage/nsDOMStorageDBWrapper.cpp          | 46 ++++++++++---
+ dom/src/storage/nsDOMStorageDBWrapper.h            | 14 ++--
+ dom/src/storage/nsDOMStorageMemoryDB.cpp           | 21 +++++-
+ dom/src/storage/nsDOMStoragePersistentDB.cpp       |  8 ++-
+ .../windowwatcher/src/nsWindowWatcher.cpp          |  5 +-
+ 15 files changed, 261 insertions(+), 50 deletions(-)
+
+diff --git a/docshell/base/nsDocShell.cpp b/docshell/base/nsDocShell.cpp
+index eac3165..1cef3f9 100644
+--- a/docshell/base/nsDocShell.cpp
++++ b/docshell/base/nsDocShell.cpp
+@@ -184,6 +184,7 @@
+ #include "nsIChannelPolicy.h"
+ #include "nsIContentSecurityPolicy.h"
+ #include "nsSandboxFlags.h"
++#include "mozIThirdPartyUtil.h"
+ 
+ #include "nsXULAppAPI.h"
+ 
+@@ -2395,6 +2396,17 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
+                                           bool aCreate,
+                                           nsIDOMStorage** aStorage)
+ {
++    return GetSessionStorageForFirstParty(nullptr, aPrincipal, aDocumentURI,
++                                          aCreate, aStorage);
++}
++
++NS_IMETHODIMP
++nsDocShell::GetSessionStorageForFirstParty(nsIURI *aFirstPartyURI,
++                                           nsIPrincipal* aPrincipal,
++                                           const nsAString& aDocumentURI,
++                                           bool aCreate,
++                                           nsIDOMStorage** aStorage)
++{
+     NS_ENSURE_ARG_POINTER(aStorage);
+     *aStorage = nullptr;
+ 
+@@ -2426,7 +2438,11 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
+     if (origin.IsEmpty())
+         return NS_OK;
+ 
+-    if (!mStorages.Get(origin, aStorage) && aCreate) {
++    nsXPIDLCString key;
++    rv = GetSessionStorageKey(aFirstPartyURI, origin, key);
++    NS_ENSURE_SUCCESS(rv, rv);
++
++    if (!mStorages.Get(key, aStorage) && aCreate) {
+         nsCOMPtr<nsIDOMStorage> newstorage =
+             do_CreateInstance("@mozilla.org/dom/storage;2");
+         if (!newstorage)
+@@ -2440,7 +2456,7 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
+         if (NS_FAILED(rv))
+             return rv;
+ 
+-        mStorages.Put(origin, newstorage);
++        mStorages.Put(key, newstorage);
+ 
+         newstorage.swap(*aStorage);
+ #if defined(PR_LOGGING) && defined(DEBUG)
+@@ -2454,7 +2470,7 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
+         if (piStorage) {
+             nsCOMPtr<nsIPrincipal> storagePrincipal = piStorage->Principal();
+ 
+-            // The origin string used to map items in the hash table is 
++            // The key string used to map items in the hash table is 
+             // an implicit security check. That check is double-confirmed 
+             // by checking the principal a storage was demanded for 
+             // really is the principal for which that storage was originally 
+@@ -2513,6 +2529,14 @@ nsresult
+ nsDocShell::AddSessionStorage(nsIPrincipal* aPrincipal,
+                               nsIDOMStorage* aStorage)
+ {
++    return AddSessionStorageForFirstParty(nullptr, aPrincipal, aStorage);
++}
++
++nsresult
++nsDocShell::AddSessionStorageForFirstParty(nsIURI* aFirstPartyURI,
++                                           nsIPrincipal* aPrincipal,
++                                           nsIDOMStorage* aStorage)
++{
+     NS_ENSURE_ARG_POINTER(aStorage);
+ 
+     if (!aPrincipal)
+@@ -2534,8 +2558,12 @@ nsDocShell::AddSessionStorage(nsIPrincipal* aPrincipal,
+             if (origin.IsEmpty())
+                 return NS_ERROR_FAILURE;
+ 
++            nsXPIDLCString key;
++            rv = GetSessionStorageKey(aFirstPartyURI, origin, key);
++            NS_ENSURE_SUCCESS(rv, rv);
++
+             // Do not replace an existing session storage.
+-            if (mStorages.GetWeak(origin))
++            if (mStorages.GetWeak(key))
+                 return NS_ERROR_NOT_AVAILABLE;
+ 
+ #if defined(PR_LOGGING) && defined(DEBUG)
+@@ -2543,7 +2571,7 @@ nsDocShell::AddSessionStorage(nsIPrincipal* aPrincipal,
+                    ("nsDocShell[%p]: was added a sessionStorage %p",
+                     this, aStorage));
+ #endif
+-            mStorages.Put(origin, aStorage);
++            mStorages.Put(key, aStorage);
+         }
+         else {
+             return topDocShell->AddSessionStorage(aPrincipal, aStorage);
+@@ -2568,6 +2596,10 @@ CloneSessionStorages(nsCStringHashKey::KeyType aKey, nsIDOMStorage* aStorage,
+     return PL_DHASH_NEXT;
+ }
+ 
++// CloneSessionStoragesTo() copies all session storage data from aDocShell to
++// this doc shell.  It does not check if that is an appropriate thing to do,
++// e.g., by verifying that the first party URIs are the same.  For now that is
++// okay because no Firefox code uses this method.
+ NS_IMETHODIMP
+ nsDocShell::CloneSessionStoragesTo(nsIDocShell* aDocShell)
+ {
+@@ -12416,3 +12448,40 @@ nsDocShell::HasUnloadedParent()
+     }
+     return false;
+ }
++
++nsresult
++nsDocShell::GetSessionStorageKey(nsIURI *aFirstPartyURI,
++                                 nsXPIDLCString& aOrigin,
++                                 nsXPIDLCString& aResult)
++{
++    aResult.Truncate();
++
++    if (!aOrigin)
++        return NS_ERROR_FAILURE;
++
++    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                            do_GetService(THIRDPARTYUTIL_CONTRACTID);
++    if (!thirdPartyUtil)
++      return NS_ERROR_FAILURE;
++
++    aResult.Append(aOrigin);
++
++    nsCOMPtr<nsIURI> firstPartyURI = aFirstPartyURI;
++    if (!firstPartyURI) {
++        nsCOMPtr<nsIDocument> doc(do_GetInterface(GetAsSupports(this)));
++        nsresult rv = thirdPartyUtil->GetFirstPartyURI(nullptr, doc,
++                                               getter_AddRefs(firstPartyURI));
++        NS_ENSURE_SUCCESS(rv, rv);
++    }
++
++    nsCAutoString host;
++    nsresult rv = thirdPartyUtil->GetFirstPartyHostForIsolation(firstPartyURI,
++                                                                host);
++    NS_ENSURE_SUCCESS(rv, rv);
++
++    aResult.AppendLiteral("&");
++    aResult.Append(host);
++
++    return NS_OK;
++}
++
+diff --git a/docshell/base/nsDocShell.h b/docshell/base/nsDocShell.h
+index 427630a..4bcd341 100644
+--- a/docshell/base/nsDocShell.h
++++ b/docshell/base/nsDocShell.h
+@@ -681,7 +681,7 @@ protected:
+ 
+     bool HasUnloadedParent();
+ 
+-    // hash of session storages, keyed by domain
++    // hash of session storages, keyed by domain&firstPartyHost
+     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
+ 
+     // Dimensions of the docshell
+@@ -848,6 +848,10 @@ private:
+     static unsigned long gNumberOfDocShells;
+ #endif /* DEBUG */
+ 
++    nsresult GetSessionStorageKey(nsIURI *aFirstPartyURI,
++                                  nsXPIDLCString& aOrigin,
++                                  nsXPIDLCString& aResult);
++
+ public:
+     class InterfaceRequestorProxy : public nsIInterfaceRequestor {
+     public:
+diff --git a/docshell/base/nsIDocShell.idl b/docshell/base/nsIDocShell.idl
+index 986f4b4..4f26a04 100644
+--- a/docshell/base/nsIDocShell.idl
++++ b/docshell/base/nsIDocShell.idl
+@@ -39,7 +39,7 @@ interface nsIWebBrowserPrint;
+ interface nsIVariant;
+ interface nsIPrivacyTransitionObserver;
+ 
+-[scriptable, builtinclass, uuid(9b283337-097d-4fa8-a2da-916318eaf828)]
++[scriptable, builtinclass, uuid(5289f25a-1175-4b01-bc56-b1628ef097b9)]
+ interface nsIDocShell : nsISupports
+ {
+   /**
+@@ -416,6 +416,24 @@ interface nsIDocShell : nsISupports
+                                               in boolean create);
+ 
+   /*
++   * A variant of getSessionStorageForPrincipal that is used when cloning
++   * session storage during creation of new windows/tabs (the first party URI
++   * of the new window/tab must be used to generate the key that is used to
++   * access the session data).
++   *
++   * @param firstPartyURI the URL bar URI
++   * @param principal returns a storage for this principal
++   * @param documentURI new storage will be created with reference to this
++   *                    document.documentURI that will appear in storage event
++   * @param create If true and a session storage object doesn't
++   *               already exist, a new one will be created.
++   */
++  nsIDOMStorage getSessionStorageForFirstParty(in nsIURI firstPartyURI,
++                                               in nsIPrincipal principal,
++                                               in DOMString documentURI,
++                                               in boolean create);
++
++  /*
+    * Add a WebApps session storage object to the docshell.
+    *
+    * @param principal the principal the storage object is associated with
+@@ -423,6 +441,19 @@ interface nsIDocShell : nsISupports
+    */
+   void addSessionStorage(in nsIPrincipal principal, in nsIDOMStorage storage);
+ 
++  /*
++   * A variant of addSessionStorage that is used when cloning session storage
++   * during creation of new windows/tabs (the cloning must occur before the
++   * document load begins).
++   *
++   * @param firstPartyURI the URL bar URI
++   * @param principal the principal the storage object is associated with
++   * @param storage the storage object to add
++   */
++  void addSessionStorageForFirstParty(in nsIURI firstPartyURI,
++                                      in nsIPrincipal principal,
++                                      in nsIDOMStorage storage);
++
+   /**
+    * Clones all session storage objects and attaches them to the given docshell.
+    * Useful when duplicating tabs and their states.
+diff --git a/dom/base/nsGlobalWindow.cpp b/dom/base/nsGlobalWindow.cpp
+index 48bd71d..1e16c03 100644
+--- a/dom/base/nsGlobalWindow.cpp
++++ b/dom/base/nsGlobalWindow.cpp
+@@ -8385,7 +8385,18 @@ nsGlobalWindow::GetLocalStorage(nsIDOMStorage ** aLocalStorage)
+     nsIDocShell* docShell = GetDocShell();
+     nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
+ 
+-    rv = storageManager->GetLocalStorageForPrincipal(principal,
++    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                do_GetService(THIRDPARTYUTIL_CONTRACTID);
++    if (!thirdPartyUtil)
++      return NS_ERROR_FAILURE;
++ 
++    nsCOMPtr<nsIURI> firstPartyURI;
++    nsCOMPtr<nsIDocument> doc = do_QueryInterface(mDocument);
++    rv = thirdPartyUtil->GetFirstPartyURI(NULL, doc, 
++                                          getter_AddRefs(firstPartyURI));
++    NS_ENSURE_SUCCESS(rv, rv);
++
++    rv = storageManager->GetLocalStorageForFirstParty(firstPartyURI, principal,
+                                                      documentURI,
+                                                      loadContext && loadContext->UsePrivateBrowsing(),
+                                                      getter_AddRefs(mLocalStorage));
+diff --git a/dom/interfaces/storage/nsIDOMStorageManager.idl b/dom/interfaces/storage/nsIDOMStorageManager.idl
+index 94b8789..21bedf0 100644
+--- a/dom/interfaces/storage/nsIDOMStorageManager.idl
++++ b/dom/interfaces/storage/nsIDOMStorageManager.idl
+@@ -7,8 +7,9 @@
+ 
+ interface nsIDOMStorage;
+ interface nsIPrincipal;
++interface nsIURI;
+ 
+-[scriptable, uuid(1541da6c-a9fb-4a8f-af9d-4493c981491d)]
++[scriptable, uuid(682edebf-7bbe-4b4b-b5f8-752cacfb2afa)]
+ interface nsIDOMStorageManager : nsISupports
+ {
+   /**
+@@ -35,4 +36,12 @@ interface nsIDOMStorageManager : nsISupports
+   nsIDOMStorage getLocalStorageForPrincipal(in nsIPrincipal aPrincipal,
+                                             in DOMString aDocumentURI,
+                                             [optional] in bool aPrivate);
++
++  /**
++   * Returns instance of localStorage object.
++   */
++  nsIDOMStorage getLocalStorageForFirstParty(in nsIURI aFirstPartyURI,
++                                             in nsIPrincipal aPrincipal,
++                                             in DOMString aDocumentURI,
++                                             [optional] in bool aPrivate);
+ };
+diff --git a/dom/interfaces/storage/nsPIDOMStorage.h b/dom/interfaces/storage/nsPIDOMStorage.h
+index fabb5cc..9f8de6b 100644
+--- a/dom/interfaces/storage/nsPIDOMStorage.h
++++ b/dom/interfaces/storage/nsPIDOMStorage.h
+@@ -15,8 +15,8 @@ class nsIURI;
+ class nsIPrincipal;
+ 
+ #define NS_PIDOMSTORAGE_IID \
+-{ 0x86dfe3c4, 0x4286, 0x4648, \
+-  { 0xb2, 0x09, 0x55, 0x27, 0x50, 0x59, 0x26, 0xac } }
++{ 0x0db5e488, 0x08f4, 0x4155, \
++  { 0x81, 0x9b, 0x2b, 0x5a, 0x44, 0xaa, 0xa2, 0x45 } }
+ 
+ class nsPIDOMStorage : public nsISupports
+ {
+@@ -31,7 +31,9 @@ public:
+ 
+   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                         bool aPrivate) = 0;
+-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
++  virtual nsresult InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                      nsIPrincipal *aPrincipal,
++                                      const nsSubstring &aDocumentURI,
+                                       bool aPrivate) = 0;
+ 
+   virtual already_AddRefed<nsIDOMStorage> Clone() = 0;
+diff --git a/dom/src/storage/StorageChild.cpp b/dom/src/storage/StorageChild.cpp
+index 6754fde..5d24973 100644
+--- a/dom/src/storage/StorageChild.cpp
++++ b/dom/src/storage/StorageChild.cpp
+@@ -95,9 +95,11 @@ StorageChild::InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate)
+ }
+ 
+ void
+-StorageChild::InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate)
++StorageChild::InitAsLocalStorage(nsIURI* aFirstPartyURI, nsIURI* aDomainURI,
++                                 bool aCanUseChromePersist, bool aPrivate)
+ {
+-  DOMStorageBase::InitAsLocalStorage(aDomainURI, aCanUseChromePersist, aPrivate);
++  DOMStorageBase::InitAsLocalStorage(aFirstPartyURI, aDomainURI,
++                                     aCanUseChromePersist, aPrivate);
+   InitRemote();
+ }
+ 
+diff --git a/dom/src/storage/StorageChild.h b/dom/src/storage/StorageChild.h
+index 297f093..81ddabe 100644
+--- a/dom/src/storage/StorageChild.h
++++ b/dom/src/storage/StorageChild.h
+@@ -27,7 +27,8 @@ public:
+   StorageChild(nsDOMStorage* aOwner, StorageChild& aOther);
+ 
+   virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
+-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
++  virtual void InitAsLocalStorage(nsIURI* aFirstPartyURI, nsIURI* aDomainURI,
++                                  bool aCanUseChromePersist, bool aPrivate);
+ 
+   virtual bool CacheStoragePermissions();
+   
+diff --git a/dom/src/storage/nsDOMStorage.cpp b/dom/src/storage/nsDOMStorage.cpp
+index 2dd0fbc..23e8739 100644
+--- a/dom/src/storage/nsDOMStorage.cpp
++++ b/dom/src/storage/nsDOMStorage.cpp
+@@ -496,6 +496,17 @@ nsDOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal *aPrincipal,
+                                                  bool aPrivate,
+                                                  nsIDOMStorage **aResult)
+ {
++  return GetLocalStorageForFirstParty(nullptr, aPrincipal, aDocumentURI,
++                                     aPrivate, aResult);
++}
++
++NS_IMETHODIMP
++nsDOMStorageManager::GetLocalStorageForFirstParty(nsIURI *aFirstPartyURI,
++                                               nsIPrincipal *aPrincipal,
++                                               const nsSubstring &aDocumentURI,
++                                               bool aPrivate,
++                                               nsIDOMStorage **aResult)
++{
+   NS_ENSURE_ARG_POINTER(aPrincipal);
+   *aResult = nullptr;
+ 
+@@ -505,7 +516,8 @@ nsDOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal *aPrincipal,
+   if (!storage)
+     return NS_ERROR_OUT_OF_MEMORY;
+ 
+-  rv = storage->InitAsLocalStorage(aPrincipal, aDocumentURI, aPrivate);
++  rv = storage->InitAsLocalStorage(aFirstPartyURI, aPrincipal, aDocumentURI,
++                                   aPrivate);
+   if (NS_FAILED(rv))
+     return rv;
+ 
+@@ -622,7 +634,8 @@ DOMStorageBase::InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate)
+ }
+ 
+ void
+-DOMStorageBase::InitAsLocalStorage(nsIURI* aDomainURI,
++DOMStorageBase::InitAsLocalStorage(nsIURI* aFirstPartyURI,
++                                   nsIURI* aDomainURI,
+                                    bool aCanUseChromePersist,
+                                    bool aPrivate)
+ {
+@@ -634,7 +647,8 @@ DOMStorageBase::InitAsLocalStorage(nsIURI* aDomainURI,
+   // mPrincipal in bug 455070. It is not even used for localStorage.
+   aDomainURI->GetAsciiHost(mDomain);
+ 
+-  nsDOMStorageDBWrapper::CreateOriginScopeDBKey(aDomainURI, mScopeDBKey);
++  nsDOMStorageDBWrapper::CreateOriginScopeDBKey(aFirstPartyURI, aDomainURI,
++                                                mScopeDBKey);
+ 
+   // XXX Bug 357323, we have to solve the issue how to define
+   // origin for file URLs. In that case CreateOriginScopeDBKey
+@@ -642,9 +656,9 @@ DOMStorageBase::InitAsLocalStorage(nsIURI* aDomainURI,
+   // in that case because it produces broken entries w/o owner.
+   mUseDB = !mScopeDBKey.IsEmpty();
+ 
+-  nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(mDomain,
++  nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(aFirstPartyURI, mDomain,
+                                                 true, false, mQuotaDomainDBKey);
+-  nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(mDomain,
++  nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(aFirstPartyURI, mDomain,
+                                                 true, true, mQuotaETLDplus1DomainDBKey);
+   mCanUseChromePersist = aCanUseChromePersist;
+   mStorageType = nsPIDOMStorage::LocalStorage;
+@@ -763,11 +777,13 @@ DOMStorageImpl::InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate)
+ }
+ 
+ void
+-DOMStorageImpl::InitAsLocalStorage(nsIURI* aDomainURI,
++DOMStorageImpl::InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                   nsIURI* aDomainURI,
+                                    bool aCanUseChromePersist,
+                                    bool aPrivate)
+ {
+-  DOMStorageBase::InitAsLocalStorage(aDomainURI, aCanUseChromePersist, aPrivate);
++  DOMStorageBase::InitAsLocalStorage(aFirstPartyURI, aDomainURI,
++                                     aCanUseChromePersist, aPrivate);
+ }
+ 
+ bool
+@@ -1352,7 +1368,9 @@ nsDOMStorage::InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &
+ }
+ 
+ nsresult
+-nsDOMStorage::InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
++nsDOMStorage::InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                 nsIPrincipal *aPrincipal,
++                                 const nsSubstring &aDocumentURI,
+                                  bool aPrivate)
+ {
+   nsCOMPtr<nsIURI> domainURI;
+@@ -1370,7 +1388,8 @@ nsDOMStorage::InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aD
+     canUseChromePersist = URICanUseChromePersist(URI);
+   }
+   
+-  mStorageImpl->InitAsLocalStorage(domainURI, canUseChromePersist, aPrivate);
++  mStorageImpl->InitAsLocalStorage(aFirstPartyURI, domainURI,
++                                   canUseChromePersist, aPrivate);
+   return NS_OK;
+ }
+ 
+@@ -1782,7 +1801,9 @@ nsDOMStorage2::InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring
+ }
+ 
+ nsresult
+-nsDOMStorage2::InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
++nsDOMStorage2::InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                  nsIPrincipal *aPrincipal,
++                                  const nsSubstring &aDocumentURI,
+                                   bool aPrivate)
+ {
+   mStorage = new nsDOMStorage();
+@@ -1792,7 +1813,8 @@ nsDOMStorage2::InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &a
+   mPrincipal = aPrincipal;
+   mDocumentURI = aDocumentURI;
+ 
+-  return mStorage->InitAsLocalStorage(aPrincipal, aDocumentURI, aPrivate);
++  return mStorage->InitAsLocalStorage(aFirstPartyURI, aPrincipal,
++                                      aDocumentURI, aPrivate);
+ }
+ 
+ already_AddRefed<nsIDOMStorage>
+diff --git a/dom/src/storage/nsDOMStorage.h b/dom/src/storage/nsDOMStorage.h
+index 7add846..b795397 100644
+--- a/dom/src/storage/nsDOMStorage.h
++++ b/dom/src/storage/nsDOMStorage.h
+@@ -114,7 +114,8 @@ public:
+   DOMStorageBase(DOMStorageBase&);
+ 
+   virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
+-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
++  virtual void InitAsLocalStorage(nsIURI* aFirstPartyURI, nsIURI* aDomainURI,
++                                  bool aCanUseChromePersist, bool aPrivate);
+ 
+   virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
+   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength) = 0;
+@@ -221,7 +222,8 @@ public:
+   ~DOMStorageImpl();
+ 
+   virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
+-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
++  virtual void InitAsLocalStorage(nsIURI *aFirstPartyURI, nsIURI* aDomainURI,
++                                  bool aCanUseChromePersist, bool aPrivate);
+ 
+   bool SessionOnly() {
+     return mSessionOnly;
+@@ -336,7 +338,9 @@ public:
+   // nsPIDOMStorage
+   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                         bool aPrivate);
+-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
++  virtual nsresult InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                      nsIPrincipal *aPrincipal,
++                                      const nsSubstring &aDocumentURI,
+                                       bool aPrivate);
+   virtual already_AddRefed<nsIDOMStorage> Clone();
+   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
+@@ -411,7 +415,9 @@ public:
+   // nsPIDOMStorage
+   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
+                                         bool aPrivate);
+-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
++  virtual nsresult InitAsLocalStorage(nsIURI *aFirstPartyURI,
++                                      nsIPrincipal *aPrincipal,
++                                      const nsSubstring &aDocumentURI,
+                                       bool aPrivate);
+   virtual already_AddRefed<nsIDOMStorage> Clone();
+   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
+diff --git a/dom/src/storage/nsDOMStorageDBWrapper.cpp b/dom/src/storage/nsDOMStorageDBWrapper.cpp
+index bd2581b..04942fd 100644
+--- a/dom/src/storage/nsDOMStorageDBWrapper.cpp
++++ b/dom/src/storage/nsDOMStorageDBWrapper.cpp
+@@ -17,6 +17,7 @@
+ #include "mozIStorageService.h"
+ #include "mozIStorageValueArray.h"
+ #include "mozIStorageFunction.h"
++#include "mozIThirdPartyUtil.h"
+ #include "nsPrintfCString.h"
+ #include "nsNetUtil.h"
+ 
+@@ -47,7 +48,6 @@ nsDOMStorageDBWrapper::~nsDOMStorageDBWrapper()
+ void
+ nsDOMStorageDBWrapper::Close()
+ {
+-  mPersistentDB.Close();
+   mChromePersistentDB.Close();
+ }
+ 
+@@ -56,13 +56,13 @@ nsDOMStorageDBWrapper::Init()
+ {
+   nsresult rv;
+ 
+-  rv = mPersistentDB.Init(NS_LITERAL_STRING("webappsstore.sqlite"));
++  rv = mPersistentDB.Init();
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   rv = mChromePersistentDB.Init(NS_LITERAL_STRING("chromeappsstore.sqlite"));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  rv = mSessionOnlyDB.Init(&mPersistentDB);
++  rv = mSessionOnlyDB.Init();
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   rv = mPrivateBrowsingDB.Init();
+@@ -74,16 +74,14 @@ nsDOMStorageDBWrapper::Init()
+ nsresult
+ nsDOMStorageDBWrapper::FlushAndDeleteTemporaryTables(bool force)
+ {
+-  nsresult rv1, rv2;
++  nsresult rv1;
+   rv1 = mChromePersistentDB.FlushTemporaryTables(force);
+-  rv2 = mPersistentDB.FlushTemporaryTables(force);
+ 
+   // Everything flushed?  Then no need for a timer.
+-  if (!mChromePersistentDB.mTempTableLoads.Count() && 
+-      !mPersistentDB.mTempTableLoads.Count())
++  if (!mChromePersistentDB.mTempTableLoads.Count())
+     StopTempTableFlushTimer();
+ 
+-  return NS_FAILED(rv1) ? rv1 : rv2;
++  return rv1;
+ }
+ 
+ #define IMPL_FORWARDER_GUTS(_return, _code)                                \
+@@ -243,8 +241,12 @@ nsDOMStorageDBWrapper::GetUsage(const nsACString& aDomain,
+ }
+ 
+ nsresult
+-nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey)
++nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI *aFirstPartyURI,
++                                              nsIURI* aUri, nsACString& aKey)
+ {
++  if (!aFirstPartyURI)
++    return NS_ERROR_FAILURE;
++
+   nsresult rv;
+ 
+   rv = CreateDomainScopeDBKey(aUri, aKey);
+@@ -264,6 +266,16 @@ nsDOMStorageDBWrapper::CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey)
+     aKey.Append(nsPrintfCString("%d", port));
+   }
+ 
++  // Isolate scope keys to the URL bar domain by appending &firstPartyHost.
++  nsCAutoString host;
++  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                     do_GetService(THIRDPARTYUTIL_CONTRACTID);
++  rv = thirdPartyUtil->GetFirstPartyHostForIsolation(aFirstPartyURI, host);
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  aKey.AppendLiteral("&");
++  aKey.Append(host);
++
+   return NS_OK;
+ }
+ 
+@@ -317,11 +329,15 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(const nsACString& aAsciiDomain,
+ }
+ 
+ nsresult
+-nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
++nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(nsIURI *aFirstPartyURI,
++                                              const nsACString& aAsciiDomain,
+                                               bool aIncludeSubDomains,
+                                               bool aEffectiveTLDplus1Only,
+                                               nsACString& aKey)
+ {
++  if (!aFirstPartyURI)
++    return NS_ERROR_FAILURE;
++
+   nsresult rv;
+ 
+   nsCAutoString subdomainsDBKey;
+@@ -351,6 +367,16 @@ nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
+   if (!aIncludeSubDomains)
+     subdomainsDBKey.AppendLiteral(":");
+ 
++  // Isolate scope keys to the URL bar domain by appending &firstPartyHost.
++  nsCAutoString host;
++  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                     do_GetService(THIRDPARTYUTIL_CONTRACTID);
++  rv = thirdPartyUtil->GetFirstPartyHostForIsolation(aFirstPartyURI, host);
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  subdomainsDBKey.AppendLiteral("&");
++  subdomainsDBKey.Append(host);
++
+   aKey.Assign(subdomainsDBKey);
+   return NS_OK;
+ }
+diff --git a/dom/src/storage/nsDOMStorageDBWrapper.h b/dom/src/storage/nsDOMStorageDBWrapper.h
+index 94d28af..60a4f91 100644
+--- a/dom/src/storage/nsDOMStorageDBWrapper.h
++++ b/dom/src/storage/nsDOMStorageDBWrapper.h
+@@ -178,9 +178,11 @@ public:
+   /**
+     * Turns "http://foo.bar.com:80" to "moc.rab.oof.:http:80",
+     * i.e. reverses the host, appends a dot, appends the schema
+-    * and a port number.
++    * and a port number.  If aFirstPartyURI is present, the first party
++    * host is appended, e.g., "moc.rab.oof.:http:80:example.com"
+     */
+-  static nsresult CreateOriginScopeDBKey(nsIURI* aUri, nsACString& aKey);
++  static nsresult CreateOriginScopeDBKey(nsIURI *aFirstPartyURI,
++                                         nsIURI* aUri, nsACString& aKey);
+ 
+   /**
+     * Turns "http://foo.bar.com" to "moc.rab.oof.",
+@@ -192,9 +194,11 @@ public:
+   /**
+     * Turns "foo.bar.com" to "moc.rab.",
+     * i.e. extracts eTLD+1 from the host, reverses the result
+-    * and appends a dot.
++    * and appends a dot.  If aFirstPartyURI is present, the first party
++    * host is appended, e.g., "moc.rab.:example.com"
+     */
+-  static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
++  static nsresult CreateQuotaDomainDBKey(nsIURI *aFirstPartyURI,
++                                         const nsACString& aAsciiDomain,
+                                          bool aIncludeSubDomains, bool aETLDplus1Only,
+                                          nsACString& aKey);
+ 
+@@ -222,7 +226,7 @@ public:
+ 
+ protected:
+   nsDOMStoragePersistentDB mChromePersistentDB;
+-  nsDOMStoragePersistentDB mPersistentDB;
++  nsDOMStorageMemoryDB mPersistentDB; // No longer an nsDOMStoragePersistentDB
+   nsDOMStorageMemoryDB mSessionOnlyDB;
+   nsDOMStorageMemoryDB mPrivateBrowsingDB;
+ 
+diff --git a/dom/src/storage/nsDOMStorageMemoryDB.cpp b/dom/src/storage/nsDOMStorageMemoryDB.cpp
+index 5cc2e5d..639f516 100644
+--- a/dom/src/storage/nsDOMStorageMemoryDB.cpp
++++ b/dom/src/storage/nsDOMStorageMemoryDB.cpp
+@@ -382,7 +382,12 @@ nsDOMStorageMemoryDB::GetUsage(const nsACString& aDomain,
+   nsresult rv;
+ 
+   nsCAutoString quotadomainDBKey;
+-  rv = nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(aDomain,
++  // This GetUsage() call is only used to report usage totals in the
++  // preferences and page info. UI, and only for sites that have been
++  // granted "offline application" permission.  Since we pass nullptr
++  // for the firstPartURI, the usage total returned will not be
++  // partitioned by first party, which is OK for the UI.
++  rv = nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(nullptr, aDomain,
+                                                      aIncludeSubDomains,
+                                                      false,
+                                                      quotadomainDBKey);
+@@ -395,6 +400,7 @@ struct GetUsageEnumStruc
+ {
+   int32_t mUsage;
+   int32_t mExcludeOfflineFromUsage;
++  nsCString mFirstPartyHostSuffix;	// e.g., &example.com
+   nsCString mSubdomain;
+ };
+ 
+@@ -405,7 +411,9 @@ GetUsageEnum(const nsACString& key,
+ {
+   GetUsageEnumStruc* struc = (GetUsageEnumStruc*)closure;
+ 
+-  if (StringBeginsWith(key, struc->mSubdomain)) {
++  if (StringBeginsWith(key, struc->mSubdomain) &&
++      ((0 == struc->mFirstPartyHostSuffix.Length()) ||
++       StringEndsWith(key, struc->mFirstPartyHostSuffix))) {
+     if (struc->mExcludeOfflineFromUsage) {
+       nsCAutoString domain;
+       nsresult rv = nsDOMStorageDBWrapper::GetDomainFromScopeKey(key, domain);
+@@ -428,6 +436,15 @@ nsDOMStorageMemoryDB::GetUsageInternal(const nsACString& aQuotaDomainDBKey,
+   struc.mUsage = 0;
+   struc.mExcludeOfflineFromUsage = aExcludeOfflineFromUsage;
+   struc.mSubdomain = aQuotaDomainDBKey;
++  nsCAutoString tmpQuotaKey(aQuotaDomainDBKey);
++  int32_t idx = tmpQuotaKey.RFindChar('&');
++  if (idx > 0) {
++    const nsDependentCSubstring& tmpStr = Substring(tmpQuotaKey, idx);
++    if (tmpStr.Length() > 1) {
++      struc.mFirstPartyHostSuffix = tmpStr;
++      struc.mSubdomain = Substring(tmpQuotaKey, 0, idx - 1);
++    }
++  }
+ 
+   if (mPreloadDB) {
+     nsresult rv;
+diff --git a/dom/src/storage/nsDOMStoragePersistentDB.cpp b/dom/src/storage/nsDOMStoragePersistentDB.cpp
+index 93ad303..7814a60 100644
+--- a/dom/src/storage/nsDOMStoragePersistentDB.cpp
++++ b/dom/src/storage/nsDOMStoragePersistentDB.cpp
+@@ -813,7 +813,13 @@ nsDOMStoragePersistentDB::GetUsage(const nsACString& aDomain,
+   nsresult rv;
+ 
+   nsCAutoString quotadomainDBKey;
+-  rv = nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(aDomain,
++  // This GetUsage() call is only used to report usage totals in the
++  // preferences and page info. UI, and only for sites that have been
++  // granted "offline application" permission.  Since we pass nullptr
++  // for the firstPartURI, the usage total returned will not be
++  // partitioned by first party, which is OK for the UI.
++  // Also, Tor does not use currently use nsDOMStoragePersistentDB.
++  rv = nsDOMStorageDBWrapper::CreateQuotaDomainDBKey(nullptr, aDomain,
+                                                      aIncludeSubDomains,
+                                                      false,
+                                                      quotadomainDBKey);
+diff --git a/embedding/components/windowwatcher/src/nsWindowWatcher.cpp b/embedding/components/windowwatcher/src/nsWindowWatcher.cpp
+index 6abbed7..0bad9ed 100644
+--- a/embedding/components/windowwatcher/src/nsWindowWatcher.cpp
++++ b/embedding/components/windowwatcher/src/nsWindowWatcher.cpp
+@@ -963,14 +963,15 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
+ 
+   if (subjectPrincipal && parentDocShell) {
+     nsCOMPtr<nsIDOMStorage> storage;
+-    parentDocShell->GetSessionStorageForPrincipal(subjectPrincipal,
++    parentDocShell->GetSessionStorageForFirstParty(uriToLoad, subjectPrincipal,
+                                                   EmptyString(), false,
+                                                   getter_AddRefs(storage));
+     nsCOMPtr<nsPIDOMStorage> piStorage =
+       do_QueryInterface(storage);
+     if (piStorage){
+       storage = piStorage->Clone();
+-      newDocShell->AddSessionStorage(
++      newDocShell->AddSessionStorageForFirstParty(
++        uriToLoad,
+         piStorage->Principal(),
+         storage);
+     }
+-- 
+1.8.1.2
+

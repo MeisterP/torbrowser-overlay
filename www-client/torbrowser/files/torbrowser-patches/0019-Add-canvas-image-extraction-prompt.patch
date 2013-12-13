@@ -1,0 +1,548 @@
+From 28c36c029b4da5e8b18485ee72ae5cec5fd0691c Mon Sep 17 00:00:00 2001
+From: Kathleen Brade <brade@pearlcrescent.com>
+Date: Tue, 27 Nov 2012 13:13:40 -0500
+Subject: [PATCH 19/41] Add canvas image extraction prompt.
+
+---
+ browser/base/content/browser.js                    | 102 +++++++++++++++++++++
+ browser/base/content/browser.xul                   |   1 +
+ .../en-US/chrome/browser/browser.properties        |   7 ++
+ browser/themes/gnomestripe/browser.css             |   2 +
+ browser/themes/pinstripe/browser.css               |   2 +
+ browser/themes/winstripe/browser.css               |   2 +
+ content/canvas/src/CanvasUtils.cpp                 |  65 +++++++++++++
+ content/canvas/src/CanvasUtils.h                   |   2 +
+ content/canvas/src/nsCanvasRenderingContext2D.cpp  |  16 ++++
+ .../canvas/src/nsCanvasRenderingContext2DAzure.cpp |  16 ++++
+ content/html/content/public/nsHTMLCanvasElement.h  |   3 +
+ content/html/content/src/Makefile.in               |   1 +
+ content/html/content/src/nsHTMLCanvasElement.cpp   |  40 ++++++--
+ 13 files changed, 249 insertions(+), 10 deletions(-)
+
+diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
+index 9b72016..6d56a21 100644
+--- a/browser/base/content/browser.js
++++ b/browser/base/content/browser.js
+@@ -1266,6 +1266,7 @@ var gBrowserInit = {
+     BrowserOffline.init();
+     OfflineApps.init();
+     IndexedDBPromptHelper.init();
++    CanvasPermissionPromptHelper.init();
+     gFormSubmitObserver.init();
+     SocialUI.init();
+     AddonManager.addAddonListener(AddonsMgrListener);
+@@ -1623,6 +1624,7 @@ var gBrowserInit = {
+       BrowserOffline.uninit();
+       OfflineApps.uninit();
+       IndexedDBPromptHelper.uninit();
++      CanvasPermissionPromptHelper.uninit();
+       AddonManager.removeAddonListener(AddonsMgrListener);
+       SocialUI.uninit();
+     }
+@@ -6119,6 +6121,106 @@ var IndexedDBPromptHelper = {
+   }
+ };
+ 
++var CanvasPermissionPromptHelper = {
++  _permissionsPrompt: "canvas-permissions-prompt",
++  _notificationIcon: "canvas-notification-icon",
++
++  init:
++  function CanvasPermissionPromptHelper_init() {
++    Services.obs.addObserver(this, this._permissionsPrompt, false);
++  },
++
++  uninit:
++  function CanvasPermissionPromptHelper_uninit() {
++    Services.obs.removeObserver(this, this._permissionsPrompt, false);
++  },
++
++  // aSubject is an nsIDOMWindow.
++  // aData is an URL string.
++  observe:
++  function CanvasPermissionPromptHelper_observe(aSubject, aTopic, aData) {
++    if ((aTopic != this._permissionsPrompt) || !aData)
++      throw new Error("Unexpected topic or missing URL");
++
++    var uri = makeURI(aData);
++    var contentWindow = aSubject.QueryInterface(Ci.nsIDOMWindow);
++    var contentDocument = contentWindow.document;
++    var browserWindow =
++      OfflineApps._getBrowserWindowForContentWindow(contentWindow);
++
++    if (browserWindow != window) {
++      // Must belong to some other window.
++      return;
++    }
++
++    // If canvas prompt is already displayed, just return.  This is OK (and
++    // more efficient) since this permission is associated with the top
++    // browser's URL.
++    if (PopupNotifications.getNotification(aTopic, browser))
++      return;
++
++    var bundleSvc = Cc["@mozilla.org/intl/stringbundle;1"].
++                        getService(Ci.nsIStringBundleService);
++    var torBtnBundle;
++    try {
++      torBtnBundle = bundleSvc.createBundle(
++                             "chrome://torbutton/locale/torbutton.properties");
++    } catch (e) {}
++
++    var message = getLocalizedString("canvas.siteprompt", [ uri.asciiHost ]);
++
++    var mainAction = {
++      label: getLocalizedString("canvas.allow"),
++      accessKey: getLocalizedString("canvas.allowAccessKey"),
++      callback: function() {
++          setCanvasPermission(uri, Ci.nsIPermissionManager.ALLOW_ACTION);
++      }
++    };
++
++    var secondaryActions = [
++      {
++        label: getLocalizedString("canvas.never"),
++        accessKey: getLocalizedString("canvas.neverAccessKey"),
++        callback: function() {
++          setCanvasPermission(uri, Ci.nsIPermissionManager.DENY_ACTION);
++        }
++      }
++    ];
++
++    // Since we have a process in place to perform localization for the
++    // Torbutton extension, get our strings from the extension if possible.
++    function getLocalizedString(aID, aParams) {
++      var s;
++      if (torBtnBundle) try {
++        if (aParams)
++          s = torBtnBundle.formatStringFromName(aID, aParams, aParams.length);
++        else
++          s = torBtnBundle.GetStringFromName(aID);
++      } catch (e) {}
++
++      if (!s) {
++        if (aParams)
++          s = gNavigatorBundle.getFormattedString(aID, aParams);
++        else
++          s = gNavigatorBundle.getString(aID);
++      }
++
++      return s;
++    }
++
++    function setCanvasPermission(aURI, aPerm) {
++      Services.perms.add(aURI, "canvas/extractData", aPerm,
++                         Ci.nsIPermissionManager.EXPIRE_NEVER);
++    }
++
++    var browser = OfflineApps._getBrowserForContentWindow(browserWindow,
++                                                          contentWindow);
++    notification = PopupNotifications.show(browser, aTopic, message,
++                                           this._notificationIcon, mainAction,
++                                           secondaryActions, null);
++  }
++};
++
+ function WindowIsClosing()
+ {
+   if (TabView.isVisible()) {
+diff --git a/browser/base/content/browser.xul b/browser/base/content/browser.xul
+index 1982eb1..d4a20cd 100644
+--- a/browser/base/content/browser.xul
++++ b/browser/base/content/browser.xul
+@@ -573,6 +573,7 @@
+             <image id="identity-notification-icon" class="notification-anchor-icon" role="button"/>
+             <image id="geo-notification-icon" class="notification-anchor-icon" role="button"/>
+             <image id="addons-notification-icon" class="notification-anchor-icon" role="button"/>
++            <image id="canvas-notification-icon" class="notification-anchor-icon" role="button"/>
+             <image id="indexedDB-notification-icon" class="notification-anchor-icon" role="button"/>
+             <image id="password-notification-icon" class="notification-anchor-icon" role="button"/>
+             <image id="webapps-notification-icon" class="notification-anchor-icon" role="button"/>
+diff --git a/browser/locales/en-US/chrome/browser/browser.properties b/browser/locales/en-US/chrome/browser/browser.properties
+index 1a9f457..4e61cb9 100644
+--- a/browser/locales/en-US/chrome/browser/browser.properties
++++ b/browser/locales/en-US/chrome/browser/browser.properties
+@@ -218,6 +218,13 @@ offlineApps.usage=This website (%S) is now storing more than %SMB of data on you
+ offlineApps.manageUsage=Show settings
+ offlineApps.manageUsageAccessKey=S
+ 
++# Canvas permission prompt
++canvas.siteprompt=This website (%S) attempted to access image data on a canvas. Since canvas image data can be used to discover information about your computer, blank image data was returned this time.
++canvas.allow=Allow in the Future
++canvas.allowAccessKey=A
++canvas.never=Never for This Site
++canvas.neverAccessKey=e
++
+ # LOCALIZATION NOTE (indexedDB.usage): %1$S is the website host name
+ # %2$S a number of megabytes.
+ indexedDB.usage=This website (%1$S) is attempting to store more than %2$S MB of data on your computer for offline use.
+diff --git a/browser/themes/gnomestripe/browser.css b/browser/themes/gnomestripe/browser.css
+index a90d500..fd5d042 100644
+--- a/browser/themes/gnomestripe/browser.css
++++ b/browser/themes/gnomestripe/browser.css
+@@ -1185,6 +1185,7 @@ toolbar[iconsize="small"] #feed-button {
+   list-style-image: url("moz-icon://stock/gtk-cancel?size=menu");
+ }
+ 
++.popup-notification-icon[popupid="canvas-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
+   list-style-image: url(chrome://global/skin/icons/question-64.png);
+@@ -1250,6 +1251,7 @@ toolbar[iconsize="small"] #feed-button {
+   list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.png);
+ }
+ 
++#canvas-notification-icon,
+ #indexedDB-notification-icon {
+   list-style-image: url(chrome://global/skin/icons/question-16.png);
+ }
+diff --git a/browser/themes/pinstripe/browser.css b/browser/themes/pinstripe/browser.css
+index cb98808..69b908f 100644
+--- a/browser/themes/pinstripe/browser.css
++++ b/browser/themes/pinstripe/browser.css
+@@ -2433,10 +2433,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
+   -moz-image-region: rect(0px, 48px, 16px, 32px);
+ }
+ 
++#canvas-notification-icon,
+ #indexedDB-notification-icon {
+   list-style-image: url(chrome://global/skin/icons/question-16.png);
+ }
+ 
++.popup-notification-icon[popupid="canvas-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
+   list-style-image: url(chrome://global/skin/icons/question-64.png);
+diff --git a/browser/themes/winstripe/browser.css b/browser/themes/winstripe/browser.css
+index d02eed6..70aab91 100644
+--- a/browser/themes/winstripe/browser.css
++++ b/browser/themes/winstripe/browser.css
+@@ -2319,6 +2319,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
+   -moz-image-region: rect(32px, 32px, 48px, 16px);
+ }
+ 
++.popup-notification-icon[popupid="canvas-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
+ .popup-notification-icon[popupid="indexedDB-quota-prompt"] {
+   list-style-image: url(chrome://global/skin/icons/question-64.png);
+@@ -2382,6 +2383,7 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
+   list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.png);
+ }
+ 
++#canvas-notification-icon,
+ #indexedDB-notification-icon {
+   list-style-image: url(chrome://global/skin/icons/question-16.png);
+ }
+diff --git a/content/canvas/src/CanvasUtils.cpp b/content/canvas/src/CanvasUtils.cpp
+index 4173891..2ec463f 100644
+--- a/content/canvas/src/CanvasUtils.cpp
++++ b/content/canvas/src/CanvasUtils.cpp
+@@ -24,9 +24,74 @@
+ #include "CanvasUtils.h"
+ #include "mozilla/gfx/Matrix.h"
+ 
++#include "nsIScriptObjectPrincipal.h"
++#include "nsIPermissionManager.h"
++#include "nsIObserverService.h"
++#include "mozilla/Services.h"
++#include "mozIThirdPartyUtil.h"
++#include "nsContentUtils.h"
++#include "nsUnicharUtils.h"
++
++#define TOPIC_CANVAS_PERMISSIONS_PROMPT "canvas-permissions-prompt"
++#define PERMISSION_CANVAS_EXTRACT_DATA "canvas/extractData"
++
+ namespace mozilla {
+ namespace CanvasUtils {
+ 
++// Check site-specific permission and display prompt if appropriate.
++bool
++IsImageExtractionAllowed(nsIDocument *aDocument)
++{
++  if (!aDocument)
++    return false;
++
++  nsPIDOMWindow *win = aDocument->GetWindow();
++  nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(win));
++  if (sop && nsContentUtils::IsSystemPrincipal(sop->GetPrincipal()))
++    return true;
++
++  bool isAllowed = false;
++  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
++                                do_GetService(THIRDPARTYUTIL_CONTRACTID);
++  nsCOMPtr<nsIPermissionManager> permissionManager =
++                          do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
++  if (thirdPartyUtil && permissionManager) {
++    nsCOMPtr<nsIURI> uri;
++    nsresult rv = thirdPartyUtil->GetFirstPartyURI(NULL, aDocument,
++                                                   getter_AddRefs(uri));
++    uint32_t permission = nsIPermissionManager::UNKNOWN_ACTION;
++    if (NS_SUCCEEDED(rv)) {
++      // Allow local files to access canvas data; check content permissions
++      // for remote pages.
++      bool isFileURL = false;
++      (void)uri->SchemeIs("file", &isFileURL);
++      if (isFileURL)
++        permission = nsIPermissionManager::ALLOW_ACTION;
++      else {
++        rv = permissionManager->TestPermission(uri,
++                                PERMISSION_CANVAS_EXTRACT_DATA, &permission);
++      }
++    }
++
++    if (NS_SUCCEEDED(rv)) {
++      isAllowed = (permission == nsIPermissionManager::ALLOW_ACTION);
++
++      if (!isAllowed && (permission != nsIPermissionManager::DENY_ACTION)) {
++        // Send notification so that a prompt is displayed.
++        nsCString spec;
++        rv = uri->GetSpec(spec);
++        NS_ENSURE_SUCCESS(rv, rv);
++        nsCOMPtr<nsIObserverService> obs =
++                                    mozilla::services::GetObserverService();
++        obs->NotifyObservers(win, TOPIC_CANVAS_PERMISSIONS_PROMPT,
++                             NS_ConvertUTF8toUTF16(spec).get());
++      }
++    }
++  }
++
++  return isAllowed;
++}
++
+ void
+ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
+                          nsIPrincipal *aPrincipal,
+diff --git a/content/canvas/src/CanvasUtils.h b/content/canvas/src/CanvasUtils.h
+index d464d0b..f266de6 100644
+--- a/content/canvas/src/CanvasUtils.h
++++ b/content/canvas/src/CanvasUtils.h
+@@ -45,6 +45,8 @@ void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
+                               bool forceWriteOnly,
+                               bool CORSUsed);
+ 
++bool IsImageExtractionAllowed(nsIDocument *aDocument);
++
+ // Make a double out of |v|, treating undefined values as 0.0 (for
+ // the sake of sparse arrays).  Return true iff coercion
+ // succeeded.
+diff --git a/content/canvas/src/nsCanvasRenderingContext2D.cpp b/content/canvas/src/nsCanvasRenderingContext2D.cpp
+index 1ee7a02..0dec654 100644
+--- a/content/canvas/src/nsCanvasRenderingContext2D.cpp
++++ b/content/canvas/src/nsCanvasRenderingContext2D.cpp
+@@ -3946,6 +3946,22 @@ nsCanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
+ 
+     uint8_t* data = JS_GetUint8ClampedArrayData(darray, aCx);
+ 
++    // Check for site-specific permission and return all-white, opaque pixel
++    // data if no permission.  This check is not needed if the canvas was
++    // created with a docshell (that is only done for special internal uses).
++    bool usePlaceholder = false;
++    if (mCanvasElement) {
++      nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
++      usePlaceholder = !ownerDoc ||
++                          !CanvasUtils::IsImageExtractionAllowed(ownerDoc);
++    }
++
++    if (usePlaceholder) {
++      memset(data, 0xFF, len.value());
++      *aRetval = darray;
++      return NS_OK;
++    }
++
+     /* Copy the surface contents to the buffer */
+     nsRefPtr<gfxImageSurface> tmpsurf =
+         new gfxImageSurface(data,
+diff --git a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
+index 07b5236..d86ba32 100644
+--- a/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
++++ b/content/canvas/src/nsCanvasRenderingContext2DAzure.cpp
+@@ -4251,6 +4251,22 @@ nsCanvasRenderingContext2DAzure::GetImageDataArray(JSContext* aCx,
+ 
+   uint8_t* data = JS_GetUint8ClampedArrayData(darray, aCx);
+ 
++  // Check for site-specific permission and return all-white, opaque pixel
++  // data if no permission.  This check is not needed if the canvas was
++  // created with a docshell (that is only done for special internal uses).
++  bool usePlaceholder = false;
++  if (mCanvasElement) {
++    nsCOMPtr<nsIDocument> ownerDoc = mCanvasElement->OwnerDoc();
++    usePlaceholder = !ownerDoc ||
++                        !CanvasUtils::IsImageExtractionAllowed(ownerDoc);
++  }
++
++  if (usePlaceholder) {
++    memset(data, 0xFF, len.value());
++    *aRetval = darray;
++    return NS_OK;
++  }
++
+   IntRect srcRect(0, 0, mWidth, mHeight);
+   IntRect destRect(aX, aY, aWidth, aHeight);
+ 
+diff --git a/content/html/content/public/nsHTMLCanvasElement.h b/content/html/content/public/nsHTMLCanvasElement.h
+index 2c11600..65da344 100644
+--- a/content/html/content/public/nsHTMLCanvasElement.h
++++ b/content/html/content/public/nsHTMLCanvasElement.h
+@@ -157,13 +157,16 @@ protected:
+   nsresult UpdateContext(nsIPropertyBag *aNewContextOptions = nullptr);
+   nsresult ExtractData(const nsAString& aType,
+                        const nsAString& aOptions,
++                       bool aUsePlaceholder,
+                        nsIInputStream** aStream,
+                        bool& aFellBackToPNG);
+   nsresult ToDataURLImpl(const nsAString& aMimeType,
+                          nsIVariant* aEncoderOptions,
++                         bool aUsePlaceholder,
+                          nsAString& aDataURL);
+   nsresult MozGetAsFileImpl(const nsAString& aName,
+                             const nsAString& aType,
++                            bool aUsePlaceholder,
+                             nsIDOMFile** aResult);
+   nsresult GetContextHelper(const nsAString& aContextId,
+                             bool aForceThebes,
+diff --git a/content/html/content/src/Makefile.in b/content/html/content/src/Makefile.in
+index 9466587..86368a2 100644
+--- a/content/html/content/src/Makefile.in
++++ b/content/html/content/src/Makefile.in
+@@ -113,6 +113,7 @@ INCLUDES	+= \
+ 		-I$(srcdir)/../../../events/src \
+ 		-I$(srcdir)/../../../xbl/src \
+ 		-I$(srcdir)/../../../xul/content/src \
++		-I$(srcdir)/../../../canvas/src/ \
+ 		-I$(srcdir)/../../../../layout/forms \
+ 		-I$(srcdir)/../../../../layout/style \
+ 		-I$(srcdir)/../../../../layout/tables \
+diff --git a/content/html/content/src/nsHTMLCanvasElement.cpp b/content/html/content/src/nsHTMLCanvasElement.cpp
+index 961ebf1..13a6910 100644
+--- a/content/html/content/src/nsHTMLCanvasElement.cpp
++++ b/content/html/content/src/nsHTMLCanvasElement.cpp
+@@ -31,6 +31,8 @@
+ 
+ #include "nsIWritablePropertyBag2.h"
+ 
++#include "CanvasUtils.h"
++
+ #define DEFAULT_CANVAS_WIDTH 300
+ #define DEFAULT_CANVAS_HEIGHT 150
+ 
+@@ -184,7 +186,10 @@ nsHTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
+     return NS_ERROR_DOM_SECURITY_ERR;
+   }
+ 
+-  return ToDataURLImpl(aType, aParams, aDataURL);
++  // Check site-specific permission and display prompt if appropriate.
++  // If no permission, return all-white, opaque image data.
++  bool usePlaceholder = !CanvasUtils::IsImageExtractionAllowed(OwnerDoc());
++  return ToDataURLImpl(aType, aParams, usePlaceholder, aDataURL);
+ }
+ 
+ // nsHTMLCanvasElement::mozFetchAsStream
+@@ -200,7 +205,7 @@ nsHTMLCanvasElement::MozFetchAsStream(nsIInputStreamCallback *aCallback,
+   bool fellBackToPNG = false;
+   nsCOMPtr<nsIInputStream> inputData;
+ 
+-  rv = ExtractData(aType, EmptyString(), getter_AddRefs(inputData), fellBackToPNG);
++  rv = ExtractData(aType, EmptyString(), false, getter_AddRefs(inputData), fellBackToPNG);
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   nsCOMPtr<nsIAsyncInputStream> asyncData = do_QueryInterface(inputData, &rv);
+@@ -220,19 +225,26 @@ nsHTMLCanvasElement::MozFetchAsStream(nsIInputStreamCallback *aCallback,
+ nsresult
+ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
+                                  const nsAString& aOptions,
++                                 bool aUsePlaceholder,
+                                  nsIInputStream** aStream,
+                                  bool& aFellBackToPNG)
+ {
+   // note that if we don't have a current context, the spec says we're
+   // supposed to just return transparent black pixels of the canvas
+   // dimensions.
++  // If placeholder data was requested, return all-white, opaque image data.
+   nsRefPtr<gfxImageSurface> emptyCanvas;
+   nsIntSize size = GetWidthHeight();
+-  if (!mCurrentContext) {
++  if (aUsePlaceholder || !mCurrentContext) {
+     emptyCanvas = new gfxImageSurface(gfxIntSize(size.width, size.height), gfxASurface::ImageFormatARGB32);
+     if (emptyCanvas->CairoStatus()) {
+       return NS_ERROR_INVALID_ARG;
+     }
++
++    if (aUsePlaceholder) {
++      int32_t dataSize = emptyCanvas->GetDataSize();
++      memset(emptyCanvas->Data(), 0xFF, dataSize);
++    }
+   }
+ 
+   nsresult rv;
+@@ -242,12 +254,13 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
+   NS_ConvertUTF16toUTF8 encoderType(aType);
+ 
+  try_again:
+-  if (mCurrentContext) {
++  if (!aUsePlaceholder && mCurrentContext) {
+     rv = mCurrentContext->GetInputStream(encoderType.get(),
+                                          nsPromiseFlatString(aOptions).get(),
+                                          getter_AddRefs(imgStream));
+   } else {
+-    // no context, so we have to encode the empty image we created above
++    // Using placeholder or we have no context:  encode the empty/white image
++    // we created above.
+     nsCString enccid("@mozilla.org/image/encoder;2?type=");
+     enccid += encoderType;
+ 
+@@ -285,6 +298,7 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
+ nsresult
+ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
+                                    nsIVariant* aEncoderOptions,
++                                   bool aUsePlaceholder,
+                                    nsAString& aDataURL)
+ {
+   bool fallbackToPNG = false;
+@@ -340,13 +354,15 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
+   }
+ 
+   nsCOMPtr<nsIInputStream> stream;
+-  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
++  rv = ExtractData(type, params, aUsePlaceholder,
++                   getter_AddRefs(stream), fallbackToPNG);
+ 
+   // If there are unrecognized custom parse options, we should fall back to 
+   // the default values for the encoder without any options at all.
+   if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
+     fallbackToPNG = false;
+-    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
++    rv = ExtractData(type, EmptyString(), aUsePlaceholder,
++                     getter_AddRefs(stream), fallbackToPNG);
+   }
+ 
+   NS_ENSURE_SUCCESS(rv, rv);
+@@ -378,19 +394,23 @@ nsHTMLCanvasElement::MozGetAsFile(const nsAString& aName,
+     return NS_ERROR_DOM_SECURITY_ERR;
+   }
+ 
+-  return MozGetAsFileImpl(aName, aType, aResult);
++  // Check site-speciifc permission and display prompt if appropriate.
++  // If no permission, return all-white, opaque image data.
++  bool usePlaceholder = !CanvasUtils::IsImageExtractionAllowed(OwnerDoc());
++  return MozGetAsFileImpl(aName, aType, usePlaceholder, aResult);
+ }
+ 
+ nsresult
+ nsHTMLCanvasElement::MozGetAsFileImpl(const nsAString& aName,
+                                       const nsAString& aType,
++                                      bool aUsePlaceholder,
+                                       nsIDOMFile** aResult)
+ {
+   bool fallbackToPNG = false;
+ 
+   nsCOMPtr<nsIInputStream> stream;
+-  nsresult rv = ExtractData(aType, EmptyString(), getter_AddRefs(stream),
+-                            fallbackToPNG);
++  nsresult rv = ExtractData(aType, EmptyString(), aUsePlaceholder,
++                            getter_AddRefs(stream), fallbackToPNG);
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   nsAutoString type(aType);
+-- 
+1.8.1.2
+

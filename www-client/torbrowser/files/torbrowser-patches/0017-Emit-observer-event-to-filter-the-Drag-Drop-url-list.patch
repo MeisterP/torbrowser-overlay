@@ -1,0 +1,74 @@
+From 1c64ef8e5c7bddb6b5162cd86c08823c3c24da8d Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Thu, 28 Feb 2013 18:10:16 -0800
+Subject: [PATCH 17/41] Emit observer event to filter the Drag+Drop url list
+
+This patch creates an "on-modify-drag-list" observer that addons can listen
+to. For us, it supports Torbutton code that filters out Drag+Drop mime types
+that the OS Desktop sniffs and attempts to load without Tor.
+
+Such proxy bypass behavior is immediate on Mac and Ubuntu: you don't even have
+to release the object for it to get sniffed and cause the OS to load it
+without Tor. In fact, accidentally clicking for too long on an image is enough
+to cause proxy bypass on those systems.
+---
+ widget/xpwidgets/nsBaseDragService.cpp | 8 ++++++++
+ widget/xpwidgets/nsBaseDragService.h   | 2 ++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/widget/xpwidgets/nsBaseDragService.cpp b/widget/xpwidgets/nsBaseDragService.cpp
+index 805d83f..4c99b9c 100644
+--- a/widget/xpwidgets/nsBaseDragService.cpp
++++ b/widget/xpwidgets/nsBaseDragService.cpp
+@@ -34,6 +34,7 @@
+ #include "nsXULPopupManager.h"
+ #include "nsMenuPopupFrame.h"
+ #include "mozilla/Preferences.h"
++#include "mozilla/Services.h"
+ 
+ #include "gfxContext.h"
+ #include "gfxPlatform.h"
+@@ -49,6 +50,7 @@ nsBaseDragService::nsBaseDragService()
+     mImageX(0), mImageY(0), mScreenX(-1), mScreenY(-1), mSuppressLevel(0),
+     mInputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE)
+ {
++    mObserverService = mozilla::services::GetObserverService();
+ }
+ 
+ nsBaseDragService::~nsBaseDragService()
+@@ -203,6 +205,12 @@ nsBaseDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
+   NS_ENSURE_TRUE(aDOMNode, NS_ERROR_INVALID_ARG);
+   NS_ENSURE_TRUE(mSuppressLevel == 0, NS_ERROR_FAILURE);
+ 
++  // Emit observer event to allow addons to modify the transfer array.
++  if (mObserverService)
++    mObserverService->NotifyObservers(aTransferableArray,
++                                      "on-modify-drag-list",
++                                      nullptr);
++
+   // stash the document of the dom node
+   aDOMNode->GetOwnerDocument(getter_AddRefs(mSourceDocument));
+   mSourceNode = aDOMNode;
+diff --git a/widget/xpwidgets/nsBaseDragService.h b/widget/xpwidgets/nsBaseDragService.h
+index cb00f8e..8b91899 100644
+--- a/widget/xpwidgets/nsBaseDragService.h
++++ b/widget/xpwidgets/nsBaseDragService.h
+@@ -6,6 +6,7 @@
+ #ifndef nsBaseDragService_h__
+ #define nsBaseDragService_h__
+ 
++#include "nsIObserverService.h"
+ #include "nsIDragService.h"
+ #include "nsIDragSession.h"
+ #include "nsITransferable.h"
+@@ -113,6 +114,7 @@ protected:
+ 
+   uint32_t mDragAction;
+   nsSize mTargetSize;
++  nsCOMPtr<nsIObserverService> mObserverService;
+   nsCOMPtr<nsIDOMNode> mSourceNode;
+   nsCOMPtr<nsIDOMDocument> mSourceDocument;       // the document at the drag source. will be null
+                                                   //  if it came from outside the app.
+-- 
+1.8.1.2
+

@@ -1,0 +1,474 @@
+From ce2f30b6633cc01cdd05421998ef6239996a393d Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Mon, 14 Jan 2013 19:36:14 -0800
+Subject: [PATCH 24/41] nsIHTTPChannel.redirectTo API.
+
+Provides an API for HTTPS-Everywhere to perform redirects to https
+in a more secure and reliable way.
+---
+ netwerk/protocol/http/HttpBaseChannel.cpp          | 13 +++++
+ netwerk/protocol/http/HttpBaseChannel.h            | 10 ++++
+ netwerk/protocol/http/HttpChannelChild.cpp         | 34 +++++++++----
+ netwerk/protocol/http/HttpChannelParent.cpp        | 12 ++++-
+ netwerk/protocol/http/HttpChannelParent.h          |  4 +-
+ netwerk/protocol/http/PHttpChannel.ipdl            |  4 +-
+ netwerk/protocol/http/nsHttpChannel.cpp            | 57 ++++++++++++++++++----
+ netwerk/protocol/http/nsHttpChannel.h              |  8 +--
+ netwerk/protocol/http/nsIHttpChannel.idl           | 14 +++++-
+ .../protocol/viewsource/nsViewSourceChannel.cpp    | 10 +++-
+ 10 files changed, 139 insertions(+), 27 deletions(-)
+
+diff --git a/netwerk/protocol/http/HttpBaseChannel.cpp b/netwerk/protocol/http/HttpBaseChannel.cpp
+index ec58de6..2926428 100644
+--- a/netwerk/protocol/http/HttpBaseChannel.cpp
++++ b/netwerk/protocol/http/HttpBaseChannel.cpp
+@@ -37,6 +37,7 @@ HttpBaseChannel::HttpBaseChannel()
+   , mIsPending(false)
+   , mWasOpened(false)
+   , mResponseHeadersModified(false)
++  , mRequestObserversCalled(false)
+   , mAllowPipelining(true)
+   , mForceAllowThirdPartyCookie(false)
+   , mUploadStreamHasHeaders(false)
+@@ -1119,6 +1120,18 @@ HttpBaseChannel::GetRequestSucceeded(bool *aValue)
+   return NS_OK;
+ }
+ 
++NS_IMETHODIMP
++HttpBaseChannel::RedirectTo(nsIURI *newURI)
++{
++  // We can only redirect unopened channels
++  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
++
++  // The redirect is stored internally for use in AsyncOpen
++  mAPIRedirectToURI = newURI;
++
++  return NS_OK;
++}
++
+ //-----------------------------------------------------------------------------
+ // HttpBaseChannel::nsIHttpChannelInternal
+ //-----------------------------------------------------------------------------
+diff --git a/netwerk/protocol/http/HttpBaseChannel.h b/netwerk/protocol/http/HttpBaseChannel.h
+index 971958c..125734d 100644
+--- a/netwerk/protocol/http/HttpBaseChannel.h
++++ b/netwerk/protocol/http/HttpBaseChannel.h
+@@ -17,6 +17,7 @@
+ #include "nsHttpConnectionInfo.h"
+ #include "nsIEncodedChannel.h"
+ #include "nsIHttpChannel.h"
++#include "nsHttpHandler.h"
+ #include "nsIHttpChannelInternal.h"
+ #include "nsIUploadChannel.h"
+ #include "nsIUploadChannel2.h"
+@@ -117,6 +118,7 @@ public:
+   NS_IMETHOD GetResponseStatus(uint32_t *aValue);
+   NS_IMETHOD GetResponseStatusText(nsACString& aValue);
+   NS_IMETHOD GetRequestSucceeded(bool *aValue);
++  NS_IMETHOD RedirectTo(nsIURI *newURI);
+ 
+   // nsIHttpChannelInternal
+   NS_IMETHOD GetDocumentURI(nsIURI **aDocumentURI);
+@@ -199,6 +201,12 @@ protected:
+                                            nsIChannel *,
+                                            bool preserveMethod);
+ 
++  // bundle calling OMR observers and marking flag into one function
++  inline void CallOnModifyRequestObservers() {
++    gHttpHandler->OnModifyRequest(this);
++    mRequestObserversCalled = true;
++  }
++
+   // Helper function to simplify getting notification callbacks.
+   template <class T>
+   void GetCallback(nsCOMPtr<T> &aResult)
+@@ -252,6 +260,7 @@ protected:
+   uint32_t                          mIsPending                  : 1;
+   uint32_t                          mWasOpened                  : 1;
+   uint32_t                          mResponseHeadersModified    : 1;
++  uint32_t                          mRequestObserversCalled     : 1;
+   uint32_t                          mAllowPipelining            : 1;
+   uint32_t                          mForceAllowThirdPartyCookie : 1;
+   uint32_t                          mUploadStreamHasHeaders     : 1;
+@@ -268,6 +277,7 @@ protected:
+   // Current suspension depth for this channel object
+   uint32_t                          mSuspendCount;
+ 
++  nsCOMPtr<nsIURI>                  mAPIRedirectToURI;
+   nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
+ };
+ 
+diff --git a/netwerk/protocol/http/HttpChannelChild.cpp b/netwerk/protocol/http/HttpChannelChild.cpp
+index 5d82f7e..35697be 100644
+--- a/netwerk/protocol/http/HttpChannelChild.cpp
++++ b/netwerk/protocol/http/HttpChannelChild.cpp
+@@ -854,6 +854,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
+ NS_IMETHODIMP
+ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
+ {
++  OptionalURIParams redirectURI;
+   nsCOMPtr<nsIHttpChannel> newHttpChannel =
+       do_QueryInterface(mRedirectChannelChild);
+ 
+@@ -872,13 +873,25 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
+     newHttpChannelChild->GetClientSetRequestHeaders(&headerTuples);
+   }
+ 
+-  // After we verify redirect, nsHttpChannel may hit the network: must give
+-  // "http-on-modify-request" observers the chance to cancel before that.
+-  if (NS_SUCCEEDED(result))
+-    gHttpHandler->OnModifyRequest(newHttpChannel);
+-
+-  if (mIPCOpen)
+-    SendRedirect2Verify(result, *headerTuples);
++  if (NS_SUCCEEDED(result)) {
++    // we know this is an HttpChannelChild
++    HttpChannelChild* base =
++      static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
++    // After we verify redirect, nsHttpChannel may hit the network: must give
++    // "http-on-modify-request" observers the chance to cancel before that.
++    base->CallOnModifyRequestObservers();
++
++    /* If there was an API redirect of this redirect, we need to send it
++     * down here, since it can't get sent via SendAsyncOpen. */
++    SerializeURI(base->mAPIRedirectToURI, redirectURI);
++  } else {
++    /* If the redirect was canceled, bypass OMR and send an empty API
++     * redirect URI */
++    SerializeURI(nullptr, redirectURI);
++  }
++ 
++   if (mIPCOpen)
++    SendRedirect2Verify(result, *headerTuples, redirectURI);
+ 
+   return NS_OK;
+ }
+@@ -985,7 +998,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
+   //
+ 
+   // notify "http-on-modify-request" observers
+-  gHttpHandler->OnModifyRequest(this);
++  CallOnModifyRequestObservers();
+ 
+   mIsPending = true;
+   mWasOpened = true;
+@@ -1042,15 +1055,16 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
+   URIParams uri;
+   SerializeURI(mURI, uri);
+ 
+-  OptionalURIParams originalURI, documentURI, referrer;
++  OptionalURIParams originalURI, documentURI, referrer, redirectURI;
+   SerializeURI(mOriginalURI, originalURI);
+   SerializeURI(mDocumentURI, documentURI);
+   SerializeURI(mReferrer, referrer);
++  SerializeURI(mAPIRedirectToURI, redirectURI);
+ 
+   OptionalInputStreamParams uploadStream;
+   SerializeInputStream(mUploadStream, uploadStream);
+ 
+-  SendAsyncOpen(uri, originalURI, documentURI, referrer, mLoadFlags,
++  SendAsyncOpen(uri, originalURI, documentURI, referrer, redirectURI, mLoadFlags,
+                 mClientSetRequestHeaders, mRequestHead.Method(), uploadStream,
+                 mUploadStreamHasHeaders, mPriority, mRedirectionLimit,
+                 mAllowPipelining, mForceAllowThirdPartyCookie, mSendResumeAt,
+diff --git a/netwerk/protocol/http/HttpChannelParent.cpp b/netwerk/protocol/http/HttpChannelParent.cpp
+index 0a9ccc4..d01f162 100644
+--- a/netwerk/protocol/http/HttpChannelParent.cpp
++++ b/netwerk/protocol/http/HttpChannelParent.cpp
+@@ -110,6 +110,7 @@ HttpChannelParent::RecvAsyncOpen(const URIParams&           aURI,
+                                  const OptionalURIParams&   aOriginalURI,
+                                  const OptionalURIParams&   aDocURI,
+                                  const OptionalURIParams&   aReferrerURI,
++                                 const OptionalURIParams&   aAPIRedirectToURI,
+                                  const uint32_t&            loadFlags,
+                                  const RequestHeaderTuples& requestHeaders,
+                                  const nsHttpAtom&          requestMethod,
+@@ -131,6 +132,7 @@ HttpChannelParent::RecvAsyncOpen(const URIParams&           aURI,
+   nsCOMPtr<nsIURI> originalUri = DeserializeURI(aOriginalURI);
+   nsCOMPtr<nsIURI> docUri = DeserializeURI(aDocURI);
+   nsCOMPtr<nsIURI> referrerUri = DeserializeURI(aReferrerURI);
++  nsCOMPtr<nsIURI> apiRedirectToUri = DeserializeURI(aAPIRedirectToURI);
+ 
+   nsCString uriSpec;
+   uri->GetSpec(uriSpec);
+@@ -161,6 +163,8 @@ HttpChannelParent::RecvAsyncOpen(const URIParams&           aURI,
+     httpChan->SetDocumentURI(docUri);
+   if (referrerUri)
+     httpChan->SetReferrerInternal(referrerUri);
++  if (apiRedirectToUri)
++    httpChan->RedirectTo(apiRedirectToUri);
+   if (loadFlags != nsIRequest::LOAD_NORMAL)
+     httpChan->SetLoadFlags(loadFlags);
+ 
+@@ -315,13 +319,19 @@ HttpChannelParent::RecvUpdateAssociatedContentSecurity(const int32_t& high,
+ 
+ bool
+ HttpChannelParent::RecvRedirect2Verify(const nsresult& result, 
+-                                       const RequestHeaderTuples& changedHeaders)
++                                       const RequestHeaderTuples& changedHeaders,
++                                       const OptionalURIParams&   aAPIRedirectURI)
+ {
+   if (NS_SUCCEEDED(result)) {
+     nsCOMPtr<nsIHttpChannel> newHttpChannel =
+         do_QueryInterface(mRedirectChannel);
+ 
+     if (newHttpChannel) {
++      nsCOMPtr<nsIURI> apiRedirectUri = DeserializeURI(aAPIRedirectURI);
++
++      if (apiRedirectUri)
++        newHttpChannel->RedirectTo(apiRedirectUri);
++
+       for (uint32_t i = 0; i < changedHeaders.Length(); i++) {
+         newHttpChannel->SetRequestHeader(changedHeaders[i].mHeader,
+                                          changedHeaders[i].mValue,
+diff --git a/netwerk/protocol/http/HttpChannelParent.h b/netwerk/protocol/http/HttpChannelParent.h
+index e869d63..96f3f3c 100644
+--- a/netwerk/protocol/http/HttpChannelParent.h
++++ b/netwerk/protocol/http/HttpChannelParent.h
+@@ -47,6 +47,7 @@ protected:
+                              const OptionalURIParams&   originalUri,
+                              const OptionalURIParams&   docUri,
+                              const OptionalURIParams&   referrerUri,
++                             const OptionalURIParams&   internalRedirectUri,
+                              const uint32_t&            loadFlags,
+                              const RequestHeaderTuples& requestHeaders,
+                              const nsHttpAtom&          requestMethod,
+@@ -71,7 +72,8 @@ protected:
+   virtual bool RecvResume();
+   virtual bool RecvCancel(const nsresult& status);
+   virtual bool RecvRedirect2Verify(const nsresult& result,
+-                                   const RequestHeaderTuples& changedHeaders);
++                                   const RequestHeaderTuples& changedHeaders,
++                                   const OptionalURIParams&   apiRedirectUri);
+   virtual bool RecvUpdateAssociatedContentSecurity(const int32_t& high,
+                                                    const int32_t& low,
+                                                    const int32_t& broken,
+diff --git a/netwerk/protocol/http/PHttpChannel.ipdl b/netwerk/protocol/http/PHttpChannel.ipdl
+index c13c969..e16afd6 100644
+--- a/netwerk/protocol/http/PHttpChannel.ipdl
++++ b/netwerk/protocol/http/PHttpChannel.ipdl
+@@ -37,6 +37,7 @@ parent:
+             OptionalURIParams   original,
+             OptionalURIParams   doc,
+             OptionalURIParams   referrer,
++            OptionalURIParams   apiRedirectTo,
+             uint32_t            loadFlags,
+             RequestHeaderTuples requestHeaders,
+             nsHttpAtom          requestMethod,
+@@ -72,7 +73,8 @@ parent:
+   Cancel(nsresult status);
+ 
+   // Reports approval/veto of redirect by child process redirect observers
+-  Redirect2Verify(nsresult result, RequestHeaderTuples changedHeaders);
++  Redirect2Verify(nsresult result, RequestHeaderTuples changedHeaders,
++                  OptionalURIParams apiRedirectTo);
+ 
+   // For document loads we keep this protocol open after child's
+   // OnStopRequest, and send this msg (instead of __delete__) to allow
+diff --git a/netwerk/protocol/http/nsHttpChannel.cpp b/netwerk/protocol/http/nsHttpChannel.cpp
+index 6242ddc..bcfa0c9 100644
+--- a/netwerk/protocol/http/nsHttpChannel.cpp
++++ b/netwerk/protocol/http/nsHttpChannel.cpp
+@@ -1584,18 +1584,17 @@ nsHttpChannel::HandleAsyncRedirectChannelToHttps()
+         return;
+     }
+ 
+-    nsresult rv = AsyncRedirectChannelToHttps();
++    nsresult rv = StartRedirectChannelToHttps();
+     if (NS_FAILED(rv))
+-        ContinueAsyncRedirectChannelToHttps(rv);
++        ContinueAsyncRedirectChannelToURI(rv);
+ }
+ 
+ nsresult
+-nsHttpChannel::AsyncRedirectChannelToHttps()
++nsHttpChannel::StartRedirectChannelToHttps()
+ {
+     nsresult rv = NS_OK;
+     LOG(("nsHttpChannel::HandleAsyncRedirectChannelToHttps() [STS]\n"));
+ 
+-    nsCOMPtr<nsIChannel> newChannel;
+     nsCOMPtr<nsIURI> upgradedURI;
+ 
+     rv = mURI->Clone(getter_AddRefs(upgradedURI));
+@@ -1617,6 +1616,36 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+     else
+         upgradedURI->SetPort(oldPort);
+ 
++    return StartRedirectChannelToURI(upgradedURI);
++}
++
++void
++nsHttpChannel::HandleAsyncAPIRedirect()
++{
++    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
++    NS_PRECONDITION(mAPIRedirectToURI, "How did that happen?");
++
++    if (mSuspendCount) {
++        LOG(("Waiting until resume to do async API redirect [this=%p]\n", this));
++        mCallOnResume = &nsHttpChannel::HandleAsyncAPIRedirect;
++        return;
++    }
++
++    nsresult rv = StartRedirectChannelToURI(mAPIRedirectToURI);
++    if (NS_FAILED(rv))
++        ContinueAsyncRedirectChannelToURI(rv);
++
++    return;
++}
++
++nsresult
++nsHttpChannel::StartRedirectChannelToURI(nsIURI *upgradedURI)
++{
++    nsresult rv = NS_OK;
++    LOG(("nsHttpChannel::StartRedirectChannelToURI()\n"));
++
++    nsCOMPtr<nsIChannel> newChannel;
++
+     nsCOMPtr<nsIIOService> ioService;
+     rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
+     NS_ENSURE_SUCCESS(rv, rv);
+@@ -1632,7 +1661,7 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+     uint32_t flags = nsIChannelEventSink::REDIRECT_PERMANENT;
+ 
+     PushRedirectAsyncFunc(
+-        &nsHttpChannel::ContinueAsyncRedirectChannelToHttps);
++        &nsHttpChannel::ContinueAsyncRedirectChannelToURI);
+     rv = gHttpHandler->AsyncOnChannelRedirect(this, newChannel, flags);
+ 
+     if (NS_SUCCEEDED(rv))
+@@ -1640,15 +1669,19 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
+ 
+     if (NS_FAILED(rv)) {
+         AutoRedirectVetoNotifier notifier(this);
++
++        /* Remove the async call to ContinueAsyncRedirectChannelToURI().
++         * It is called directly by our callers upon return (to clean up
++         * the failed redirect). */
+         PopRedirectAsyncFunc(
+-            &nsHttpChannel::ContinueAsyncRedirectChannelToHttps);
++            &nsHttpChannel::ContinueAsyncRedirectChannelToURI);
+     }
+ 
+     return rv;
+ }
+ 
+ nsresult
+-nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
++nsHttpChannel::ContinueAsyncRedirectChannelToURI(nsresult rv)
+ {
+     AutoRedirectVetoNotifier notifier(this);
+ 
+@@ -4399,7 +4432,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
+     mAuthProvider->AddAuthorizationHeaders();
+ 
+     // notify "http-on-modify-request" observers
+-    gHttpHandler->OnModifyRequest(this);
++    CallOnModifyRequestObservers();
+ 
+     // Adjust mCaps according to our request headers:
+     //  - If "Connection: close" is set as a request header, then do not bother
+@@ -4431,6 +4464,12 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
+     if (mLoadGroup)
+         mLoadGroup->AddRequest(this, nullptr);
+ 
++    // Check to see if we should redirect this channel elsewhere by
++    // nsIHttpChannel.redirectTo API request
++    if (mAPIRedirectToURI) {
++        return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
++    }
++
+     // Collect mAsyncOpenTime after we have called all obsrevers like
+     // "http-on-modify-request" and load group observers that may set
+     // mTimingEnabled flag.
+@@ -5561,7 +5600,7 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
+     AddCookiesToRequest();
+     
+     // notify "http-on-modify-request" observers
+-    gHttpHandler->OnModifyRequest(this);
++    CallOnModifyRequestObservers();
+ 
+     mIsPending = true;
+ 
+diff --git a/netwerk/protocol/http/nsHttpChannel.h b/netwerk/protocol/http/nsHttpChannel.h
+index b1f0848..a05e70d 100644
+--- a/netwerk/protocol/http/nsHttpChannel.h
++++ b/netwerk/protocol/http/nsHttpChannel.h
+@@ -174,12 +174,14 @@ private:
+ 
+     // redirection specific methods
+     void     HandleAsyncRedirect();
++    void     HandleAsyncAPIRedirect();
+     nsresult ContinueHandleAsyncRedirect(nsresult);
+     void     HandleAsyncNotModified();
+     void     HandleAsyncFallback();
+     nsresult ContinueHandleAsyncFallback(nsresult);
+     nsresult PromptTempRedirect();
+-    virtual nsresult SetupReplacementChannel(nsIURI *, nsIChannel *, bool preserveMethod);
++    nsresult StartRedirectChannelToURI(nsIURI *);
++    virtual  nsresult SetupReplacementChannel(nsIURI *, nsIChannel *, bool preserveMethod);
+ 
+     // proxy specific methods
+     nsresult ProxyFailover();
+@@ -236,8 +238,8 @@ private:
+     nsresult DoAuthRetry(nsAHttpConnection *);
+ 
+     void     HandleAsyncRedirectChannelToHttps();
+-    nsresult AsyncRedirectChannelToHttps();
+-    nsresult ContinueAsyncRedirectChannelToHttps(nsresult rv);
++    nsresult StartRedirectChannelToHttps();
++    nsresult ContinueAsyncRedirectChannelToURI(nsresult rv);
+ 
+     /**
+      * A function that takes care of reading STS headers and enforcing STS 
+diff --git a/netwerk/protocol/http/nsIHttpChannel.idl b/netwerk/protocol/http/nsIHttpChannel.idl
+index c541df1..7037f95 100644
+--- a/netwerk/protocol/http/nsIHttpChannel.idl
++++ b/netwerk/protocol/http/nsIHttpChannel.idl
+@@ -14,7 +14,7 @@ interface nsIHttpHeaderVisitor;
+  * the inspection of the resulting HTTP response status and headers when they
+  * become available.
+  */
+-[scriptable, uuid(9277fe09-f0cc-4cd9-bbce-581dd94b0260)]
++[scriptable, uuid(a01362a0-5c45-11e2-bcfd-0800200c9a66)]
+ interface nsIHttpChannel : nsIChannel
+ {
+     /**************************************************************************
+@@ -257,4 +257,16 @@ interface nsIHttpChannel : nsIChannel
+      *         has been received (before onStartRequest).
+      */
+     boolean isNoCacheResponse();
++
++    /**
++     * Instructs the channel to immediately redirect to a new destination.
++     * Can only be called on channels not yet opened.
++     *
++     * This method provides no explicit conflict resolution. The last
++     * caller to call it wins.
++     *
++     * @throws NS_ERROR_ALREADY_OPENED if called after the channel
++     *         has been opened.
++     */
++    void redirectTo(in nsIURI aNewURI);
+ };
+diff --git a/netwerk/protocol/viewsource/nsViewSourceChannel.cpp b/netwerk/protocol/viewsource/nsViewSourceChannel.cpp
+index 643ed0e..c63c2a5 100644
+--- a/netwerk/protocol/viewsource/nsViewSourceChannel.cpp
++++ b/netwerk/protocol/viewsource/nsViewSourceChannel.cpp
+@@ -671,4 +671,12 @@ nsViewSourceChannel::IsNoCacheResponse(bool *_retval)
+ {
+     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+         mHttpChannel->IsNoCacheResponse(_retval);
+-} 
++}
++
++NS_IMETHODIMP
++nsViewSourceChannel::RedirectTo(nsIURI *uri)
++{
++    return !mHttpChannel ? NS_ERROR_NULL_POINTER :
++        mHttpChannel->RedirectTo(uri);
++}
++
+-- 
+1.8.1.2
+

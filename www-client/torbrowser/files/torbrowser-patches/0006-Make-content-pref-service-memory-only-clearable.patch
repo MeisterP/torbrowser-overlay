@@ -1,0 +1,37 @@
+From 98fb4263ec8b9f530336cbdf961323bf3380a386 Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@fscked.org>
+Date: Thu, 8 Sep 2011 08:40:17 -0700
+Subject: [PATCH 06/41] Make content pref service memory-only + clearable
+
+This prevents random urls from being inserted into content-prefs.sqllite in
+the profile directory as content prefs change (includes site-zoom and perhaps
+other site prefs?).
+---
+ toolkit/components/contentprefs/nsContentPrefService.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/toolkit/components/contentprefs/nsContentPrefService.js b/toolkit/components/contentprefs/nsContentPrefService.js
+index ed8ad2e..794c9f3 100644
+--- a/toolkit/components/contentprefs/nsContentPrefService.js
++++ b/toolkit/components/contentprefs/nsContentPrefService.js
+@@ -1206,7 +1206,7 @@ ContentPrefService.prototype = {
+ 
+     var dbConnection;
+ 
+-    if (!dbFile.exists())
++    if (true || !dbFile.exists())
+       dbConnection = this._dbCreate(dbService, dbFile);
+     else {
+       try {
+@@ -1254,7 +1254,7 @@ ContentPrefService.prototype = {
+   },
+ 
+   _dbCreate: function ContentPrefService__dbCreate(aDBService, aDBFile) {
+-    var dbConnection = aDBService.openDatabase(aDBFile);
++    var dbConnection = aDBService.openSpecialDatabase("memory");
+ 
+     try {
+       this._dbCreateSchema(dbConnection);
+-- 
+1.8.1.2
+

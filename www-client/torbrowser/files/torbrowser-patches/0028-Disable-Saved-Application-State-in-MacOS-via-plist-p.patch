@@ -1,0 +1,26 @@
+From b270f08c07f93943eb16cac1b2a798bdca9487eb Mon Sep 17 00:00:00 2001
+From: Mike Perry <mikeperry-git@torproject.org>
+Date: Fri, 21 Jun 2013 20:07:49 -0700
+Subject: [PATCH 28/41] Disable 'Saved Application State' in MacOS via plist
+ property
+
+Prevents leaking our window titles to the disk outside of TBB. See
+https://trac.torproject.org/projects/tor/ticket/8987
+---
+ browser/app/macbuild/Contents/Info.plist.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/browser/app/macbuild/Contents/Info.plist.in b/browser/app/macbuild/Contents/Info.plist.in
+index 3fa871a..1192647 100644
+--- a/browser/app/macbuild/Contents/Info.plist.in
++++ b/browser/app/macbuild/Contents/Info.plist.in
+@@ -216,5 +216,6 @@
+   <true/>
+   <key>NSPrincipalClass</key>
+   <string>GeckoNSApplication</string>
++  <key>NSDisablePersistence</key><true/>
+ </dict>
+ </plist>
+-- 
+1.8.1.2
+
