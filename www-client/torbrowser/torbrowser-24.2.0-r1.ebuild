@@ -7,12 +7,12 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-TOR_PV="3.5-rc-1"
+TOR_PV="3.5"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_PV="${PV}esr"
 fi
-GIT_TAG="tor-browser-${MOZ_PV}-${TOR_PV//-/}-build3"
+GIT_TAG="tor-browser-${MOZ_PV}-${TOR_PV}-build1"
 
 # Patch version
 PATCH="${MY_PN}-24.0-patches-0.5"
@@ -23,7 +23,7 @@ DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
 	https://gitweb.torproject.org/tor-browser.git"
 
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
@@ -32,7 +32,7 @@ LICENSE="|| ( MPL-1.1 GPL-2 LGPL-2.1 )
 	CC-BY-3.0"
 IUSE="gstreamer +jit pulseaudio selinux system-cairo system-icu system-jpeg system-sqlite"
 
-BASE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV//-/}"
+BASE_SRC_URI="https://www.torproject.org/dist/${PN}/${TOR_PV}"
 SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.gz -> ${GIT_TAG}.tar.gz
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~nirbheek/mozilla/patchsets/${PATCH}.tar.xz
@@ -138,8 +138,7 @@ src_prepare() {
 		-i "${S}"/nsprpub/configure{.in,} \
 		|| die
 
-	# Don't exit with error when some libs are missing which we have in
-	# system.
+	# Don't exit with error when some libs are missing which we have in system.
 	sed '/^MOZ_PKG_FATAL_WARNINGS/s@= 1@= 0@' \
 		-i "${S}"/browser/installer/Makefile.in || die
 
@@ -155,7 +154,7 @@ src_prepare() {
 }
 
 src_configure() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${MY_PN}"
+	MOZILLA_FIVE_HOME="${EPREFIX}"/usr/$(get_libdir)/${PN}/${MY_PN}
 	MEXTENSIONS="default"
 
 	####################################
@@ -218,7 +217,7 @@ src_compile() {
 }
 
 src_install() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${MY_PN}"
+	MOZILLA_FIVE_HOME="${EPREFIX}"/usr/$(get_libdir)/${PN}/${MY_PN}
 	DICTPATH="\"${EPREFIX}/usr/share/myspell\""
 
 	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler etc.
@@ -229,7 +228,7 @@ src_install() {
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
 	pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
 
-	# Add an emty default prefs
+	# Add an emty default prefs for mozconfig-3.eclass
 	touch "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
 
 	# Add torbrowser version and disable the flash-plugin by default
@@ -308,10 +307,7 @@ pkg_preinst() {
 pkg_postinst() {
 	ewarn ""
 	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
-	ewarn "the exact same patches. Use this only if you know what you are doing!"
-	ewarn ""
-	ewarn "The profile moved to ~/.mozilla/torbrowser. It's auto generated"
-	ewarn "and manually copying isn't necessary anymore."
+	ewarn "the exact same sources. Use this only if you know what you are doing!"
 	ewarn ""
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
 	elog "in the connection settings to match your setup."
