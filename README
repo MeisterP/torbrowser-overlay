@@ -5,7 +5,8 @@ The torbroser-overlay isn't in layman's list of overlays.
 To add it manually, append
 https://raw.github.com/MeisterP/torbrowser-overlay/master/torbrowser-overlay.xml
 to the overlays section in '/etc/layman/layman.cfg'.
-With newer versions of layman, you can put the file into '/etc/layman/overlays/'.
+With newer versions of layman, you can put the file
+into '/etc/layman/overlays/'.
 
 
 www-client/torbrowser-launcher
@@ -14,8 +15,8 @@ www-client/torbrowser-launcher
 https://github.com/micahflee/torbrowser-launcher
 
 Tor Browser Launcher is intended to make the Tor Browser Bundle (TBB) easier to
-maintain and use for GNU/Linux users. You install 'torbrowser-launcher' from your
-distribution's package manager and it handles everything else, including:
+maintain and use for GNU/Linux users. You install 'torbrowser-launcher' from
+your distribution's package manager and it handles everything else, including:
 
 * Downloading the most recent version of TBB for you, in your language and for
   your architecture
@@ -30,8 +31,8 @@ www-client/torbrowser
 https://www.torproject.org/projects/torbrowser.html
 https://gitweb.torproject.org/tor-browser.git
 
-This patched firefox/torbrowser build is _NOT_ recommended by Tor upstream but uses
-the exact same sources. Use this only if you know what you are doing!
+This patched firefox/torbrowser build is _NOT_ recommended by Tor upstream but
+uses the exact same sources. Use this only if you know what you are doing!
 
 The profile folder includes pre-configuration recommended by upstream,
 as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
