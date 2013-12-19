@@ -31,12 +31,9 @@ https://www.torproject.org/projects/torbrowser.html
 https://gitweb.torproject.org/tor-browser.git
 
 This patched firefox/torbrowser build is _NOT_ recommended by Tor upstream but uses
-the exact same patches. Use this only if you know what you are doing!
+the exact same sources. Use this only if you know what you are doing!
 
-The profile moved to '~/.mozilla/torbrowser'. It's auto generated
-and manually copying isn't necessary anymore.
-		
-This profile folder includes pre-configuration recommended by upstream,
+The profile folder includes pre-configuration recommended by upstream,
 as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
 If you want to start from scratch just remove the directory '~/.mozilla/torbrowser'.
 
