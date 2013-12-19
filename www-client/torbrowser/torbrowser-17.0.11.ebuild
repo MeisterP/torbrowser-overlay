@@ -28,7 +28,7 @@ DESCRIPTION="Torbrowser without vidalia or tor"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html.en"
 
 # may work on other arches, but untested
-KEYWORDS="~amd64 ~x86"
+KEYWORDS=""
 SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
