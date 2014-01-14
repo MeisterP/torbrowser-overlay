@@ -20,7 +20,8 @@ IUSE=""
 
 DEPEND="${PYTHON_DEPS}
 	dev-python/pygtk[${PYTHON_USEDEP}]
-	dev-python/twisted-core[${PYTHON_USEDEP}]"
+	dev-python/twisted-core[${PYTHON_USEDEP}]
+	dev-python/twisted-web[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
 	dev-python/psutil[${PYTHON_USEDEP}]
