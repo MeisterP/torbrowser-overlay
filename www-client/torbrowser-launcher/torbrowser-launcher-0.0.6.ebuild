@@ -24,6 +24,7 @@ DEPEND="${PYTHON_DEPS}
 	dev-python/twisted-web[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
+	dev-python/pygame[${PYTHON_USEDEP}]
 	dev-python/psutil[${PYTHON_USEDEP}]
 	dev-python/pyliblzma[${PYTHON_USEDEP}]
 	x11-misc/wmctrl"
