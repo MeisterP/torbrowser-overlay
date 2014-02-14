@@ -1,4 +1,4 @@
-# Copyright 1999-2013 Gentoo Foundation
+# Copyright 1999-2014 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -20,7 +20,7 @@ IUSE=""
 
 DEPEND="${PYTHON_DEPS}
 	dev-python/pygtk[${PYTHON_USEDEP}]
-	dev-python/twisted-core[${PYTHON_USEDEP}]
+	dev-python/twisted-core[${PYTHON_USEDEP},crypt]
 	dev-python/twisted-web[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
@@ -34,7 +34,7 @@ python_prepare() {
 
 	# add better icons to desktop files
 	sed -i "s/^Icon=.*/Icon=${PN}/" \
-		torbrowser{,-settings}.desktop  || die
+		torbrowser{,-settings}.desktop || die
 }
 
 python_install() {
