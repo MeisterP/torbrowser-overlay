@@ -7,12 +7,12 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-TOR_PV="3.5.2"
+TOR_PV="3.5.2.1"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_PV="${PV}esr"
 fi
-GIT_TAG="tor-browser-${MOZ_PV}-${TOR_PV}-build1"
+GIT_TAG="tor-browser-${MOZ_PV}-${TOR_PV}-build2"
 
 # Patch version
 PATCH="${MY_PN}-24.0-patches-0.5"
