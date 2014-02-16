@@ -1,0 +1,14 @@
+From: Julian Ospald <hasufell@gentoo.org>
+Date: Sun Feb 16 17:11:39 UTC 2014
+Subject: allow lightspark
+
+--- tor-browser/dom/plugins/base/nsPluginHost.cpp
++++ tor-browser/dom/plugins/base/nsPluginHost.cpp
+@@ -1821,6 +1821,7 @@
+     // libgnashplugin.so, libflashplayer.so, Flash Player-10.4-10.5.plugin,
+     // NPSWF32.dll, NPSWF64.dll
+     if (strstr(leafStr, "libgnashplugin") == leafStr ||
++        strstr(leafStr, "liblightsparkplugin") == leafStr ||
+         strstr(leafStr, "libflashplayer") == leafStr ||
+         strstr(leafStr, "Flash Player") == leafStr ||
+         strstr(leafStr, "NPSWF") == leafStr) {
