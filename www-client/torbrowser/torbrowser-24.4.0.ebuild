@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI="3"
+EAPI=5
 WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
@@ -41,8 +41,8 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
-	>=dev-libs/nss-3.15.3
-	>=dev-libs/nspr-4.10.2
+	>=dev-libs/nss-3.16
+	>=dev-libs/nspr-4.10.4
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
 	>=media-libs/libpng-1.5.13[apng]
@@ -50,7 +50,7 @@ RDEPEND="
 	gstreamer? ( media-plugins/gst-plugins-meta:0.10[ffmpeg] )
 	pulseaudio? ( media-sound/pulseaudio )
 	system-cairo? ( >=x11-libs/cairo-1.12[X] )
-	system-icu? ( >=dev-libs/icu-0.51.1 )
+	system-icu? ( >=dev-libs/icu-51.1 )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-sqlite? ( >=dev-db/sqlite-3.7.17:3[secure-delete,debug=] )
 	>=media-libs/libvpx-1.0.0
@@ -88,9 +88,11 @@ pkg_setup() {
 		SESSION_MANAGER \
 		XDG_SESSION_COOKIE \
 		XAUTHORITY
+}
 
+pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	if use debug || use test ; then
+	if use debug; then
 		CHECKREQS_DISK_BUILD="8G"
 	else
 		CHECKREQS_DISK_BUILD="4G"
@@ -150,7 +152,7 @@ src_prepare() {
 	eautoreconf
 
 	# Must run autoconf in js/src
-	cd "${S}"/js/src
+	cd "${S}"/js/src || die
 	eautoconf
 }
 
@@ -214,7 +216,7 @@ src_configure() {
 src_compile() {
 	CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL}" \
-	emake -f client.mk || die "emake failed"
+	emake -f client.mk
 }
 
 src_install() {
@@ -224,13 +226,14 @@ src_install() {
 	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler etc.
 	local obj_dir="$(echo */config.log)"
 	obj_dir="${obj_dir%/*}"
-	cd "${S}/${obj_dir}"
+	cd "${S}/${obj_dir}" || die
 
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
 	pax-mark m "${S}/${obj_dir}"/dist/bin/xpcshell
 
 	# Add an emty default prefs for mozconfig-3.eclass
-	touch "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
+	touch "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
+		|| die
 
 	# Add torbrowser version and disable the flash-plugin by default
 	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/versions
@@ -238,28 +241,38 @@ src_install() {
 	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/descriptors/linux/gitian-firefox.yml#l76
 	grep -v -e '^pref(\"torbrowser.version\",' -e '^pref(\"plugin.state.flash\",' \
 		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
-		> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js.fixed" || die
-	mv "${S}/${obj_dir}"/dist/bin/browser/defaults/preferences/000-tor-browser.js{.fixed,} || die
+		> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js.fixed" \
+		|| die
+	mv "${S}/${obj_dir}"/dist/bin/browser/defaults/preferences/000-tor-browser.js{.fixed,} \
+		|| die
 
 	# Set torbrowser version
 	echo "pref(\"torbrowser.version\", \"$TOR_PV-Linux\");" \
-		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" || die
+		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		|| die
 
 	# Disable adobe-flash by default
 	echo "pref(\"plugin.state.flash\", 0);" \
-		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" || die
+		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		|| die
 
 	# Set default path to search for dictionaries.
 	echo "pref(\"spellchecker.dictionary_path\", ${DICTPATH});" \
-		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
+		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
+		|| die
 
 	if ! use libnotify; then
 		echo "pref(\"browser.download.manager.showAlertOnComplete\", false);" \
-			>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
+			>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
+			|| die
 	fi
 
+	echo "pref(\"extensions.autoDisableScopes\", 3);" >> \
+		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
+		|| die
+
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
-	emake DESTDIR="${D}" install || die "emake install failed"
+	emake DESTDIR="${D}" install
 
 	local size sizes icon_path
 	sizes="16 24 32 48 256"
@@ -275,14 +288,17 @@ src_install() {
 
 	# Add StartupNotify=true bug 237317
 	if use startup-notification ; then
-		echo "StartupNotify=true" >> "${ED}/usr/share/applications/${PN}-${PN}.desktop"
+		echo "StartupNotify=true" \
+			>> "${ED}/usr/share/applications/${PN}-${PN}.desktop" \
+			|| die
 	fi
 
 	# Required in order to use plugins and even run torbrowser on hardened.
 	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
 
 	# We dont want development files
-	rm -rf "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} || die
+	rm -r "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} \
+			|| die "Failed to remove sdk and headers"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10160
 	# Profile without the tor-launcher extension
