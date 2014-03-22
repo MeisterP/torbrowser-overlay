@@ -108,7 +108,8 @@ src_prepare() {
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	epatch -R "${FILESDIR}/tor-browser.git-6662aae388094c7cca535e34f24ef01af7d51481.patch"
 
-	# allow lightspark as well
+	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
+	# Allow lightspark as well
 	epatch "${FILESDIR}"/${P}-allow-lightspark.patch
 
 	# Apply gentoo firefox patches
@@ -293,8 +294,9 @@ src_install() {
 	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/Browser/profile.default/{extensions,preferences,bookmarks.html}
 
-	# FIXME: about:tor always reports connected (part of torbutton)
-	# Set default homepag here since we need to overwrite extension prefs
+	# FIXME: https://trac.torproject.org/projects/tor/ticket/10606
+	# about:tor always reports connected (part of torbutton)
+	# Set the default homepag here since we need to overwrite extension prefs
 	echo "user_pref(\"browser.startup.homepage\", \"https://check.torproject.org/\");" \
 		> "${T}/prefs.js" || die
 	doins "${T}/prefs.js"
