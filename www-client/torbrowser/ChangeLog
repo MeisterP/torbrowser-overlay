@@ -2,6 +2,9 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  26 Mar 2014; Julian Ospald <hasufell@gentoo.org> torbrowser-24.4.0.ebuild:
+  sync with firefox-24.4.0
+
 *torbrowser-24.4.0 (20 Mar 2014)
 
   20 Mar 2014; Julian Ospald <hasufell@gentoo.org> +torbrowser-24.4.0.ebuild:

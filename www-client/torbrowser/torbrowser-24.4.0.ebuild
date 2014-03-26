@@ -41,8 +41,8 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
-	>=dev-libs/nss-3.15.3
-	>=dev-libs/nspr-4.10.2
+	>=dev-libs/nss-3.16
+	>=dev-libs/nspr-4.10.4
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
 	>=media-libs/libpng-1.5.13[apng]
@@ -50,7 +50,7 @@ RDEPEND="
 	gstreamer? ( media-plugins/gst-plugins-meta:0.10[ffmpeg] )
 	pulseaudio? ( media-sound/pulseaudio )
 	system-cairo? ( >=x11-libs/cairo-1.12[X] )
-	system-icu? ( >=dev-libs/icu-0.51.1 )
+	system-icu? ( >=dev-libs/icu-51.1 )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-sqlite? ( >=dev-db/sqlite-3.7.17:3[secure-delete,debug=] )
 	>=media-libs/libvpx-1.0.0
@@ -149,7 +149,7 @@ src_prepare() {
 	eautoreconf
 
 	# Must run autoconf in js/src
-	cd "${S}"/js/src
+	cd "${S}"/js/src || die
 	eautoconf
 }
 
