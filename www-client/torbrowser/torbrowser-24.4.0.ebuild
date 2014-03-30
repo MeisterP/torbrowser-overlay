@@ -78,6 +78,16 @@ mozversion_is_new_enough() {
 	return 1
 }
 
+pkg_pretend() {
+	# Ensure we have enough disk space to compile
+	if use debug; then
+		CHECKREQS_DISK_BUILD="8G"
+	else
+		CHECKREQS_DISK_BUILD="4G"
+	fi
+	check-reqs_pkg_setup
+}
+
 pkg_setup() {
 	moz_pkgsetup
 
@@ -88,16 +98,6 @@ pkg_setup() {
 		SESSION_MANAGER \
 		XDG_SESSION_COOKIE \
 		XAUTHORITY
-}
-
-pkg_pretend() {
-	# Ensure we have enough disk space to compile
-	if use debug; then
-		CHECKREQS_DISK_BUILD="8G"
-	else
-		CHECKREQS_DISK_BUILD="4G"
-	fi
-	check-reqs_pkg_setup
 }
 
 src_unpack() {
@@ -324,7 +324,7 @@ pkg_preinst() {
 
 pkg_postinst() {
 	ewarn ""
-	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
+	ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
 	ewarn "the exact same sources. Use this only if you know what you are doing!"
 	ewarn ""
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
