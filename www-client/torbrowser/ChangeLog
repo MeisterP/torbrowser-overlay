@@ -2,6 +2,12 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-24.4.0-r1 (30 Mar 2014)
+
+  30 Mar 2014; Julian Ospald <hasufell@gentoo.org>
+  +torbrowser-24.4.0-r1.ebuild, +files/torbrowser-24.4.0-drag-and-drop.patch:
+  backport drag-and-drop patch from non-ESR
+
   30 Mar 2014; Julian Ospald <hasufell@gentoo.org> torbrowser-24.4.0.ebuild:
   order phases logically
 
