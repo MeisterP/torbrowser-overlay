@@ -1,4 +1,4 @@
-# Copyright 1999-2013 Gentoo Foundation
+# Copyright 1999-2014 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -306,7 +306,7 @@ pkg_preinst() {
 
 pkg_postinst() {
 	ewarn ""
-	ewarn "This patched firefox build is _NOT_ recommended by TOR upstream but uses"
+	ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
 	ewarn "the exact same sources. Use this only if you know what you are doing!"
 	ewarn ""
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
