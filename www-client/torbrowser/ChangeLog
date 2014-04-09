@@ -2,6 +2,12 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-24.4.0-r1 (09 Apr 2014)
+
+  09 Apr 2014; Poncho <poncho@spahan.ch> +torbrowser-24.4.0-r1.ebuild:
+  www-client/torbrowser: bump for 3.5.4 release see
+  https://blog.torproject.org/blog/tor-browser-354-released
+
   30 Mar 2014; Julian Ospald <hasufell@gentoo.org> torbrowser-24.3.0-r1.ebuild,
   torbrowser-24.3.0-r2.ebuild, torbrowser-24.4.0.ebuild:
   fix Tor spelling
