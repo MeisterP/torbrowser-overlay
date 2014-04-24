@@ -1,0 +1,6 @@
+*torbrowser-launcher-0.0.6-r1 (24 Apr 2014)
+
+  24 Apr 2014; Poncho <poncho@spahan.ch> +files/replaced-cert.patch,
+  +torbrowser-launcher-0.0.6-r1.ebuild:
+  www-client/torbrowser-launcher: update cert for torproject  see
+  https://github.com/micahflee/torbrowser-launcher/issues/84
