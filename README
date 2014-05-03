@@ -39,4 +39,4 @@ as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
 If you want to start from scratch just remove the directory '~/.mozilla/torbrowser'.
 
 Torbrowser uses port 9150 to connect to Tor. You can change the port
-in the connection settings to match your setup."
+in the connection settings to match your setup.
