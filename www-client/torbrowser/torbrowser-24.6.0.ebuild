@@ -7,12 +7,12 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-TOR_PV="3.6.1"
+TOR_PV="3.6.2"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_PV="${PV}esr"
 fi
-GIT_TAG="tor-browser-${MOZ_PV}-1-build4"
+GIT_TAG="tor-browser-${MOZ_PV}-3.x-1"
 
 # Patch version
 PATCH="${MY_PN}-24.0-patches-0.9"
@@ -303,17 +303,17 @@ src_install() {
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10160
 	# Profile without the tor-launcher extension
 	local torlauncher="${WORKDIR}/tor-browser_en-US/Data/Browser/profile.default/extensions/tor-launcher@torproject.org.xpi"
-	dodoc "${torlauncher}" && rm -rf "${torlauncher}" || die
+	dodoc "${torlauncher}"
+	rm -r "${torlauncher}" || die "Failed to remove torlauncher extension"
 
 	dodoc "${WORKDIR}/tor-browser_en-US/Docs/ChangeLog.txt"
 
 	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/Browser/profile.default/{extensions,preferences,bookmarks.html}
 
-	# FIXME: https://trac.torproject.org/projects/tor/ticket/10606
-	# about:tor always reports connected (part of torbutton)
-	# Set the default homepag here since we need to overwrite extension prefs
-	echo "user_pref(\"browser.startup.homepage\", \"https://check.torproject.org/\");" \
+	# Force remote Tor check, since control port might not be available
+	# Set here since we need to overwrite extension prefs (torbutton)
+	echo "user_pref(\"extensions.torbutton.local_tor_check\", false);" \
 		> "${T}/prefs.js" || die
 	doins "${T}/prefs.js"
 }
