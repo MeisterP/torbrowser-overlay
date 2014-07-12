@@ -1,3 +1,6 @@
+  12 Jul 2014; Poncho <poncho@spahan.ch> torbrowser-launcher-0.1.1.ebuild:
+  www-client/torbrowser-launcher: clean up apparmor removal
+
 *torbrowser-launcher-0.1.1 (12 Jul 2014)
 
   12 Jul 2014; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.1.1.ebuild:

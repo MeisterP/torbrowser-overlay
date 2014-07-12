@@ -48,10 +48,7 @@ python_install_all() {
 	done
 
 	# delete apparmor profiles
-	if [[ -d ${D}/etc/apparmor.d ]]; then
-		rm -r "${D}/etc/apparmor.d" || die \
-			"Failed to remove apparmor profiles"
-	fi
+	rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
 }
 
 pkg_preinst() {
