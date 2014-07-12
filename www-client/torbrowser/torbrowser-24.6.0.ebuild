@@ -303,6 +303,7 @@ src_install() {
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10160
 	# Profile without the tor-launcher extension
 	local torlauncher="${WORKDIR}/tor-browser_en-US/Data/Browser/profile.default/extensions/tor-launcher@torproject.org.xpi"
+	docompress -x "${EROOT}/usr/share/doc/${PF}/tor-launcher@torproject.org.xpi"
 	dodoc "${torlauncher}"
 	rm -r "${torlauncher}" || die "Failed to remove torlauncher extension"
 
