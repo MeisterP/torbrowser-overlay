@@ -1,0 +1,5 @@
+*txsocksx-1.13.0.3 (12 Jul 2014)
+
+  12 Jul 2014; Poncho <poncho@spahan.ch> +metadata.xml,
+  +txsocksx-1.13.0.3.ebuild:
+  dev-python/txsocksx: new ebuild
