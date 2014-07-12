@@ -1,3 +1,8 @@
+*torbrowser-launcher-0.1.1 (12 Jul 2014)
+
+  12 Jul 2014; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.1.1.ebuild:
+  www-client/torbrowser-launcher: version bump
+
 *torbrowser-launcher-0.1.0 (12 Jun 2014)
 
   12 Jun 2014; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.1.0.ebuild,
