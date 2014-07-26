@@ -7,12 +7,12 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-TOR_PV="3.6.2"
+TOR_PV="3.6.3"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_PV="${PV}esr"
 fi
-GIT_TAG="tor-browser-${MOZ_PV}-3.x-1"
+GIT_TAG="tor-browser-${MOZ_PV}-4.x-1"
 
 # Patch version
 PATCH="${MY_PN}-24.0-patches-0.9"
@@ -41,7 +41,7 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 # Mesa 7.10 needed for WebGL + bugfixes
 RDEPEND="
-	>=dev-libs/nss-3.16
+	>=dev-libs/nss-3.16.2
 	>=dev-libs/nspr-4.10.4
 	>=dev-libs/glib-2.26:2
 	>=media-libs/mesa-7.10
@@ -108,7 +108,7 @@ src_unpack() {
 
 src_prepare() {
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	epatch -R "${FILESDIR}/tor-browser.git-6662aae388094c7cca535e34f24ef01af7d51481.patch"
+	epatch -R "${FILESDIR}/tor-browser.git-acb385430a2acf9c7148b695b8d4318a7b8ed371.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Allow lightspark as well
