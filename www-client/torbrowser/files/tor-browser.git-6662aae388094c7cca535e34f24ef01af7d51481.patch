@@ -27,7 +27,7 @@ index 0ac0bdc..3e047e1 100644
  #include "mozilla/Services.h"
  #include "mozilla/Omnijar.h"
  #include "mozilla/Preferences.h"
-@@ -192,9 +193,6 @@ nsXREDirProvider::GetUserProfilesRootDir(nsIFile** aResult,
+@@ -192,9 +193,6 @@
                                       aProfileName, aAppName, aVendorName);
  
    if (NS_SUCCEEDED(rv)) {
@@ -37,7 +37,7 @@ index 0ac0bdc..3e047e1 100644
      // We must create the profile directory here if it does not exist.
      nsresult tmp = EnsureDirectoryExists(file);
      if (NS_FAILED(tmp)) {
-@@ -217,9 +215,6 @@ nsXREDirProvider::GetUserProfilesLocalDir(nsIFile** aResult,
+@@ -217,9 +215,6 @@
                                       aProfileName, aAppName, aVendorName);
  
    if (NS_SUCCEEDED(rv)) {
@@ -47,7 +47,7 @@ index 0ac0bdc..3e047e1 100644
      // We must create the profile directory here if it does not exist.
      nsresult tmp = EnsureDirectoryExists(file);
      if (NS_FAILED(tmp)) {
-@@ -1137,106 +1132,44 @@ nsresult
+@@ -1137,102 +1132,45 @@
  nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile, bool aLocal)
  {
    // Copied from nsAppFileLocationProvider (more or less)
@@ -55,10 +55,41 @@ index 0ac0bdc..3e047e1 100644
 +  NS_ENSURE_ARG_POINTER(aFile);
    nsCOMPtr<nsIFile> localDir;
  
--#if defined(XP_MACOSX)
++  nsresult rv = GetAppDir()->Clone(getter_AddRefs(localDir));
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  int levelsToRemove = 1; // In FF21+, appDir points to browser subdirectory.
+ #if defined(XP_MACOSX)
 -  FSRef fsRef;
 -  OSType folderType;
--  if (aLocal) {
++  levelsToRemove += 2;
++#endif
++  while (localDir && (levelsToRemove > 0)) {
++    // When crawling up the hierarchy, components named "." do not count.
++    nsAutoCString removedName;
++    rv = localDir->GetNativeLeafName(removedName);
++    NS_ENSURE_SUCCESS(rv, rv);
++    bool didRemove = !removedName.Equals(".");
++
++    // Remove a directory component.
++    nsCOMPtr<nsIFile> parentDir;
++    rv = localDir->GetParent(getter_AddRefs(parentDir));
++    NS_ENSURE_SUCCESS(rv, rv);
++    localDir = parentDir;
++
++    if (didRemove)
++      --levelsToRemove;
++  }
++
++  if (!localDir)
++    return NS_ERROR_FAILURE;
++
++  rv = localDir->AppendRelativeNativePath(NS_LITERAL_CSTRING("TorBrowser"
++                                     XPCOM_FILE_PATH_SEPARATOR "Data"
++                                     XPCOM_FILE_PATH_SEPARATOR "Browser"));
++  NS_ENSURE_SUCCESS(rv, rv);
++
+   if (aLocal) {
 -    folderType = kCachedDataFolderType;
 -  } else {
 -#ifdef MOZ_THUNDERBIRD
@@ -71,30 +102,14 @@ index 0ac0bdc..3e047e1 100644
 -  NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
 -
 -  rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localDir));
-+  nsresult rv = GetAppDir()->Clone(getter_AddRefs(localDir));
-   NS_ENSURE_SUCCESS(rv, rv);
- 
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
 -  nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(localDir);
 -  NS_ENSURE_TRUE(dirFileMac, NS_ERROR_UNEXPECTED);
-+  int levelsToRemove = 2; // In FF21+, appDir points to browser subdirectory.
-+#if defined(XP_MACOSX)
-+  levelsToRemove += 4;
-+#endif
-+  while (localDir && (levelsToRemove > 0)) {
-+    // When crawling up the hierarchy, components named "." do not count.
-+    nsAutoCString removedName;
-+    rv = localDir->GetNativeLeafName(removedName);
-+    NS_ENSURE_SUCCESS(rv, rv);
-+    bool didRemove = !removedName.Equals(".");
- 
+-
 -  rv = dirFileMac->InitWithFSRef(&fsRef);
 -  NS_ENSURE_SUCCESS(rv, rv);
-+    // Remove a directory component.
-+    nsCOMPtr<nsIFile> parentDir;
-+    rv = localDir->GetParent(getter_AddRefs(parentDir));
-+    NS_ENSURE_SUCCESS(rv, rv);
-+    localDir = parentDir;
- 
+-
 -  localDir = do_QueryInterface(dirFileMac, &rv);
 -#elif defined(XP_WIN)
 -  nsString path;
@@ -102,9 +117,8 @@ index 0ac0bdc..3e047e1 100644
 -    rv = GetShellFolderPath(CSIDL_LOCAL_APPDATA, path);
 -    if (NS_FAILED(rv))
 -      rv = GetRegWindowsAppDataFolder(aLocal, path);
-+    if (didRemove)
-+      --levelsToRemove;
-   }
+-  }
+-
 -  if (!aLocal || NS_FAILED(rv)) {
 -    rv = GetShellFolderPath(CSIDL_APPDATA, path);
 -    if (NS_FAILED(rv)) {
@@ -133,7 +147,7 @@ index 0ac0bdc..3e047e1 100644
 -    PPIB ppib;
 -    PTIB ptib;
 -    char appDir[CCHMAXPATH];
- 
+-
 -    DosGetInfoBlocks(&ptib, &ppib);
 -    DosQueryModuleName(ppib->pib_hmte, CCHMAXPATH, appDir);
 -    *strrchr(appDir, '\\') = '\0';
@@ -145,17 +159,9 @@ index 0ac0bdc..3e047e1 100644
 -#elif defined(XP_UNIX)
 -  const char* homeDir = getenv("HOME");
 -  if (!homeDir || !*homeDir)
-+  if (!localDir)
-     return NS_ERROR_FAILURE;
- 
--#ifdef ANDROID /* We want (ProfD == ProfLD) on Android. */
--  aLocal = false;
--#endif
-+  rv = localDir->AppendRelativeNativePath(NS_LITERAL_CSTRING("Data"
-+                                     XPCOM_FILE_PATH_SEPARATOR "Browser"));
-+  NS_ENSURE_SUCCESS(rv, rv);
- 
-   if (aLocal) {
+-    return NS_ERROR_FAILURE;
+-
+-  if (aLocal) {
 -    // If $XDG_CACHE_HOME is defined use it, otherwise use $HOME/.cache.
 -    const char* cacheHome = getenv("XDG_CACHE_HOME");
 -    if (cacheHome && *cacheHome) {
@@ -169,13 +175,13 @@ index 0ac0bdc..3e047e1 100644
 -    }
 -  } else {
 -    rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
--                               getter_AddRefs(localDir));
-+    rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
-+    NS_ENSURE_SUCCESS(rv, rv);
-   }
+-  }
 -#else
 -#error "Don't know how to get product dir on your platform"
 -#endif
++    rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
++    NS_ENSURE_SUCCESS(rv, rv);
++  }
  
    NS_IF_ADDREF(*aFile = localDir);
    return rv;
@@ -342,19 +348,7 @@ index ba49757..8d92c5f 100644
  
  #if defined(MOZ_WIDGET_COCOA)
  #include <Carbon/Carbon.h>
-@@ -285,9 +286,8 @@ NS_METHOD nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile **aLocalFile)
- //----------------------------------------------------------------------------------------
- // GetProductDirectory - Gets the directory which contains the application data folder
- //
--// UNIX   : ~/.mozilla/
--// WIN    : <Application Data folder on user's machine>\Mozilla
--// Mac    : :Documents:Mozilla:
-+// UNIX and WIN   : <App Folder>/../Data/Browser
-+// Mac            : <App Folder>/../../../../../Data/Browser
- //----------------------------------------------------------------------------------------
- NS_METHOD nsAppFileLocationProvider::GetProductDirectory(nsIFile **aLocalFile, bool aLocal)
- {
-@@ -297,38 +297,42 @@ NS_METHOD nsAppFileLocationProvider::GetProductDirectory(nsIFile **aLocalFile, b
+@@ -297,37 +297,42 @@
      bool exists;
      nsCOMPtr<nsIFile> localDir;
  
@@ -386,13 +380,16 @@ index ba49757..8d92c5f 100644
 -    if (NS_FAILED(rv)) return rv;
 -#else
 -#error dont_know_how_to_get_product_dir_on_your_platform
+-#endif
+-    rv = localDir->AppendRelativeNativePath(DEFAULT_PRODUCT_DIR);
+-    if (NS_FAILED(rv)) return rv;
 +    rv = CloneMozBinDirectory(getter_AddRefs(localDir));
 +    NS_ENSURE_SUCCESS(rv, rv);
 +
-+    int levelsToRemove = 2; // In FF21+, bin dir points to browser subdirectory.
++    int levelsToRemove = 1; // In FF21+, bin dir points to browser subdirectory.
 +#if defined(XP_MACOSX)
-+    levelsToRemove += 4;
- #endif
++    levelsToRemove += 2;
++#endif
 +    while (localDir && (levelsToRemove > 0)) {
 +        // When crawling up the hierarchy, components named "." do not count.
 +        nsAutoCString removedName;
@@ -413,7 +410,8 @@ index ba49757..8d92c5f 100644
 +    if (!localDir)
 +        return NS_ERROR_FAILURE;
 +
-+    rv = localDir->AppendRelativeNativePath(NS_LITERAL_CSTRING("Data"
++    rv = localDir->AppendRelativeNativePath(NS_LITERAL_CSTRING("TorBrowser"
++                                       XPCOM_FILE_PATH_SEPARATOR "Data"
 +                                       XPCOM_FILE_PATH_SEPARATOR "Browser"));
 +    NS_ENSURE_SUCCESS(rv, rv);
 +
@@ -422,11 +420,8 @@ index ba49757..8d92c5f 100644
 +        NS_ENSURE_SUCCESS(rv, rv);
 +    }
  
--    rv = localDir->AppendRelativeNativePath(DEFAULT_PRODUCT_DIR);
--    if (NS_FAILED(rv)) return rv;
      rv = localDir->Exists(&exists);
  
-     if (NS_SUCCEEDED(rv) && !exists)
 @@ -345,10 +349,6 @@ NS_METHOD nsAppFileLocationProvider::GetProductDirectory(nsIFile **aLocalFile, b
  
  //----------------------------------------------------------------------------------------
