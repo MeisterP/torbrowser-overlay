@@ -108,7 +108,7 @@ src_unpack() {
 
 src_prepare() {
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	epatch -R "${FILESDIR}/tor-browser.git-6662aae388094c7cca535e34f24ef01af7d51481.patch"
+	epatch -R "${FILESDIR}/tor-browser.git-acb385430a2acf9c7148b695b8d4318a7b8ed371.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Allow lightspark as well
