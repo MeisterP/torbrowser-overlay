@@ -7,11 +7,13 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 MY_PN="firefox"
-TOR_PV="3.6.3"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
 	MOZ_PV="${PV}esr"
 fi
+
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/refs/heads/maint-3.6:/gitian/versions
+TOR_PV="3.6.3"
 GIT_TAG="tor-browser-${MOZ_PV}-3.x-1-build1"
 
 # Patch version
@@ -111,7 +113,7 @@ src_prepare() {
 	epatch -R "${FILESDIR}/tor-browser.git-6662aae388094c7cca535e34f24ef01af7d51481.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
-	# Allow lightspark as well
+	# Except lightspark-plugin from blocklist
 	epatch "${FILESDIR}"/${PN}-24.3.0-allow-lightspark.patch
 
 	# Apply gentoo firefox patches
@@ -236,9 +238,9 @@ src_install() {
 		|| die
 
 	# Add torbrowser version and disable the flash-plugin by default
-	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/versions
-	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/mkbundle-linux.sh#l40
-	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/descriptors/linux/gitian-firefox.yml#l76
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/refs/heads/maint-3.6:/gitian/versions
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/refs/heads/maint-3.6:/gitian/mkbundle-linux.sh#l45
+	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/refs/heads/maint-3.6:/gitian/descriptors/linux/gitian-bundle.yml#l134
 	grep -v -e '^pref(\"torbrowser.version\",' -e '^pref(\"plugin.state.flash\",' \
 		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js.fixed" \
@@ -312,8 +314,8 @@ src_install() {
 	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
 	doins -r "${WORKDIR}"/tor-browser_en-US/Data/Browser/profile.default/{extensions,preferences,bookmarks.html}
 
-	# Force remote Tor check, since control port might not be available
-	# Set here since we need to overwrite extension prefs (torbutton)
+	# Force remote Tor check since the control port might not be available
+	# Done in prefs.js since we need to overwrite extension prefs (torbutton)
 	echo "user_pref(\"extensions.torbutton.local_tor_check\", false);" \
 		> "${T}/prefs.js" || die
 	doins "${T}/prefs.js"
