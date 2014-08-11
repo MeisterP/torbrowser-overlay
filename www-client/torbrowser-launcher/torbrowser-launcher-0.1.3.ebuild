@@ -24,21 +24,20 @@ DEPEND="${PYTHON_DEPS}
 	dev-python/twisted-web[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
-	dev-python/pygame[${PYTHON_USEDEP}]
 	dev-python/psutil[${PYTHON_USEDEP}]
 	dev-python/pyliblzma[${PYTHON_USEDEP}]
 	x11-misc/wmctrl"
 
-python_prepare() {
-	distutils-r1_python_prepare
+python_prepare_all() {
+	distutils-r1_python_prepare_all
 
 	# add better icons to desktop files
 	sed -i "s/^Icon=.*/Icon=${PN}/" \
-		torbrowser{,-settings}.desktop || die
+		share/applications/torbrowser{,-settings}.desktop || die
 }
 
-python_install() {
-	distutils-r1_python_install
+python_install_all() {
+	distutils-r1_python_install_all
 
 	# install icons
 	# https://gitweb.torproject.org/torbrowser.git/tree/HEAD:/build-scripts/branding
@@ -49,10 +48,7 @@ python_install() {
 	done
 
 	# delete apparmor profiles
-	if [[ -d ${D}/etc/apparmor.d ]]; then
-		rm -r "${D}/etc/apparmor.d" || die \
-			"Failed to remove apparmor profiles"
-	fi
+	rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
 }
 
 pkg_preinst() {
@@ -61,6 +57,12 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
+
+	elog "To get additional features, a number of optional runtime"
+	elog "dependencies may be installed:"
+	elog ""
+	optfeature "updating over system TOR" "net-misc/tor dev-python/txsocksx"
+	optfeature "modem sound support" dev-python/pygame
 }
 
 pkg_postrm() {
