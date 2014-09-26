@@ -2,6 +2,13 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-24.8.1 (26 Sep 2014)
+
+  26 Sep 2014; Poncho <poncho@spahan.ch> +torbrowser-24.8.1.ebuild,
+  -torbrowser-24.8.0.ebuild:
+  www-client/torbrowser: version bump  see https://blog.torproject.org/blog/tor-
+  browser-366-released
+
 *torbrowser-24.8.0 (04 Sep 2014)
 
   04 Sep 2014; Poncho <poncho@spahan.ch> +torbrowser-24.8.0.ebuild,
