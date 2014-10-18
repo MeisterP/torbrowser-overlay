@@ -2,6 +2,14 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-31.2.0 (18 Oct 2014)
+
+  18 Oct 2014; Poncho <poncho@spahan.ch> +files/README.tor-launcher,
+  +files/tor-browser.git-bccc144c21f6069a294038a6559ba46ceb8da2a2.patch,
+  +torbrowser-31.2.0.ebuild, metadata.xml:
+  www-client/torbrowser: Tor Browser 4.0 is released
+  https://blog.torproject.org/blog/tor-browser-40-released
+
 *torbrowser-24.8.1 (26 Sep 2014)
 
   26 Sep 2014; Poncho <poncho@spahan.ch> +torbrowser-24.8.1.ebuild,
