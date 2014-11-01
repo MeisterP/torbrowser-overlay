@@ -2,6 +2,9 @@
 # Copyright 1999-2014 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  01 Nov 2014; Poncho <poncho@spahan.ch> torbrowser-31.2.0.ebuild:
+  www-client/torbrowser: switch to using new tor project dist url
+
 *torbrowser-31.2.0 (18 Oct 2014)
 
   18 Oct 2014; Poncho <poncho@spahan.ch> +files/README.tor-launcher,

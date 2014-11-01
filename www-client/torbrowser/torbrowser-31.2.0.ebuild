@@ -35,7 +35,7 @@ SLOT="0"
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="hardened test"
 
-BASE_SRC_URI="https://www.torproject.org/dist/${PN}/${TOR_PV}"
+BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.gz -> ${GIT_TAG}.tar.gz
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~axs/distfiles/${PATCH}.tar.xz
@@ -44,8 +44,7 @@ SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.g
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-RDEPEND="
-	>=dev-libs/nss-3.16.2
+RDEPEND=">=dev-libs/nss-3.16.2
 	>=dev-libs/nspr-4.10.6"
 
 DEPEND="${RDEPEND}
