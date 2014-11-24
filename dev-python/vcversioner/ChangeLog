@@ -1,3 +1,6 @@
+  24 Nov 2014; Poncho <poncho@spahan.ch> vcversioner-1.14.1.1.ebuild:
+  dev-python/vcversioner: add python 3.4
+
 *vcversioner-1.14.1.1 (12 Jul 2014)
 
   12 Jul 2014; Poncho <poncho@spahan.ch> +metadata.xml,
