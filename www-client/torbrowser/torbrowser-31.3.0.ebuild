@@ -12,9 +12,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/versions
-TOR_PV="4.0"
-GIT_TAG="tor-browser-${MOZ_PV}-4.x-1-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-4.0
+TOR_PV="4.0.2"
+GIT_TAG="tor-browser-${MOZ_PV}-4.0-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-31.0-patches-0.2"
@@ -44,10 +44,10 @@ SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.g
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-RDEPEND=">=dev-libs/nss-3.16.2
+CDEPEND=">=dev-libs/nss-3.17.1
 	>=dev-libs/nspr-4.10.6"
 
-DEPEND="${RDEPEND}
+DEPEND="${CDEPEND}
 	amd64? ( ${ASM_DEPEND}
 		virtual/opengl )
 	x86? ( ${ASM_DEPEND}
@@ -94,11 +94,11 @@ pkg_pretend() {
 	fi
 }
 
-src_unpack() {
-	default
-	# We can't use vcs-snapshot.eclass becaus not all sources are snapshots
-	mv "${WORKDIR}"/tor-browser-"${GIT_TAG}"-[0-9a-f]*[0-9a-f]/ "${WORKDIR}/${GIT_TAG}" || die
-}
+#src_unpack() {
+#	default
+#	# We can't use vcs-snapshot.eclass becaus not all sources are snapshots
+#	mv "${WORKDIR}"/tor-browser-"${GIT_TAG}"-[0-9a-f]*[0-9a-f]/ "${WORKDIR}/${GIT_TAG}" || die
+#}
 
 src_prepare() {
 	# Apply gentoo firefox patches
@@ -176,7 +176,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --libdir="${EPREFIX}"/usr/$(get_libdir)/${PN}
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/blob/refs/heads/tor-browser-31.2.0esr-4.x-1:/configure.in#l6401
+	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in?h=tor-browser-31.3.0esr-4.0-1#n6401
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 
@@ -224,11 +224,8 @@ src_install() {
 		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
-	# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/gitian/descriptors/linux/gitian-bundle.yml#l146
+	# https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-4.0#n148
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
-		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
-		|| die
-	echo "pref(\"security.tls.version.min\", 1);" \
 		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
@@ -283,7 +280,7 @@ src_install() {
 	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
 	doins -r "${profile_dir}"/{extensions,preferences,bookmarks.html}
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/blob/HEAD:/RelativeLink/RelativeLink.sh#l248
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/RelativeLink/RelativeLink.sh?h=maint-4.0#n248
 	dodoc "${FILESDIR}/README.tor-launcher"
 	dodoc "${WORKDIR}/tor-browser_en-US/Browser/TorBrowser/Docs/ChangeLog.txt"
 }
