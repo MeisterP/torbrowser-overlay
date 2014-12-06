@@ -1,0 +1,4 @@
+*onionshare-0.6 (06 Dec 2014)
+
+  06 Dec 2014; Poncho <poncho@spahan.ch> +metadata.xml, +onionshare-0.6.ebuild:
+  www-servers/onionshare: new ebuild
