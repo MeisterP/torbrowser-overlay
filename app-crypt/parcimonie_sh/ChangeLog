@@ -1,0 +1,5 @@
+*parcimonie_sh-9999 (14 Jan 2015)
+
+  14 Jan 2015; Poncho <poncho@spahan.ch> +metadata.xml,
+  +parcimonie_sh-9999.ebuild:
+  app-crypt/parcimonie_sh: new ebuild
