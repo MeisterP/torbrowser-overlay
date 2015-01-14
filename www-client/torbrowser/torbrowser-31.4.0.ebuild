@@ -1,4 +1,4 @@
-# Copyright 1999-2014 Gentoo Foundation
+# Copyright 1999-2015 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -13,8 +13,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-4.0
-TOR_PV="4.0.2"
-GIT_TAG="tor-browser-${MOZ_PV}-4.0-1-build2"
+TOR_PV="4.0.3"
+GIT_TAG="tor-browser-${MOZ_PV}-4.0-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-31.0-patches-0.2"
@@ -93,12 +93,6 @@ pkg_pretend() {
 		ewarn "emerging the package with USE=-jit"
 	fi
 }
-
-#src_unpack() {
-#	default
-#	# We can't use vcs-snapshot.eclass becaus not all sources are snapshots
-#	mv "${WORKDIR}"/tor-browser-"${GIT_TAG}"-[0-9a-f]*[0-9a-f]/ "${WORKDIR}/${GIT_TAG}" || die
-#}
 
 src_prepare() {
 	# Apply gentoo firefox patches
@@ -224,7 +218,7 @@ src_install() {
 		"${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
-	# https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-4.0#n148
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-4.0#n148
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${S}/${obj_dir}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -251,9 +245,9 @@ src_install() {
 	fi
 
 	# Required in order to use plugins and even run torbrowser on hardened.
-	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
+	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/plugin-container
 	# Required in order for jit to work on hardened, as of torbroser-31
-	use jit && pax-mark p "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin}
+	use jit && pax-mark pm "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin}
 
 	# We dont want development files
 	rm -r "${ED}"/usr/include "${ED}${MOZILLA_FIVE_HOME}"/{idl,include,lib,sdk} \
