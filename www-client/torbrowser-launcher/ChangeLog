@@ -1,3 +1,10 @@
+*torbrowser-launcher-0.1.9 (23 Jan 2015)
+
+  23 Jan 2015; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.1.9.ebuild,
+  -torbrowser-launcher-0.1.6.ebuild:
+  www-client/torbrowser-launcher: version bump  fix https://github.com/MeisterP
+  /torbrowser-overlay/issues/10
+
 *torbrowser-launcher-0.1.7 (28 Nov 2014)
 
   28 Nov 2014; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.1.7.ebuild,
