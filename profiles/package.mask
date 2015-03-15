@@ -1,3 +1,10 @@
+# Poncho <poncho@spahan.ch> (15 Mar 2015)
+# It's a hassle to configure, since access to a
+# controlsocket is necessary. This involves changing the
+# torrc, tor.service and the tmpfile.
+# Therefore mask it for the time being.
+net-misc/tor-monitor
+
 # Poncho <poncho@spahan.ch> (23 Jan 2015)
 # Masked as experimental and barely tested.
 # Help is appreciated. Please open a pull request at
