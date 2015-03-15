@@ -1,0 +1,13 @@
+diff --git a/tormonitor.svg b/tormonitor.svg
+index 468f412..0b6b1e4 100644
+--- a/tormonitor.svg
++++ b/tormonitor.svg
+@@ -12,7 +12,7 @@
+    width="256"
+    height="256"
+    id="图层_1"
+-   inkscape:version="0.48.5 r10040"
++   inkscape:version="0.48.5 r10040">
+   <metadata
+      id="metadata22">
+     <rdf:RDF>

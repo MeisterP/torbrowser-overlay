@@ -1,0 +1,5 @@
+*tor-monitor-9999 (15 Mar 2015)
+
+  15 Mar 2015; Poncho <poncho@spahan.ch> +files/fix-icon.patch, +metadata.xml,
+  +tor-monitor-9999.ebuild:
+  net-misc/tor-monitor: new ebuild
