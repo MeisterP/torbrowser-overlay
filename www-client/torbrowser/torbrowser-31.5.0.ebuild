@@ -275,8 +275,10 @@ src_install() {
 	doins -r "${profile_dir}"/{extensions,preferences,bookmarks.html}
 
 	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/RelativeLink/RelativeLink.sh?h=maint-4.0#n248
+	# and https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	dodoc "${FILESDIR}/README.tor-launcher"
 	dodoc "${WORKDIR}/tor-browser_en-US/Browser/TorBrowser/Docs/ChangeLog.txt"
+	doenvd "${FILESDIR}/99-torbrowser"
 }
 
 pkg_preinst() {
@@ -290,6 +292,10 @@ pkg_postinst() {
 	echo
 	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
 	elog "in the connection settings to match your setup."
+	echo
+	elog "To enable additional functionality, torbutton needs to access a control port."
+	elog "If you want this feature, eg. \"New Identity\" menu item, you can set the"
+	elog "necessary environment variables in /etc/env.d/99-torbrowser"
 	echo
 
 	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "31.2.0" ]]; then

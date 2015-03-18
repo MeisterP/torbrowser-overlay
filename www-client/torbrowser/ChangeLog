@@ -2,6 +2,11 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  18 Mar 2015; Poncho <poncho@spahan.ch> +files/99-torbrowser,
+  files/README.tor-launcher, torbrowser-31.5.0.ebuild:
+  www-client/torbrowser: add env.d file  Torbutton needs to access a control
+  port for additional functionality
+
 *torbrowser-31.5.0 (27 Feb 2015)
 
   27 Feb 2015; Andrew Savchenko <bircoph@gentoo.org> -torbrowser-31.4.0.ebuild,
