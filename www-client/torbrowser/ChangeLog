@@ -2,6 +2,10 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  20 Mar 2015; Poncho <poncho@spahan.ch> +files/99torbrowser,
+  -files/99-torbrowser, torbrowser-31.5.0.ebuild:
+  www-client/torbrowser: rename env.d file
+
   18 Mar 2015; Poncho <poncho@spahan.ch> +files/99-torbrowser,
   files/README.tor-launcher, torbrowser-31.5.0.ebuild:
   www-client/torbrowser: add env.d file  Torbutton needs to access a control

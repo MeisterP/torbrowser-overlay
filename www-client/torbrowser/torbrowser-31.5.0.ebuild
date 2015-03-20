@@ -278,7 +278,7 @@ src_install() {
 	# and https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	dodoc "${FILESDIR}/README.tor-launcher"
 	dodoc "${WORKDIR}/tor-browser_en-US/Browser/TorBrowser/Docs/ChangeLog.txt"
-	doenvd "${FILESDIR}/99-torbrowser"
+	doenvd "${FILESDIR}/99torbrowser"
 }
 
 pkg_preinst() {
@@ -295,7 +295,7 @@ pkg_postinst() {
 	echo
 	elog "To enable additional functionality, torbutton needs to access a control port."
 	elog "If you want this feature, eg. \"New Identity\" menu item, you can set the"
-	elog "necessary environment variables in /etc/env.d/99-torbrowser"
+	elog "necessary environment variables in /etc/env.d/99torbrowser"
 	echo
 
 	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "31.2.0" ]]; then
