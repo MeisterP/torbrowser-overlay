@@ -11,8 +11,6 @@ Yes, the variable MUST be double-quoted, then single-quoted, exactly as
 shown. This is used by TorButtom to authenticate to Tor's ControlPort, and
 is necessary for using TBB with a with a system-installed Tor.
 
-You can use /etc/env.d/99-torbrowser to set this environment variable.
-
 Additionally, if using a system-installed Tor, the following about:config
 options should be set (values in <> mean they are the value taken from your
 torrc):
