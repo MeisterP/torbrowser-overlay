@@ -2,6 +2,10 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  02 Apr 2015; Poncho <poncho@spahan.ch> torbrowser-31.6.0.ebuild:
+  www-client/torbrowser: add https://archive.torproject.org to SRC_URI  fix
+  https://github.com/MeisterP/torbrowser-overlay/issues/13
+
 *torbrowser-31.6.0 (01 Apr 2015)
 
   01 Apr 2015; Poncho <poncho@spahan.ch> +torbrowser-31.6.0.ebuild,

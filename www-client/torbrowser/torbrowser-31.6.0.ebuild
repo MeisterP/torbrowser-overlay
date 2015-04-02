@@ -36,11 +36,18 @@ LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="hardened test"
 
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
+ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
 SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.gz -> ${GIT_TAG}.tar.gz
 	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~axs/distfiles/${PATCH}.tar.xz
-	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz )
-	amd64? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz )"
+	x86? (
+		${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
+		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
+	)
+	amd64? (
+		${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
+		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
+	)"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
