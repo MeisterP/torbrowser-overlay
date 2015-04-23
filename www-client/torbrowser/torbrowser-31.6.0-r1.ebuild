@@ -242,7 +242,7 @@ src_install() {
 	done
 	# The 128x128 icon has a different name
 	newicon -s 128 "${icon_path}/mozicon128.png" ${PN}.png
-	make_desktop_entry ${PN} "TorBrowser" ${PN} "Network;WebBrowser"
+	make_desktop_entry ${PN} "Tor Browser" ${PN} "Network;WebBrowser" "StartupWMClass=Torbrowser"
 
 	# Add StartupNotify=true bug 237317
 	if use startup-notification ; then
