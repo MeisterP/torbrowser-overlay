@@ -9,7 +9,7 @@ MOZ_ESR="1"
 MY_PN="firefox"
 if [[ ${MOZ_ESR} == 1 ]]; then
 	# ESR releases have slightly version numbers
-	MOZ_PV="${PV}esr"
+	MOZ_PV="${PV/_p*}esr"
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-4.0
