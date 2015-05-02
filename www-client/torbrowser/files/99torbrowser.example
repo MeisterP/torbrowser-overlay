@@ -1,0 +1,16 @@
+# /etc/env.d/99torbrowser
+#
+# The Tor ControlPort password should be given inside double quotes, inside
+# single quotes, i.e. if the ControlPort password is “secret” (without
+# curly quotes) then we must set the environment variable *exactly* like
+# this:
+# TOR_CONTROL_PASSWD='"secret"'
+# Yes, the variable MUST be double-quoted, then single-quoted, exactly as
+# shown. This is used by TorButtom to authenticate to Tor's ControlPort, and
+# is necessary for using TBB with a with a system-installed Tor.
+
+TOR_CONTROL_PORT=9051
+TOR_CONTROL_HOST=127.0.0.1
+TOR_CONTROL_PASSWD='"secret"'
+#TOR_CONTROL_COOKIE_AUTH_FILE=/var/run/tor/control.authcookie
+#TOR_SKIP_CONTROLPORTTEST=1
