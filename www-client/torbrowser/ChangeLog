@@ -2,6 +2,12 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-31.7.0_p451 (14 May 2015)
+
+  14 May 2015; Poncho <poncho@spahan.ch> +torbrowser-31.7.0_p451.ebuild,
+  -torbrowser-31.6.0_p450.ebuild:
+  www-client/torbrowser: Tor Browser 4.5.1 is released
+
 *torbrowser-31.6.0_p450 (02 May 2015)
 
   02 May 2015; Poncho <poncho@spahan.ch> +files/4.5-Change_the_default_Firefox_p
