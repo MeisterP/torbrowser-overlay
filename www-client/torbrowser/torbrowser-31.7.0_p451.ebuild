@@ -14,7 +14,7 @@ fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions
 TOR_PV="4.5.1"
-GIT_TAG="tor-browser-${MOZ_PV}-4.5-1-build1"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-31.0-patches-0.2"
@@ -22,7 +22,7 @@ PATCH="${MY_PN}-31.0-patches-0.2"
 MOZCONFIG_OPTIONAL_WIFI=1
 MOZCONFIG_OPTIONAL_JIT="enabled"
 
-inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-v5.31 multilib pax-utils autotools
+inherit git-r3 check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-v5.31 multilib pax-utils autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -35,10 +35,11 @@ SLOT="0"
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="hardened test"
 
+EGIT_REPO_URI="https://git.torproject.org/tor-browser.git"
+EGIT_CLONE_TYPE="shallow"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
-SRC_URI="https://gitweb.torproject.org/tor-browser.git/snapshot/${GIT_TAG}.tar.gz -> ${GIT_TAG}.tar.gz
-	http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
+SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	http://dev.gentoo.org/~axs/distfiles/${PATCH}.tar.xz
 	x86? (
 		${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
@@ -61,8 +62,6 @@ DEPEND="${CDEPEND}
 		virtual/opengl )"
 
 QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${MY_PN}/firefox"
-
-S="${WORKDIR}/${GIT_TAG}"
 
 # See mozcoreconf-2.eclass
 mozversion_is_new_enough() {
@@ -99,6 +98,11 @@ pkg_pretend() {
 		ewarn "Please ensure you know what you are doing.  If you don't, please consider"
 		ewarn "emerging the package with USE=-jit"
 	fi
+}
+
+src_unpack() {
+	default
+	git-r3_src_unpack
 }
 
 src_prepare() {
