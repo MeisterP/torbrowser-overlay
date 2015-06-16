@@ -6,8 +6,8 @@
 # this:
 # TOR_CONTROL_PASSWD='"secret"'
 # Yes, the variable MUST be double-quoted, then single-quoted, exactly as
-# shown. This is used by TorButtom to authenticate to Tor's ControlPort, and
-# is necessary for using TBB with a with a system-installed Tor.
+# shown. This is used by TorButton to authenticate to Tor's ControlPort, and
+# is necessary for using TB with a system-installed Tor
 
 TOR_CONTROL_PORT=9051
 TOR_CONTROL_HOST=127.0.0.1

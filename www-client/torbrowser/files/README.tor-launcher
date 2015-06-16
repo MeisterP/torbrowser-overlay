@@ -8,8 +8,8 @@ this:
 TOR_CONTROL_PASSWD='"secret"'
 
 Yes, the variable MUST be double-quoted, then single-quoted, exactly as
-shown. This is used by TorButtom to authenticate to Tor's ControlPort, and
-is necessary for using TBB with a with a system-installed Tor.
+shown. This is used by TorButton and Tor Launcher to authenticate to Tor's
+ControlPort, and is necessary for using TB with a system-installed Tor
 
 Additionally, if using a system-installed Tor, the following about:config
 options should be set (values in <> mean they are the value taken from your

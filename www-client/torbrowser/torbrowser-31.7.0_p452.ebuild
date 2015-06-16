@@ -13,8 +13,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions
-TOR_PV="4.5.1"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-1-build1"
+TOR_PV="4.5.2"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-2-build1"
 
 # Patch version
 PATCH="${MY_PN}-31.0-patches-0.2"
@@ -113,6 +113,9 @@ src_prepare() {
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	epatch -R "${FILESDIR}/4.5-Change_the_default_Firefox_profile_directory_to_be_TBB-relative.patch"
+
+	# FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1143411
+	epatch "${FILESDIR}"/firefox-36.0.1-buildfix-ft-master.patch
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin from blocklist
