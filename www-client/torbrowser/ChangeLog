@@ -2,6 +2,11 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  16 Jun 2015; Poncho <poncho@spahan.ch>
+  -files/tor-browser.git-bccc144c21f6069a294038a6559ba46ceb8da2a2.patch,
+  -torbrowser-31.6.0_p408.ebuild:
+  www-client/torbrowser: remove old
+
   07 Jun 2015; Poncho <poncho@spahan.ch> torbrowser-31.7.0_p451.ebuild:
   www-client/torbrowser: switch to git-r3 eclass  see
   https://github.com/MeisterP/torbrowser-overlay/issues/15
