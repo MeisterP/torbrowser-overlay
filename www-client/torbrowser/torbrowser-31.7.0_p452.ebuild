@@ -115,11 +115,11 @@ src_prepare() {
 	epatch -R "${FILESDIR}/4.5-Change_the_default_Firefox_profile_directory_to_be_TBB-relative.patch"
 
 	# FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1143411
-	epatch "${FILESDIR}"/firefox-36.0.1-buildfix-ft-master.patch
+	epatch "${FILESDIR}/firefox-36.0.1-buildfix-ft-master.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin from blocklist
-	epatch "${FILESDIR}"/${PN}-24.3.0-allow-lightspark.patch
+	epatch "${FILESDIR}/${PN}-24.3.0-allow-lightspark.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
