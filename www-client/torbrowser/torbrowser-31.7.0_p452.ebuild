@@ -118,8 +118,8 @@ src_prepare() {
 	epatch "${FILESDIR}/firefox-36.0.1-buildfix-ft-master.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
-	# Except lightspark-plugin from blocklist
-	epatch "${FILESDIR}/${PN}-24.3.0-allow-lightspark.patch"
+	# Except lightspark-plugin and freshplayer-plugin from blocklist
+	epatch "${FILESDIR}/${PN}-31.7.0-allow-lightspark-and-freshplayerplugin.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
