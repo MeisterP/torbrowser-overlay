@@ -12,9 +12,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions
-TOR_PV="4.5.2"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-2-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-4.5
+TOR_PV="4.5.3"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-31.0-patches-0.2"
@@ -52,7 +52,7 @@ SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-CDEPEND=">=dev-libs/nss-3.19.1
+CDEPEND=">=dev-libs/nss-3.19.2
 	>=dev-libs/nspr-4.10.6"
 
 DEPEND="${CDEPEND}
