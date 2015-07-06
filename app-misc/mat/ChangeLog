@@ -1,0 +1,5 @@
+*mat-0.5.3 (06 Jul 2015)
+
+  06 Jul 2015; Poncho <poncho@spahan.ch> +mat-0.5.3.ebuild, +metadata.xml:
+  app-misc/mat: new ebuild  based on https://github.com/laurentb/gentoo-
+  overlay/tree/master/app-misc/mat
