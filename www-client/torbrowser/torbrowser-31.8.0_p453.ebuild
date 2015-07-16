@@ -17,7 +17,8 @@ TOR_PV="4.5.3"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-4.5-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-31.0-patches-0.2"
+PATCH="${MY_PN}-31.0-patches-0.3"
+PATCHFF="${PATCH}"
 
 MOZCONFIG_OPTIONAL_WIFI=1
 MOZCONFIG_OPTIONAL_JIT="enabled"
@@ -56,20 +57,10 @@ CDEPEND=">=dev-libs/nss-3.19.2
 	>=dev-libs/nspr-4.10.6"
 
 DEPEND="${CDEPEND}
-	amd64? ( ${ASM_DEPEND}
-		virtual/opengl )
-	x86? ( ${ASM_DEPEND}
-		virtual/opengl )"
+	${ASM_DEPEND}
+	virtual/opengl"
 
 QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${MY_PN}/firefox"
-
-# See mozcoreconf-2.eclass
-mozversion_is_new_enough() {
-	if [[ $(get_version_component_range 1) -ge 17 ]] ; then
-		return 0
-	fi
-	return 1
-}
 
 pkg_setup() {
 	moz_pkgsetup
@@ -101,7 +92,7 @@ pkg_pretend() {
 }
 
 src_unpack() {
-	default
+	unpack ${A}
 	git-r3_src_unpack
 }
 
@@ -207,7 +198,7 @@ src_compile() {
 }
 
 src_install() {
-	MOZILLA_FIVE_HOME="${EPREFIX}"/usr/$(get_libdir)/${PN}/${MY_PN}
+	MOZILLA_FIVE_HOME="${EPREFIX}/usr/$(get_libdir)/${PN}/${MY_PN}"
 	DICTPATH="\"${EPREFIX}/usr/share/myspell\""
 
 	# MOZ_BUILD_ROOT, and hence OBJ_DIR change depending on arch, compiler etc.

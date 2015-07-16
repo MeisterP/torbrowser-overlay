@@ -2,6 +2,9 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  16 Jul 2015; Poncho <poncho@spahan.ch> torbrowser-31.8.0_p453.ebuild:
+  www-client/torbrowser: sync with firefox-31.8.0
+
 *torbrowser-31.8.0_p453 (03 Jul 2015)
 
   03 Jul 2015; Poncho <poncho@spahan.ch> +torbrowser-31.8.0_p453.ebuild,
