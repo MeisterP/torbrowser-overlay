@@ -7,7 +7,9 @@
 </maintainer>
 <use>
 	<flag name="custom-optimization">Fine-tune custom compiler
-		optimizations, setting this is not recommended.</flag>
+		optimizations (-Os, -O0, -O1, -O2, -O3)</flag>
+	<flag name="gstreamer-0">Use gstreamer:0.10 instead of gstreamer:1 for media support</flag>
+	<flag name="jemalloc3">Enable or disable jemalloc3 (forced-on when supported prior to 38.0)</flag>
 	<flag name="system-cairo">Use the system-wide <pkg>x11-libs/cairo</pkg>
 		instead of bundled.</flag>
 	<flag name="system-icu">Use the system-wide <pkg>dev-libs/icu</pkg>
@@ -18,5 +20,6 @@
 		instead of bundled.</flag>
 	<flag name="system-sqlite">Use the system-wide <pkg>dev-db/sqlite</pkg>
 		installation with secure-delete enabled</flag>
+	<flag name="egl">Enable EGL provider</flag>
 </use>
 </pkgmetadata>
