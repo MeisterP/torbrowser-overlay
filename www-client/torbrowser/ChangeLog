@@ -2,6 +2,11 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  16 Aug 2015; Poncho <poncho@spahan.ch>
+  +files/torbrowser-38.2.0-nss-fixup-warnings.patch,
+  torbrowser-38.2.0_p500.ebuild:
+  www-client/torbrowser: fix QA issues
+
 *torbrowser-38.2.0_p500 (14 Aug 2015)
 
   14 Aug 2015; Poncho <poncho@spahan.ch> +files/5.0-Change_the_default_Firefox_p

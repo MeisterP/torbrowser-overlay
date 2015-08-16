@@ -60,7 +60,7 @@ DEPEND="${RDEPEND}
 	${ASM_DEPEND}
 	virtual/opengl"
 
-QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${MY_PN}/firefox"
+QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${PN}/torbrowser"
 
 BUILD_OBJ_DIR="${S}/ff"
 
@@ -103,6 +103,9 @@ src_prepare() {
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
 	epatch "${FILESDIR}/${PN}-38.2.0-allow-lightspark-and-freshplayerplugin.patch"
+
+	# FIXME: prevent warnings in bundled nss
+	epatch "${FILESDIR}/${PN}-38.2.0-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
@@ -177,7 +180,8 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 
-	# FIXME: use bundled libraries to work around build failure
+	# torbrowser uses a patched nss library
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-38.2.0esr-5.0-1
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -284,25 +288,22 @@ pkg_preinst() {
 }
 
 pkg_postinst() {
-	echo
-	ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
-	ewarn "the exact same sources. Use this only if you know what you are doing!"
-	elog ""
-	elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
-	elog "in the connection settings to match your setup."
-	elog ""
-	elog "To get the advanced functionality of Torbutton (network information,"
-	elog "new identity), Torbrowser needs to access a control port."
-	elog "See 99torbrowser.example in /usr/share/doc/${PF} and check \"man tor\""
-	elog "for further information."
-	echo
+	if [[ -z ${REPLACING_VERSIONS} ]]; then
+		ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
+		ewarn "the exact same sources. Use this only if you know what you are doing!"
+		elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
+		elog "in the connection settings to match your setup."
+		elog ""
+		elog "To get the advanced functionality of Torbutton (network information,"
+		elog "new identity), Torbrowser needs to access a control port."
+		elog "See 99torbrowser.example in /usr/share/doc/${PF} and check \"man tor\""
+		elog "for further information."
+	fi
 
 	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "38.2.0_p500" ]]; then
-		ewarn ""
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
-		echo
 	fi
 
 	gnome2_icon_cache_update
