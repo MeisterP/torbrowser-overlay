@@ -2,6 +2,12 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+*torbrowser-38.2.1_p502 (29 Aug 2015)
+
+  29 Aug 2015; Poncho <poncho@spahan.ch> +torbrowser-38.2.1_p502.ebuild,
+  -torbrowser-38.2.0_p501.ebuild:
+  www-client/torbrowser: Tor Browser 5.0.2 is released
+
   29 Aug 2015; Poncho <poncho@spahan.ch> -files/4.5-Change_the_default_Firefox_p
   rofile_directory_to_be_TBB-relative.patch,
   -files/firefox-36.0.1-buildfix-ft-master.patch,
