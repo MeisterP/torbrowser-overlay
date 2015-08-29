@@ -2,6 +2,13 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Header: $
 
+  29 Aug 2015; Poncho <poncho@spahan.ch> -files/4.5-Change_the_default_Firefox_p
+  rofile_directory_to_be_TBB-relative.patch,
+  -files/firefox-36.0.1-buildfix-ft-master.patch,
+  -files/torbrowser-31.7.0-allow-lightspark-and-freshplayerplugin.patch,
+  -torbrowser-31.8.0_p453.ebuild:
+  www-client/torbrowser: remove old
+
 *torbrowser-38.2.0_p501 (19 Aug 2015)
 
   19 Aug 2015; Poncho <poncho@spahan.ch> +torbrowser-38.2.0_p501.ebuild,
