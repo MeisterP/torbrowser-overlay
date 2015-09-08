@@ -1,3 +1,9 @@
+*tor-monitor-0.1 (08 Sep 2015)
+
+  08 Sep 2015; Poncho <poncho@spahan.ch> +tor-monitor-0.1.ebuild,
+  -files/fix-icon.patch, tor-monitor-9999.ebuild:
+  net-misc/tor-monitor: add version 0.1
+
   25 May 2015; Poncho <poncho@spahan.ch> tor-monitor-9999.ebuild:
   net-misc/tor-monitor: update PYTHON_COMPAT
 

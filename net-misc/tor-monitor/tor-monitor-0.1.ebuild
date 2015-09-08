@@ -11,10 +11,11 @@ inherit gnome2-utils git-r3 distutils-r1
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="http://git.tails.boum.org/alan/tor-monitor/"
 EGIT_REPO_URI="git://git.tails.boum.org/alan/tor-monitor"
+EGIT_COMMIT="${PV}"
 
 LICENSE="GPL-3+"
 SLOT="0"
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 DEPEND="${PYTHON_DEPS}
