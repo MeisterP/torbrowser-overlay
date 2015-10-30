@@ -17,7 +17,7 @@ TOR_PV="5.0.3"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-2-build2"
 
 # Patch version
-PATCH="${MY_PN}-38.0-patches-0.3"
+PATCH="${MY_PN}-38.0-patches-04"
 
 MOZCONFIG_OPTIONAL_WIFI=1
 MOZCONFIG_OPTIONAL_JIT="enabled"
