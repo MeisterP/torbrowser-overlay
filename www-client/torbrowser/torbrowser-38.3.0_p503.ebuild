@@ -296,7 +296,8 @@ pkg_postinst() {
 		elog ""
 		elog "To get the advanced functionality of Torbutton (network information,"
 		elog "new identity), Torbrowser needs to access a control port."
-		elog "See 99torbrowser.example in /usr/share/doc/${PF} and check \"man tor\""
+		elog "See 99torbrowser.example in /usr/share/doc/${PF} and"
+		elog "https://github.com/MeisterP/torbrowser-overlay/blob/master/Readme.md"
 		elog "for further information."
 	fi
 
