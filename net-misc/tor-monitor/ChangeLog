@@ -1,3 +1,9 @@
+*tor-monitor-0.2 (04 Nov 2015)
+
+  04 Nov 2015; Poncho <poncho@spahan.ch> +tor-monitor-0.2.ebuild,
+  -tor-monitor-0.1.ebuild:
+  net-misc/tor-monitor: version bump
+
 *tor-monitor-0.1 (08 Sep 2015)
 
   08 Sep 2015; Poncho <poncho@spahan.ch> +tor-monitor-0.1.ebuild,
