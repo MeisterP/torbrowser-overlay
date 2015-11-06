@@ -13,8 +13,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-5.0
-TOR_PV="5.0.3"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-2-build2"
+TOR_PV="5.0.4"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-38.0-patches-04"
@@ -40,8 +40,8 @@ EGIT_CLONE_TYPE="shallow"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
 SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
-	http://dev.gentoo.org/~axs/mozilla/patchsets/${PATCH}.tar.xz
-	http://dev.gentoo.org/~polynomial-c/mozilla/patchsets/${PATCH}.tar.xz
+	https://dev.gentoo.org/~axs/mozilla/patchsets/${PATCH}.tar.xz
+	https://dev.gentoo.org/~polynomial-c/mozilla/patchsets/${PATCH}.tar.xz
 	x86? (
 		${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
 		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
@@ -53,8 +53,8 @@ SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-RDEPEND=">=dev-libs/nss-3.19.2
-	>=dev-libs/nspr-4.10.8"
+RDEPEND=">=dev-libs/nss-3.20.1
+	>=dev-libs/nspr-4.10.10"
 
 DEPEND="${RDEPEND}
 	${ASM_DEPEND}
@@ -95,6 +95,7 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
+	EPATCH_EXCLUDE="8011_bug1194520-freetype261_until_moz43.patch" \
 	epatch "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"

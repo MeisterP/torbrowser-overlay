@@ -2,6 +2,12 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Id$
 
+*torbrowser-38.4.0_p504 (06 Nov 2015)
+
+  06 Nov 2015; Poncho <poncho@spahan.ch> +torbrowser-38.4.0_p504.ebuild,
+  -torbrowser-38.3.0_p503.ebuild:
+  www-client/torbrowser: Tor Browser 5.0.4 is released
+
 *torbrowser-38.3.0_p503 (23 Sep 2015)
 
   23 Sep 2015; Poncho <poncho@spahan.ch> +torbrowser-38.3.0_p503.ebuild,
