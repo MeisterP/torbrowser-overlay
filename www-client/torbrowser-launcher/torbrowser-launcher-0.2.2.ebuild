@@ -25,8 +25,7 @@ DEPEND="${PYTHON_DEPS}
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
 	dev-python/psutil[${PYTHON_USEDEP}]
-	dev-python/pyliblzma[${PYTHON_USEDEP}]
-	x11-misc/wmctrl"
+	dev-python/pyliblzma[${PYTHON_USEDEP}]"
 
 python_prepare_all() {
 	distutils-r1_python_prepare_all
