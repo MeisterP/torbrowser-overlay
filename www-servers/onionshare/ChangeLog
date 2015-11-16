@@ -1,3 +1,11 @@
+*onionshare-9999 (16 Nov 2015)
+
+  16 Nov 2015; Poncho <poncho@spahan.ch> +onionshare-9999.ebuild, -Manifest,
+  -onionshare-0.6.ebuild:
+  www-servers/onionshare: add live ebuild  this version supports ephemeral
+  hidden services see
+  https://github.com/micahflee/onionshare/issues/178#issuecomment-156879472
+
 *onionshare-0.6 (06 Dec 2014)
 
   06 Dec 2014; Poncho <poncho@spahan.ch> +metadata.xml, +onionshare-0.6.ebuild:
