@@ -1,0 +1,22 @@
+diff --git a/share/applications/torbrowser-settings.desktop b/share/applications/torbrowser-settings.desktop
+index c254685..f18f6c5 100644
+--- a/share/applications/torbrowser-settings.desktop
++++ b/share/applications/torbrowser-settings.desktop
+@@ -5,5 +5,5 @@ Comment=Tor Browser Launcher Settings
+ Exec=torbrowser-launcher --settings
+ Terminal=false
+ Type=Application
+-Icon=torbrowser80.xpm
++Icon=torbrowser80
+ Categories=Network;WebBrowser;
+diff --git a/share/applications/torbrowser.desktop b/share/applications/torbrowser.desktop
+index 0049780..92f27b7 100644
+--- a/share/applications/torbrowser.desktop
++++ b/share/applications/torbrowser.desktop
+@@ -5,5 +5,5 @@ Comment=Launch Tor Browser
+ Exec=torbrowser-launcher %u
+ Terminal=false
+ Type=Application
+-Icon=torbrowser80.xpm
++Icon=torbrowser80
+ Categories=Network;WebBrowser;

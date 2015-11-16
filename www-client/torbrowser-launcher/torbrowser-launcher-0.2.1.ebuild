@@ -28,24 +28,10 @@ RDEPEND="${DEPEND}
 	dev-python/pyliblzma[${PYTHON_USEDEP}]
 	x11-misc/wmctrl"
 
-python_prepare_all() {
-	distutils-r1_python_prepare_all
-
-	# add better icons to desktop files
-	sed -i "s/^Icon=.*/Icon=${PN}/" \
-		share/applications/torbrowser{,-settings}.desktop || die
-}
+PATCHES=( ${FILESDIR}/fix-desktop-file.patch )
 
 python_install_all() {
 	distutils-r1_python_install_all
-
-	# install icons
-	# https://gitweb.torproject.org/torbrowser.git/tree/HEAD:/build-scripts/branding
-	local size sizes
-	sizes="16 24 32 48 128 256"
-	for size in ${sizes}; do
-		newicon -s ${size} "${FILESDIR}/icon/${size}.png" ${PN}.png
-	done
 
 	# delete apparmor profiles
 	rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
