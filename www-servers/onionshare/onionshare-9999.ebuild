@@ -31,8 +31,8 @@ pkg_preinst() {
 
 pkg_postinst() {
 if [[ -z ${REPLACING_VERSIONS} ]]; then
-	elog "Onionshare expects Tor to run on either port 9050 or 9150"
-	elog "and a control port accessible on either port 9051 or 9151"
+	elog "Onionshare expects Tor to run on either port 9150, 9152 or 9050"
+	elog "and a control port accessible on either port 9151, 9153 or 9051"
 fi
 
 	gnome2_icon_cache_update
