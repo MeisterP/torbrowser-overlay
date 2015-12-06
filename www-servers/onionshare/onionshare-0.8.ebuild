@@ -7,16 +7,15 @@ EAPI=5
 PYTHON_COMPAT=( python2_7 )
 DISTUTILS_SINGLE_IMPL=1
 
-inherit git-r3 distutils-r1 gnome2-utils
+inherit distutils-r1 gnome2-utils
 
 DESCRIPTION="Share a file securely and anonymously over Tor"
 HOMEPAGE="https://onionshare.org/"
-#SRC_URI="https://github.com/micahflee/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
-EGIT_REPO_URI="https://github.com/micahflee/${PN}.git"
+SRC_URI="https://github.com/micahflee/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 DEPEND=""
