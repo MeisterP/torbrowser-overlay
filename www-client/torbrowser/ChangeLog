@@ -2,6 +2,10 @@
 # Copyright 1999-2015 Gentoo Foundation; Distributed under the GPL v2
 # $Id$
 
+  06 Dec 2015; Poncho <poncho@spahan.ch>
+  files/torbrowser-38.2.0-allow-lightspark-and-freshplayerplugin.patch:
+  www-client/torbrowser: fix freshplayerplugin
+
 *torbrowser-38.4.0_p504 (06 Nov 2015)
 
   06 Nov 2015; Poncho <poncho@spahan.ch> +torbrowser-38.4.0_p504.ebuild,

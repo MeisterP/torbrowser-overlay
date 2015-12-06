@@ -17,7 +17,7 @@ index 0d5bc6c..2b05fa6 100644
    // NPSWF32.dll, NPSWF64.dll
    if (strstr(leafStr, "libgnashplugin") == leafStr ||
 +      strstr(leafStr, "liblightsparkplugin") == leafStr ||
-+      strstr(leafStr, "libfreshwrapper-pepperflash") == leafStr ||
++      strstr(leafStr, "libfreshwrapper-flashplayer") == leafStr ||
        strstr(leafStr, "libflashplayer") == leafStr ||
        strstr(leafStr, "Flash Player") == leafStr ||
        strstr(leafStr, "NPSWF") == leafStr) {
