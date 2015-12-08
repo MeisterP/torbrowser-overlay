@@ -11,7 +11,7 @@ inherit distutils-r1 gnome2-utils
 
 DESCRIPTION="Share a file securely and anonymously over Tor"
 HOMEPAGE="https://onionshare.org/"
-SRC_URI="https://github.com/micahflee/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/micahflee/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"

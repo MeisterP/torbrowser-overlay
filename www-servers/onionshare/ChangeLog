@@ -1,3 +1,9 @@
+*onionshare-0.8.1 (08 Dec 2015)
+
+  08 Dec 2015; Poncho <poncho@spahan.ch> +onionshare-0.8.1.ebuild,
+  -onionshare-0.8.ebuild:
+  www-servers/onionshare: version bump
+
 *onionshare-0.8 (06 Dec 2015)
 
   06 Dec 2015; Poncho <poncho@spahan.ch> +onionshare-0.8.ebuild,
