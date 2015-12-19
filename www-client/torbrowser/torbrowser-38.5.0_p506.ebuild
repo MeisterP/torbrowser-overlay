@@ -13,7 +13,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-5.0
-TOR_PV="5.0.5"
+TOR_PV="5.0.6"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-2-build1"
 
 # Patch version
