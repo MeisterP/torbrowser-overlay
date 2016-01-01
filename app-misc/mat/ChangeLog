@@ -1,3 +1,8 @@
+*mat-0.6 (01 Jan 2016)
+
+  01 Jan 2016; Poncho <poncho@spahan.ch> +mat-0.6.ebuild, -mat-0.5.4.ebuild:
+  app-misc/mat: version bump
+
 *mat-0.5.4 (08 Sep 2015)
 
   08 Sep 2015; Poncho <poncho@spahan.ch> +mat-0.5.4.ebuild, -mat-0.5.3.ebuild:

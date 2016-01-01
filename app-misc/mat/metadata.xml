@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
-<maintainer>
-	<email>poncho@spahan.ch</email>
-	<name>Poncho</name>
-</maintainer>
+	<maintainer>
+		<email>poncho@spahan.ch</email>
+		<name>Poncho</name>
+	</maintainer>
+	<use>
+		<flag name="audio">Add support for audio files</flag>
+	</use>
 </pkgmetadata>
