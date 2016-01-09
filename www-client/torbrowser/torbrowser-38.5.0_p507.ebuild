@@ -1,4 +1,4 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -13,8 +13,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-5.0
-TOR_PV="5.0.6"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-2-build1"
+TOR_PV="5.0.7"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-5.0-2-build2"
 
 # Patch version
 PATCH="${MY_PN}-38.0-patches-04"
