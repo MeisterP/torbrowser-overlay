@@ -1,0 +1,6 @@
+*tails-installer-4.4.7 (04 Feb 2016)
+
+  04 Feb 2016; Poncho <poncho@spahan.ch> +files/fix-desktop-file.patch,
+  +files/sgdisk.patch, +metadata.xml, +tails-installer-4.4.7.ebuild:
+  app-misc/tails-installer: new ebuild  close https://github.com/MeisterP
+  /torbrowser-overlay/pull/20
