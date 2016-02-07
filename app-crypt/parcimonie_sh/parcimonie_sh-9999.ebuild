@@ -1,4 +1,4 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -8,7 +8,7 @@ inherit git-r3 systemd
 
 MY_PN="${PN/_/.}"
 
-DESCRIPTION="Refresh your GnuPG keyring without disclosing your whole contact list to the world"
+DESCRIPTION="Refresh your GnuPG keyring without disclosing your whole contact list"
 HOMEPAGE="https://github.com/EtiennePerot/parcimonie.sh"
 SRC_URI=""
 EGIT_REPO_URI="https://github.com/EtiennePerot/${MY_PN}.git"

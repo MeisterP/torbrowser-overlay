@@ -1,3 +1,6 @@
+  07 Feb 2016; Poncho <poncho@spahan.ch> parcimonie_sh-9999.ebuild:
+  app-crypt/parcimonie_sh: shorten DESCRIPTION
+
 *parcimonie_sh-9999 (14 Jan 2015)
 
   14 Jan 2015; Poncho <poncho@spahan.ch> +metadata.xml,
