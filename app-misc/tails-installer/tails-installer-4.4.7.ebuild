@@ -36,7 +36,7 @@ RDEPEND="${PYTHON_DEPS}
 	sys-boot/syslinux
 	sys-fs/dosfstools
 	sys-fs/mtools
-	sys-fs/udisks[introspection]
+	sys-fs/udisks:2[introspection]
 	virtual/cdrtools
 	x11-libs/gtk+:3[introspection]"
 
