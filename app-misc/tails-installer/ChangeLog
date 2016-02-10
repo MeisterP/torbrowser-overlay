@@ -1,3 +1,6 @@
+  10 Feb 2016; Poncho <poncho@spahan.ch> tails-installer-4.4.7.ebuild:
+  app-misc/tails-installer: add git uri to HOMEPAGE
+
   07 Feb 2016; Poncho <poncho@spahan.ch> tails-installer-4.4.7.ebuild:
   app-misc/tails-installer: add slot to sys-fs/udisks
 

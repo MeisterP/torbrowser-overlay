@@ -10,7 +10,7 @@ DISTUTILS_SINGLE_IMPL=1
 inherit gnome2-utils git-r3 distutils-r1
 
 DESCRIPTION="A graphical tool to install or upgrade Tails on a USB stick from an ISO image"
-HOMEPAGE="https://tails.boum.org"
+HOMEPAGE="https://tails.boum.org http://git.tails.boum.org/liveusb-creator"
 
 EGIT_REPO_URI="git://git.tails.boum.org/liveusb-creator"
 EGIT_COMMIT="tails-installer_${PV}"
