@@ -1,3 +1,6 @@
+  10 Feb 2016; Poncho <poncho@spahan.ch> -torbrowser-launcher-0.2.1.ebuild:
+  www-client/torbrowser-launcher: remove old
+
   16 Nov 2015; Poncho <poncho@spahan.ch> +files/fix-desktop-file.patch,
   -files/icon/128.png, -files/icon/16.png, -files/icon/24.png,
   -files/icon/256.png, -files/icon/32.png, -files/icon/48.png,
