@@ -1,4 +1,4 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -26,8 +26,6 @@ RDEPEND="${DEPEND}
 	app-crypt/gnupg
 	dev-python/psutil[${PYTHON_USEDEP}]
 	dev-python/pyliblzma[${PYTHON_USEDEP}]"
-
-PATCHES=( ${FILESDIR}/fix-desktop-file.patch )
 
 python_install_all() {
 	distutils-r1_python_install_all

@@ -1,3 +1,9 @@
+*torbrowser-launcher-0.2.3 (06 Mar 2016)
+
+  06 Mar 2016; Poncho <poncho@spahan.ch> +torbrowser-launcher-0.2.3.ebuild,
+  -files/fix-desktop-file.patch, -torbrowser-launcher-0.2.2.ebuild:
+  www-client/torbrowser-launcher: version bump
+
   10 Feb 2016; Poncho <poncho@spahan.ch> -torbrowser-launcher-0.2.1.ebuild:
   www-client/torbrowser-launcher: remove old
 
