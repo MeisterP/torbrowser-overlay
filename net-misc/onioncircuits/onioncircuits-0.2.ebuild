@@ -1,4 +1,4 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -9,12 +9,13 @@ PYTHON_COMPAT=( python{2_7,3_3,3_4} )
 inherit gnome2-utils git-r3 distutils-r1
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
-HOMEPAGE="http://git.tails.boum.org/alan/tor-monitor/"
-EGIT_REPO_URI="git://git.tails.boum.org/alan/tor-monitor"
+HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
+EGIT_REPO_URI="git://git.tails.boum.org/onioncircuits"
+EGIT_COMMIT="${PV}"
 
 LICENSE="GPL-3+"
 SLOT="0"
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 IUSE=""
 
 DEPEND="${PYTHON_DEPS}
@@ -31,7 +32,7 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
-	elog "Tormonitor needs acces to the ControlSocket"
+	elog "Onioncircuits needs acces to the ControlSocket"
 	elog "at \"/var/run/tor/control\""
 	elog "See \"man tor\" on how to configure the ControlSocket"
 }

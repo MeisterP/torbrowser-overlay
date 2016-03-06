@@ -3,4 +3,4 @@
 # controlsocket is necessary. This involves changing the
 # torrc, tor.service and the tmpfile.
 # Therefore mask it for the time being.
-net-misc/tor-monitor
+net-misc/onioncircuits
