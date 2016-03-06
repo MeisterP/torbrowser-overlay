@@ -1,3 +1,9 @@
+*onioncircuits-0.3 (06 Mar 2016)
+
+  06 Mar 2016; Poncho <poncho@spahan.ch> +onioncircuits-0.3.ebuild,
+  -onioncircuits-0.2.ebuild:
+  net-misc/onioncircuits: version bump
+
 *onioncircuits-0.2 (06 Mar 2016)
 *onioncircuits-9999 (06 Mar 2016)
 
