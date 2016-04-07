@@ -8,7 +8,7 @@ MOZ_ESR=1
 
 MY_PN="firefox"
 if [[ ${MOZ_ESR} == 1 ]]; then
-	# ESR releases have slightly version numbers
+	# ESR releases have slightly different version numbers
 	MOZ_PV="${PV/_p*}esr"
 fi
 
@@ -60,7 +60,7 @@ DEPEND="${RDEPEND}
 	${ASM_DEPEND}
 	virtual/opengl"
 
-QA_PRESTRIPPED="usr/$(get_libdir)/${PN}/${PN}/torbrowser"
+QA_PRESTRIPPED="usr/lib*/${PN}/${PN}/torbrowser"
 
 BUILD_OBJ_DIR="${S}/ff"
 
@@ -257,7 +257,7 @@ src_install() {
 			|| die
 	fi
 
-	# Required in order to use plugins and even run torbrowser on hardened.
+	# Required in order to use plugins and even run torbrowser on hardened, with jit useflag.
 	if use jit; then
 		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
 	else
