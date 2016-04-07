@@ -219,14 +219,27 @@ src_install() {
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
+	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n170
+	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
+		|| die
+
 	# Set default path to search for dictionaries.
 	echo "pref(\"spellchecker.dictionary_path\", ${DICTPATH});" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
-	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n166
+	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n199
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		|| die
+
+	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n170
+	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
+		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
+		|| die
+
+	echo "pref(\"intl.locale.matchOS\", \"false\");" \
+		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
