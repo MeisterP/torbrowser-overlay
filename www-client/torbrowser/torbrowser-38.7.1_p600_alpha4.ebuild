@@ -4,7 +4,7 @@
 
 EAPI="5"
 WANT_AUTOCONF="2.1"
-MOZ_ESR="1"
+MOZ_ESR=1
 
 MY_PN="firefox"
 if [[ ${MOZ_ESR} == 1 ]]; then
@@ -39,7 +39,7 @@ EGIT_REPO_URI="https://git.torproject.org/tor-browser.git"
 EGIT_CLONE_TYPE="shallow"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
-SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
+SRC_URI="https://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 	https://dev.gentoo.org/~axs/mozilla/patchsets/${PATCH}.tar.xz
 	https://dev.gentoo.org/~polynomial-c/mozilla/patchsets/${PATCH}.tar.xz
 	x86? (
@@ -53,7 +53,7 @@ SRC_URI="http://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-RDEPEND=">=dev-libs/nss-3.20.1
+RDEPEND=">=dev-libs/nss-3.21.1
 	>=dev-libs/nspr-4.10.10"
 
 DEPEND="${RDEPEND}
@@ -95,7 +95,7 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	EPATCH_SUFFIX="patch" \
 	EPATCH_FORCE="yes" \
-	EPATCH_EXCLUDE="8011_bug1194520-freetype261_until_moz43.patch \
+	EPATCH_EXCLUDE="8011_bug1194520-freetype261_until_moz43.patch
 			8010_bug114311-freetype26.patch" \
 	epatch "${WORKDIR}/firefox"
 
@@ -153,12 +153,6 @@ src_prepare() {
 src_configure() {
 	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${PN}"
 	MEXTENSIONS="default"
-
-	####################################
-	#
-	# mozconfig, CFLAGS and CXXFLAGS setup
-	#
-	####################################
 
 	mozconfig_init
 	mozconfig_config
