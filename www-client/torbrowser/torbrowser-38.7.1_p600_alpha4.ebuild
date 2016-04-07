@@ -12,9 +12,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-5.5
-TOR_PV="5.5.4"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-5.5-1-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions.alpha
+TOR_PV="6.0a4"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-38.0-patches-04"
@@ -100,14 +100,14 @@ src_prepare() {
 	epatch "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	epatch "${FILESDIR}/5.0-Change_the_default_Firefox_profile_directory_to_be_TBB-relative.patch"
+	epatch "${FILESDIR}/6.0-Change_the_default_Firefox_profile_directory_to_be_TBB-relative.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	epatch "${FILESDIR}/${PN}-38.2.0-allow-lightspark-and-freshplayerplugin.patch"
+	epatch "${FILESDIR}/${PN}-38.7.1-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	epatch "${FILESDIR}/${PN}-38.2.0-nss-fixup-warnings.patch"
+	epatch "${FILESDIR}/${PN}-38.7.1-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	epatch_user
@@ -178,12 +178,12 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --libdir=/usr/$(get_libdir)/${PN}
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in?h=tor-browser-38.2.0esr-5.0-1#n6500
+	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in?h=tor-browser-38.7.1esr-6.0-1#n6500
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-38.2.0esr-5.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-38.7.1esr-6.0-1
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -316,7 +316,7 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "38.6.0_p550" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "38.7.1_p600_alpha4" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
