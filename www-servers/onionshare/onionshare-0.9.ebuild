@@ -1,10 +1,10 @@
-# Copyright 1999-2015 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=5
+EAPI=6
 
-PYTHON_COMPAT=( python2_7 )
+PYTHON_COMPAT=( python3_4 )
 DISTUTILS_SINGLE_IMPL=1
 
 inherit distutils-r1 gnome2-utils
@@ -18,9 +18,10 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE=""
 
-DEPEND=""
-RDEPEND="dev-python/flask[${PYTHON_USEDEP}]
-	dev-python/PyQt4[${PYTHON_USEDEP}]
+DEPEND="${PYTHON_DEPS}"
+RDEPEND="${DEPEND}
+	dev-python/flask[${PYTHON_USEDEP}]
+	dev-python/PyQt5[${PYTHON_USEDEP}]
 	>=net-libs/stem-1.4.0[${PYTHON_USEDEP}]
 	|| ( >=net-misc/tor-0.2.7.1 www-client/torbrowser-launcher )"
 
