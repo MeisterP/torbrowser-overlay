@@ -1,7 +1,7 @@
-From ff590edcfee05dd6f31c384997714118668fdad0 Mon Sep 17 00:00:00 2001
+From 8e715710567dd00905a17d45129b431d58db98ed Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Wed, 12 Aug 2015 12:00:47 +0200
-Subject: [PATCH 2/3] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
+Subject: [PATCH 3/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
  freshwrapper
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 2/3] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
  1 file changed, 2 insertions(+)
 
 diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
-index 0d5bc6c..b754e62 100644
+index 5345ce7..bd93848 100644
 --- a/dom/plugins/base/nsPluginHost.cpp
 +++ b/dom/plugins/base/nsPluginHost.cpp
-@@ -1861,6 +1861,8 @@ PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
+@@ -2084,6 +2084,8 @@ PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
    // libgnashplugin.so, libflashplayer.so, Flash Player-10.4-10.5.plugin,
    // NPSWF32.dll, NPSWF64.dll
    if (strstr(leafStr, "libgnashplugin") == leafStr ||

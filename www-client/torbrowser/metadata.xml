@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
-<maintainer>
+<maintainer type="person">
 	<email>poncho@spahan.ch</email>
 	<name>Poncho</name>
 </maintainer>
@@ -9,6 +9,7 @@
 	<flag name="custom-optimization">Fine-tune custom compiler
 		optimizations (-Os, -O0, -O1, -O2, -O3)</flag>
 	<flag name="gstreamer-0">Use gstreamer:0.10 instead of gstreamer:1 for media support</flag>
+	<flag name="gtk3">Use the cairo-gtk3 rendering engine</flag>
 	<flag name="jemalloc3">Enable or disable jemalloc3 (forced-on when supported prior to 38.0)</flag>
 	<flag name="system-cairo">Use the system-wide <pkg>x11-libs/cairo</pkg>
 		instead of bundled.</flag>
@@ -16,10 +17,12 @@
 		instead of bundled.</flag>
 	<flag name="system-jpeg">Use the system-wide <pkg>media-libs/libjpeg-turbo</pkg>
 		instead of bundled.</flag>
+	<flag name="system-libevent">Use the system-wide <pkg>dev-libs/libevent</pkg>
+		instead of bundled.</flag>
 	<flag name="system-libvpx">Use the system-wide <pkg>media-libs/libvpx</pkg>
 		instead of bundled.</flag>
 	<flag name="system-sqlite">Use the system-wide <pkg>dev-db/sqlite</pkg>
 		installation with secure-delete enabled</flag>
-	<flag name="egl">Enable EGL provider</flag>
+	<!--<flag name="egl">Enable EGL provider</flag>-->
 </use>
 </pkgmetadata>
