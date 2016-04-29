@@ -13,13 +13,13 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions.alpha
-TOR_PV="6.0a4"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build2"
+TOR_PV="6.0a5"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build3"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-03"
+PATCH="${MY_PN}-45.0-patches-04"
 
-MOZCONFIG_OPTIONAL_GTK3=1
+MOZCONFIG_OPTIONAL_GTK3="enabled"
 MOZCONFIG_OPTIONAL_WIFI=1
 MOZCONFIG_OPTIONAL_JIT="enabled"
 
@@ -199,7 +199,6 @@ src_configure() {
 	fi
 
 	# workaround for funky/broken upstream configure...
-	SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
 	emake -f client.mk configure
 }
 
@@ -211,7 +210,6 @@ src_compile() {
 
 src_install() {
 	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}/${PN}"
-	DICTPATH="\"${EPREFIX}/usr/share/myspell\""
 
 	cd "${BUILD_OBJ_DIR}" || die
 
@@ -223,10 +221,8 @@ src_install() {
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# Set default path to search for dictionaries.
-	echo "pref(\"spellchecker.dictionary_path\", ${DICTPATH});" \
-		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
-		|| die
+	mozconfig_install_prefs \
+		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
 	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n199
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
