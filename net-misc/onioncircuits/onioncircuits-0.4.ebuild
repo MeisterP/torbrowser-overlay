@@ -33,9 +33,11 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
-	elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
-	elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
-	elog "more information."
+	if [[ -z ${REPLACING_VERSIONS} ]]; then
+		elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
+		elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
+		elog "more information."
+	fi
 }
 
 pkg_postrm() {
