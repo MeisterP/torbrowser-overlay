@@ -6,12 +6,11 @@ EAPI=5
 
 PYTHON_COMPAT=( python{2_7,3_3,3_4} )
 
-inherit gnome2-utils git-r3 distutils-r1
+inherit gnome2-utils distutils-r1
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
-EGIT_REPO_URI="git://git.tails.boum.org/onioncircuits"
-EGIT_COMMIT="${PV}"
+SRC_URI="http://http.debian.net/debian/pool/main/o/${PN}/${PN}_${PV}.orig.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -26,15 +25,17 @@ RDEPEND="${PYTHON_DEPS}
 	net-libs/stem[${PYTHON_USEDEP}]
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
+DOCS=( README README.translators ${FILESDIR}/README.controlport )
+
 pkg_preinst() {
 	gnome2_icon_savelist
 }
 
 pkg_postinst() {
 	gnome2_icon_cache_update
-	elog "Onioncircuits needs acces to the ControlSocket"
-	elog "at \"/var/run/tor/control\""
-	elog "See \"man tor\" on how to configure the ControlSocket"
+	elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
+	elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
+	elog "more information."
 }
 
 pkg_postrm() {

@@ -25,15 +25,17 @@ RDEPEND="${PYTHON_DEPS}
 	net-libs/stem[${PYTHON_USEDEP}]
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
+DOCS=( README README.translators ${FILESDIR}/README.controlport )
+
 pkg_preinst() {
 	gnome2_icon_savelist
 }
 
 pkg_postinst() {
 	gnome2_icon_cache_update
-	elog "Onioncircuits needs acces to the ControlSocket"
-	elog "at \"/var/run/tor/control\""
-	elog "See \"man tor\" on how to configure the ControlSocket"
+	elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
+	elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
+	elog "more information."
 }
 
 pkg_postrm() {
