@@ -1,4 +1,4 @@
-From 8e715710567dd00905a17d45129b431d58db98ed Mon Sep 17 00:00:00 2001
+From c1c44e67aa6a2161901927d5c41bfce339fd5d8b Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Wed, 12 Aug 2015 12:00:47 +0200
 Subject: [PATCH 3/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and

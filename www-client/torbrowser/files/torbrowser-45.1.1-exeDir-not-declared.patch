@@ -1,4 +1,4 @@
-From c8f90c1a2262827a632036e200ec2063214028cd Mon Sep 17 00:00:00 2001
+From 666dfe923889bf9fe6b086acd9c3e15a31db4779 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Sun, 24 Apr 2016 11:19:33 +0200
 Subject: [PATCH 1/4] Revert "Bug 13252 - Do not store data in the app bundle"
@@ -119,7 +119,7 @@ index e2d4e44..a453062 100644
          PREF_EM_CHECK_COMPATIBILITY = PREF_EM_CHECK_COMPATIBILITY_BASE + "." +
                                        Services.appinfo.version.replace(BRANCH_REGEXP, "$1");
 diff --git a/toolkit/mozapps/extensions/internal/XPIProvider.jsm b/toolkit/mozapps/extensions/internal/XPIProvider.jsm
-index 3056201..3a8b710 100644
+index ca51ae5..b65735e 100644
 --- a/toolkit/mozapps/extensions/internal/XPIProvider.jsm
 +++ b/toolkit/mozapps/extensions/internal/XPIProvider.jsm
 @@ -130,7 +130,6 @@ const URI_EXTENSION_STRINGS           = "chrome://mozapps/locale/extensions/exte
@@ -130,7 +130,7 @@ index 3056201..3a8b710 100644
  const DIR_SYSTEM_ADDONS               = "features";
  const DIR_STAGE                       = "staged";
  const DIR_TRASH                       = "trash";
-@@ -3520,58 +3519,6 @@ this.XPIProvider = {
+@@ -3522,58 +3521,6 @@ this.XPIProvider = {
      return changed;
    },
  
@@ -189,7 +189,7 @@ index 3056201..3a8b710 100644
    /**
     * Imports the xpinstall permissions from preferences into the permissions
     * manager for the user to change later.
-@@ -3645,12 +3592,6 @@ this.XPIProvider = {
+@@ -3647,12 +3594,6 @@ this.XPIProvider = {
        if (updated) {
          updateReasons.push("installDistributionAddons");
        }
@@ -224,7 +224,7 @@ index 06091a5..8fbd96d 100644
  
  EXPORTS.mozilla += [
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index 20be296..a3a2857 100644
+index 67bb2d3..e607513 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
 @@ -1949,30 +1949,11 @@ GetOverrideStringBundle(nsIStringBundleService* aSBS, nsIStringBundle* *aResult)
@@ -573,7 +573,7 @@ index 20be296..a3a2857 100644
                bool* aStartOffline, nsACString* aProfileName)
  {
    StartupTimeline::Record(StartupTimeline::SELECT_PROFILE);
-@@ -2993,20 +2742,6 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc,
+@@ -3016,20 +2765,6 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc,
        aProfileSvc->SetDefaultProfile(profile);
  #endif
        aProfileSvc->Flush();
@@ -594,7 +594,7 @@ index 20be296..a3a2857 100644
        rv = profile->Lock(nullptr, aResult);
        if (NS_SUCCEEDED(rv)) {
          if (aProfileName)
-@@ -3578,14 +3313,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
+@@ -3601,14 +3336,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
      NS_BREAK();
  #endif
  
@@ -609,7 +609,7 @@ index 20be296..a3a2857 100644
  #ifdef USE_GLX_TEST
    // bug 639842 - it's very important to fire this process BEFORE we set up
    // error handling. indeed, this process is expected to be crashy, and we
-@@ -4346,22 +4073,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
+@@ -4369,22 +4096,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
  #endif
  
    rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc));
@@ -632,7 +632,7 @@ index 20be296..a3a2857 100644
    if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
      PR_fprintf(PR_STDERR, "Error: Access was denied while trying to open files in " \
                  "your profile directory.\n");
-@@ -4372,8 +4083,8 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
+@@ -4395,8 +4106,8 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
      return 1;
    }
  

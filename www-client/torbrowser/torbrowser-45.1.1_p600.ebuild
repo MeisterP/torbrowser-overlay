@@ -12,9 +12,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions.alpha
-TOR_PV="6.0a5"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build3"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions
+TOR_PV="6.0"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-45.0-patches-04"
@@ -97,17 +97,17 @@ src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
 	# FIXME: error: 'exeDir' was not declared in this scope
-	eapply "${FILESDIR}/${PN}-45.1.0-exeDir-not-declared.patch"
+	eapply "${FILESDIR}/${PN}-45.1.1-exeDir-not-declared.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-45.1.0-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-45.1.1-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-45.1.0-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-45.1.1-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-45.1.0-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-45.1.1-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -180,12 +180,12 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --libdir=/usr/$(get_libdir)/${PN}
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.1.0esr-6.0-1#n6519
+	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.1.1esr-6.0-1#n6519
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.1.0esr-6.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.1.1esr-6.0-1
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -224,12 +224,12 @@ src_install() {
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n199
+	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n204
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
-	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n170
+	# see:https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n172
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
@@ -303,7 +303,7 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "45.1.0_p600_alpha5" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "45.1.1_p600" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."

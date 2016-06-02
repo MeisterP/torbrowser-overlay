@@ -1,4 +1,4 @@
-From dadce362026c587c5cc1b0fdd72d26eee2e96880 Mon Sep 17 00:00:00 2001
+From 84b565a2e667ff01e49e770473f1a6efa497192a Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Sun, 24 Apr 2016 11:25:31 +0200
 Subject: [PATCH 2/4] Revert "Bug #9173: Change the default Firefox profile
