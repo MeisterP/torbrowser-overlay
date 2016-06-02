@@ -1,0 +1,26 @@
+From c1c44e67aa6a2161901927d5c41bfce339fd5d8b Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Wed, 12 Aug 2015 12:00:47 +0200
+Subject: [PATCH 3/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
+ freshwrapper
+
+---
+ dom/plugins/base/nsPluginHost.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
+index 5345ce7..bd93848 100644
+--- a/dom/plugins/base/nsPluginHost.cpp
++++ b/dom/plugins/base/nsPluginHost.cpp
+@@ -2084,6 +2084,8 @@ PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
+   // libgnashplugin.so, libflashplayer.so, Flash Player-10.4-10.5.plugin,
+   // NPSWF32.dll, NPSWF64.dll
+   if (strstr(leafStr, "libgnashplugin") == leafStr ||
++      strstr(leafStr, "liblightsparkplugin") == leafStr ||
++      strstr(leafStr, "libfreshwrapper-flashplayer") == leafStr ||
+       strstr(leafStr, "libflashplayer") == leafStr ||
+       strstr(leafStr, "Flash Player") == leafStr ||
+       strstr(leafStr, "NPSWF") == leafStr) {
+-- 
+2.7.3
+
