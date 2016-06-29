@@ -1,7 +1,7 @@
-From c1c44e67aa6a2161901927d5c41bfce339fd5d8b Mon Sep 17 00:00:00 2001
+From baa3db9fd5db7ff2c99f6ed93301a0bbfd0f7a30 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Wed, 12 Aug 2015 12:00:47 +0200
-Subject: [PATCH 3/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
+Subject: [PATCH 2/3] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
  freshwrapper
 
 ---

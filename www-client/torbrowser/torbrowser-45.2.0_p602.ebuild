@@ -97,6 +97,7 @@ src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
 	# FIXME: error: 'exeDir' was not declared in this scope
+	# see https://trac.torproject.org/projects/tor/ticket/19484
 	eapply "${FILESDIR}/${PN}-45.1.1-exeDir-not-declared.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
@@ -183,6 +184,7 @@ src_configure() {
 	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.1.1esr-6.0-1#n6519
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
+	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
 
 	# torbrowser uses a patched nss library
 	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.1.1esr-6.0-1
