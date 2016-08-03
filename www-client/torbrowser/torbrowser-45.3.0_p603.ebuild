@@ -12,8 +12,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions
-TOR_PV="6.0.2"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.0
+TOR_PV="6.0.3"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
@@ -95,10 +95,6 @@ src_unpack() {
 src_prepare() {
 	# Apply gentoo firefox patches
 	eapply "${WORKDIR}/firefox"
-
-	# FIXME: error: 'exeDir' was not declared in this scope
-	# see https://trac.torproject.org/projects/tor/ticket/19484
-	eapply "${FILESDIR}/${PN}-45.1.1-exeDir-not-declared.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-45.1.1-Change_the_default_Firefox_profile_directory.patch"
