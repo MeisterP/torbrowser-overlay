@@ -29,7 +29,7 @@ RDEPEND="${DEPEND}
 	dev-python/pygtk[${PYTHON_USEDEP}]
 	sys-apps/coreutils"
 
-python_prepare() {
+src_prepare() {
 	sed -i -e "s#share/doc/${PN}#share/doc/${PF}#g" setup.py || die
 
 	distutils-r1_python_prepare
