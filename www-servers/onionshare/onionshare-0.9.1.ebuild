@@ -7,7 +7,7 @@ EAPI=6
 PYTHON_COMPAT=( python3_4 )
 DISTUTILS_SINGLE_IMPL=1
 
-inherit distutils-r1 gnome2-utils
+inherit eutils distutils-r1 gnome2-utils
 
 DESCRIPTION="Share a file securely and anonymously over Tor"
 HOMEPAGE="https://onionshare.org/"
@@ -30,12 +30,16 @@ pkg_preinst() {
 }
 
 pkg_postinst() {
-if [[ -z ${REPLACING_VERSIONS} ]]; then
-	elog "Onionshare expects Tor to run on either port 9150, 9152 or 9050"
-	elog "and a control port accessible on either port 9151, 9153 or 9051"
-fi
-
 	gnome2_icon_cache_update
+
+	if [[ -z ${REPLACING_VERSIONS} ]]; then
+		elog "Onionshare expects Tor to run on either port 9150, 9152 or 9050"
+		elog "and a control port accessible on either port 9151, 9153 or 9051"
+	fi
+
+	elog "To get additional features, a number of optional runtime"
+	elog "dependencies may be installed:"
+	optfeature "nautilus menu integration" dev-python/nautilus-python
 }
 
 pkg_postrm() {
