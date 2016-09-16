@@ -13,13 +13,14 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.0
-TOR_PV="6.0.4"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build2"
+TOR_PV="6.0.5"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-04"
+PATCH="${MY_PN}-45.0-patches-05"
 
-MOZCONFIG_OPTIONAL_GTK3=""
+# Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
+#MOZCONFIG_OPTIONAL_GTK3=1
 MOZCONFIG_OPTIONAL_WIFI=1
 MOZCONFIG_OPTIONAL_JIT="enabled"
 
@@ -94,17 +95,18 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	eapply "${WORKDIR}/firefox"
+	eapply "${WORKDIR}/firefox" \
+		"${FILESDIR}"/${PN}-45-gcc6.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-45.1.1-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-45.4.0-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-45.1.1-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-45.4.0-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-45.1.1-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-45.4.0-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
