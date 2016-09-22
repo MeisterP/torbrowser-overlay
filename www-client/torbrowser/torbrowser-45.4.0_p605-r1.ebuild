@@ -17,7 +17,7 @@ TOR_PV="6.0.5"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-05"
+PATCH="${MY_PN}-45.0-patches-06"
 
 # Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
 #MOZCONFIG_OPTIONAL_GTK3=1
