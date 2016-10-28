@@ -25,6 +25,8 @@ RDEPEND="${DEPEND}
 	>=net-libs/stem-1.4.0[${PYTHON_USEDEP}]
 	|| ( >=net-misc/tor-0.2.7.1 www-client/torbrowser-launcher )"
 
+PATCHES=( "${FILESDIR}/${PV}-TOR_CONTROL_PORT.patch" )
+
 pkg_preinst() {
 	gnome2_icon_savelist
 }
