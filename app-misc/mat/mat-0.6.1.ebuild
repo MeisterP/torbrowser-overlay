@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=5
+EAPI=6
 
 PYTHON_COMPAT=( python2_7 )
 
@@ -30,9 +30,8 @@ RDEPEND="${DEPEND}
 	sys-apps/coreutils"
 
 src_prepare() {
+	default
 	sed -i -e "s#share/doc/${PN}#share/doc/${PF}#g" setup.py || die
-
-	distutils-r1_python_prepare
 }
 
 pkg_preinst() {
