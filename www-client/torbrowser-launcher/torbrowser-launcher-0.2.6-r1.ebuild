@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
-EAPI=5
+EAPI=6
 
 PYTHON_COMPAT=( python2_7 )
 DISTUTILS_SINGLE_IMPL=1
@@ -20,8 +20,14 @@ IUSE=""
 
 DEPEND="${PYTHON_DEPS}
 	dev-python/pygtk:2[${PYTHON_USEDEP}]
-	>=dev-python/twisted-core-14.0.1[${PYTHON_USEDEP},crypt]
-	>=dev-python/twisted-web-14.0.1[${PYTHON_USEDEP}]"
+	|| (
+		>=dev-python/twisted-16.0.0[${PYTHON_USEDEP},crypt]
+		>=dev-python/twisted-core-14.0.1[${PYTHON_USEDEP},crypt]
+	)
+	|| (
+		>=dev-python/twisted-16.0.0[${PYTHON_USEDEP}]
+		>=dev-python/twisted-web-14.0.1[${PYTHON_USEDEP}]
+	)"
 RDEPEND="${DEPEND}
 	app-crypt/gnupg
 	dev-python/psutil[${PYTHON_USEDEP}]
