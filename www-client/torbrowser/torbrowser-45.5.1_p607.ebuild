@@ -13,11 +13,11 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.0
-TOR_PV="6.0.6"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build3"
+TOR_PV="6.0.7"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-06"
+PATCH="${MY_PN}-45.0-patches-08"
 
 # Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
 #MOZCONFIG_OPTIONAL_GTK3=1
@@ -95,8 +95,9 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	eapply "${WORKDIR}/firefox" \
-		"${FILESDIR}"/${PN}-45-gcc6.patch
+	# FIXME: fails to apply
+	rm "${WORKDIR}/firefox/8012-binutils-2.26-gold-elfhack.patch" || die
+	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-45.4.0-Change_the_default_Firefox_profile_directory.patch"
