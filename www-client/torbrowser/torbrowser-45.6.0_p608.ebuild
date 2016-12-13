@@ -156,7 +156,6 @@ src_prepare() {
 }
 
 src_configure() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}"
 	MEXTENSIONS="default"
 
 	mozconfig_init
@@ -167,9 +166,6 @@ src_configure() {
 
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
 	mozconfig_annotate '' --disable-mailnews
-
-	# Other ff-specific settings
-	mozconfig_annotate '' --with-default-mozilla-five-home=${MOZILLA_FIVE_HOME}
 
 	# Rename the install directory and the executable
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
@@ -204,8 +200,6 @@ src_compile() {
 }
 
 src_install() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}"
-
 	cd "${BUILD_OBJ_DIR}" || die
 
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
