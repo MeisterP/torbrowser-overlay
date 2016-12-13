@@ -62,7 +62,7 @@ DEPEND="${RDEPEND}
 	${ASM_DEPEND}
 	virtual/opengl"
 
-QA_PRESTRIPPED="usr/lib*/${PN}-1/${PN}/torbrowser"
+QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
 
 BUILD_OBJ_DIR="${S}/ff"
 
@@ -156,7 +156,7 @@ src_prepare() {
 }
 
 src_configure() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}-1/${PN}"
+	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}"
 	MEXTENSIONS="default"
 
 	mozconfig_init
@@ -172,7 +172,6 @@ src_configure() {
 	mozconfig_annotate '' --with-default-mozilla-five-home=${MOZILLA_FIVE_HOME}
 
 	# Rename the install directory and the executable
-	mozconfig_annotate 'torbrowser' --libdir=/usr/$(get_libdir)/${PN}-1
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.1.1esr-6.0-1#n6519
@@ -205,7 +204,7 @@ src_compile() {
 }
 
 src_install() {
-	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}-1/${PN}"
+	MOZILLA_FIVE_HOME="/usr/$(get_libdir)/${PN}"
 
 	cd "${BUILD_OBJ_DIR}" || die
 
