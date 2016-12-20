@@ -9,8 +9,7 @@ inherit vcs-snapshot distutils-r1
 
 DESCRIPTION="Stem is a Python controller library for Tor"
 HOMEPAGE="https://stem.torproject.org"
-SRC_URI="https://gitweb.torproject.org/${PN}.git/snapshot/${PV}.tar.gz -> ${P}.tar.gz"
-	#mirror://pypi/s/${PN}/${P}.tar.bz2
+SRC_URI="mirror://pypi/s/${PN}/${P}.tar.gz"
 
 LICENSE="LGPL-3"
 SLOT="0"
