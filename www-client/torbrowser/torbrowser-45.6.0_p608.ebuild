@@ -1,4 +1,4 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -97,7 +97,8 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	# FIXME: fails to apply
 	rm "${WORKDIR}/firefox/8012-binutils-2.26-gold-elfhack.patch" || die
-	eapply "${WORKDIR}/firefox"
+	eapply "${WORKDIR}/firefox" \
+		"${FILESDIR}"/torbrowser_configure_regexp_esr.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-45.4.0-Change_the_default_Firefox_profile_directory.patch"
