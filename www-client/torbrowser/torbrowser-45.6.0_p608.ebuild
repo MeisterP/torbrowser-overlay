@@ -56,7 +56,8 @@ SRC_URI="https://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 RDEPEND=">=dev-libs/nss-3.21.1
-	>=dev-libs/nspr-4.12"
+	>=dev-libs/nspr-4.12
+	!!<=www-client/torbrowser-45.5.1_p607"
 
 DEPEND="${RDEPEND}
 	${ASM_DEPEND}
