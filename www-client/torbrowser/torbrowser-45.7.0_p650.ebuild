@@ -12,12 +12,12 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.0
-TOR_PV="6.0.8"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.0-1-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.5
+TOR_PV="6.5"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.5-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-08"
+PATCH="${MY_PN}-45.0-patches-10"
 
 # Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
 #MOZCONFIG_OPTIONAL_GTK3=1
@@ -97,19 +97,19 @@ src_unpack() {
 src_prepare() {
 	# Apply gentoo firefox patches
 	# FIXME: fails to apply
+	rm "${WORKDIR}/firefox/8004_mark-jit-pages-non-writeable.patch" || die
 	rm "${WORKDIR}/firefox/8012-binutils-2.26-gold-elfhack.patch" || die
-	eapply "${WORKDIR}/firefox" \
-		"${FILESDIR}"/torbrowser_configure_regexp_esr.patch
+	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-45.4.0-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-45.7.0-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-45.4.0-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-45.7.0-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-45.4.0-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-45.7.0-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -171,13 +171,13 @@ src_configure() {
 	# Rename the install directory and the executable
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.1.1esr-6.0-1#n6519
-	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
+	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.7.0esr-6.5-1#n6525
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
+	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.1.1esr-6.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.7.0esr-6.5-1
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -213,11 +213,11 @@ src_install() {
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.0#n160
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n150
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.0#n169
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n159
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
@@ -226,7 +226,7 @@ src_install() {
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.0#n201
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n191
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -275,6 +275,7 @@ src_install() {
 	dodoc "${WORKDIR}/tor-browser_en-US/Browser/TorBrowser/Docs/ChangeLog.txt"
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
+	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
 }
 
@@ -296,7 +297,7 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "45.1.1_p600" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "45.7.0_p650" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
