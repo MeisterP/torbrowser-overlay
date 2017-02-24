@@ -1,4 +1,4 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -31,11 +31,6 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
-
-	if [[ -z ${REPLACING_VERSIONS} ]]; then
-		elog "Onionshare expects Tor to run on either port 9150, 9152 or 9050"
-		elog "and a control port accessible on either port 9151, 9153 or 9051"
-	fi
 
 	elog "To get additional features, a number of optional runtime"
 	elog "dependencies may be installed:"
