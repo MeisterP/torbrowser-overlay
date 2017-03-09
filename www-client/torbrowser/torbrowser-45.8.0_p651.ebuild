@@ -17,7 +17,7 @@ TOR_PV="6.5.1"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-6.5-2-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-11"
+PATCH="${MY_PN}-45.0-patches-12"
 
 # Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
 #MOZCONFIG_OPTIONAL_GTK3=1
@@ -97,8 +97,6 @@ src_unpack() {
 src_prepare() {
 	# Apply gentoo firefox patches
 	# FIXME: fails to apply
-	rm "${WORKDIR}/firefox/2003_fix_build_libevent_21.patch" || die
-	rm "${WORKDIR}/firefox/8004_mark-jit-pages-non-writeable.patch" || die
 	rm "${WORKDIR}/firefox/8012-binutils-2.26-gold-elfhack.patch" || die
 	eapply "${WORKDIR}/firefox"
 
