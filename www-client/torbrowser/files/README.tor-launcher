@@ -9,29 +9,25 @@ TOR_CONTROL_PASSWD='"secret"'
 
 Yes, the variable MUST be double-quoted, then single-quoted, exactly as
 shown. This is used by TorButton and Tor Launcher to authenticate to Tor's
-ControlPort, and is necessary for using TB with a system-installed Tor
+ControlPort, and is necessary for using TB with a system-installed Tor.
 
 Additionally, if using a system-installed Tor, the following about:config
 options should be set (values in <> mean they are the value taken from your
 torrc):
 
-SETTING NAME VALUE
-extensions.torbutton.banned_ports [...],<SocksPort>,<ControlPort>
-extensions.torbutton.block_disk false
-extensions.torbutton.custom.socks_host 127.0.0.1
-extensions.torbutton.custom.socks_port <SocksPort>
-extensions.torbutton.inserted_button true
-extensions.torbutton.launch_warning false
-extensions.torbutton.loglevel 2
-extensions.torbutton.logmethod 0
-extensions.torbutton.settings_method custom
-extensions.torbutton.socks_port <SocksPort>
-extensions.torbutton.use_privoxy false
-extensions.torlauncher.control_port <ControlPort>
-extensions.torlauncher.loglevel 2
-extensions.torlauncher.logmethod 0
+SETTING NAME                            VALUE
+network.security.ports.banned           [...],<SocksPort>,<ControlPort>
+network.proxy.socks                     127.0.0.1
+network.proxy.socks_port                <SocksPort>
+extensions.torbutton.inserted_button    true
+extensions.torbutton.launch_warning     false
+extensions.torbutton.loglevel           2
+extensions.torbutton.logmethod          0
+extensions.torlauncher.control_port      <ControlPort>
+extensions.torlauncher.loglevel          2
+extensions.torlauncher.logmethod         0
 extensions.torlauncher.prompt_at_startup false
-extensions.torlauncher.start_tor false
+extensions.torlauncher.start_tor         false
 
 where the '[...]' in the banned_ports option means "leave anything that was
 already in the preference alone, just append the things specified after it".
