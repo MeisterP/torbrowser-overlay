@@ -51,7 +51,7 @@ pkg_postinst() {
 	elog "To get additional features, a number of optional runtime"
 	elog "dependencies may be installed:"
 	elog ""
-	optfeature "updating over system TOR" "net-misc/tor dev-python/txsocksx"
+	optfeature "updating over system TOR" "net-vpn/tor dev-python/txsocksx"
 	optfeature "modem sound support" dev-python/pygame
 }
 
