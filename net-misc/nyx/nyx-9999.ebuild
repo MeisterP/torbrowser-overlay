@@ -1,4 +1,4 @@
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
@@ -18,7 +18,7 @@ KEYWORDS=""
 
 DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
 RDEPEND=">=net-libs/stem-1.5[${PYTHON_USEDEP}]
-	net-misc/tor"
+	net-vpn/tor"
 
 python_install_all() {
 	distutils-r1_python_install_all
