@@ -1,4 +1,4 @@
-# torbrowser-overlay
+# torbrowser-overlay [![Build Status](https://travis-ci.org/MeisterP/torbrowser-overlay.svg?branch=master)](https://travis-ci.org/MeisterP/torbrowser-overlay)
 
 To add the torbrowser overlay, run `layman -a torbrowser`.
 
