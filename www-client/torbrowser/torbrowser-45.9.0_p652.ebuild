@@ -12,8 +12,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.5
-TOR_PV="6.5.1"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.5-2-build1"
+TOR_PV="6.5.2"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-6.5-1-build3"
 
 # Patch version
 PATCH="${MY_PN}-45.0-patches-12"
