@@ -11,19 +11,17 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-6.5
-TOR_PV="6.5.2"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-6.5-1-build3"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions.alpha
+TOR_PV="7.0a3"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-2-build1"
 
 # Patch version
-PATCH="${MY_PN}-45.0-patches-12"
+PATCH="${MY_PN}-52.0-patches-08"
 
-# Kill gtk3 support since gtk+-3.20 breaks it hard prior to 48.0
-#MOZCONFIG_OPTIONAL_GTK3=1
+MOZCONFIG_OPTIONAL_GTK2ONLY=1
 MOZCONFIG_OPTIONAL_WIFI=1
-MOZCONFIG_OPTIONAL_JIT="enabled"
 
-inherit git-r3 check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-v6.45 pax-utils autotools
+inherit git-r3 check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils mozconfig-v6.52 pax-utils autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -40,22 +38,19 @@ EGIT_REPO_URI="https://git.torproject.org/tor-browser.git"
 EGIT_CLONE_TYPE="shallow"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
-SRC_URI="https://dev.gentoo.org/~anarchy/mozilla/patchsets/${PATCH}.tar.xz
-	https://dev.gentoo.org/~axs/mozilla/patchsets/${PATCH}.tar.xz
-	https://dev.gentoo.org/~polynomial-c/mozilla/patchsets/${PATCH}.tar.xz
-	x86? (
-		${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
-		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
-	)
-	amd64? (
-		${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
-		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
-	)"
+PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c}/mozilla/patchsets/${PATCH}.tar.xz )
+
+SRC_URI="${SRC_URI}
+	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
+		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz )
+	amd64? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
+		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz )
+	${PATCH_URIS[@]}"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
 
-RDEPEND=">=dev-libs/nss-3.21.1
-	>=dev-libs/nspr-4.12
+RDEPEND=">=dev-libs/nss-3.28.3
+	>=dev-libs/nspr-4.13.1
 	!!<=www-client/torbrowser-45.5.1_p607"
 
 DEPEND="${RDEPEND}
@@ -95,19 +90,19 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	# FIXME: fails to apply
-	rm "${WORKDIR}/firefox/8012-binutils-2.26-gold-elfhack.patch" || die
+	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
 	eapply "${WORKDIR}/firefox"
+	eapply "${FILESDIR}/${PN}-52.1.0-add_gentoo_preferences.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-45.7.0-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-52.1.0-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-45.7.0-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-52.1.0-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-45.7.0-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-52.1.0-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -143,11 +138,17 @@ src_prepare() {
 	sed '/^MOZ_DEV_EDITION=1/d' \
 		-i "${S}"/browser/branding/aurora/configure.sh || die
 
-	eautoreconf
+	# Allow user to apply any additional patches without modifing ebuild
+	eapply_user
+
+	# Autotools configure is now called old-configure.in
+	# This works because there is still a configure.in that happens to be for the
+	# shell wrapper configure script
+	eautoreconf old-configure.in
 
 	# Must run autoconf in js/src
 	cd "${S}"/js/src || die
-	eautoconf
+	eautoconf old-configure.in
 
 	# Need to update jemalloc's configure
 	cd "${S}"/memory/jemalloc/src || die
@@ -164,22 +165,22 @@ src_configure() {
 	use hardened && append-ldflags "-Wl,-z,relro,-z,now"
 
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
-	mozconfig_annotate '' --disable-mailnews
 
 	# Rename the install directory and the executable
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/configure.in/?h=tor-browser-45.7.0esr-6.5-1#n6525
+	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-52.1.0esr-7.0-2#n3920
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-45.7.0esr-6.5-1
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-52.1.0esr-7.0-2
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
 	echo "mk_add_options MOZ_OBJDIR=${BUILD_OBJ_DIR}" >> "${S}"/.mozconfig
+	echo "mk_add_options XARGS=/usr/bin/xargs" >> "${S}"/.mozconfig
 
 	# Finalize and report settings
 	mozconfig_final
@@ -194,7 +195,6 @@ src_configure() {
 }
 
 src_compile() {
-	CC="$(tc-getCC)" CXX="$(tc-getCXX)" LD="$(tc-getLD)" \
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
 	emake -f client.mk realbuild
 }
@@ -205,18 +205,18 @@ src_install() {
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
 	pax-mark m "${BUILD_OBJ_DIR}"/dist/bin/xpcshell
 
-	# Add an emty default prefs for mozconfig-v6.45.eclass:
+	# Add an emty default prefs for the mozconfig eclass:
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" \
 		|| die
 
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n150
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n150
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n159
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n159
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
@@ -225,12 +225,12 @@ src_install() {
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml?h=maint-6.5#n191
+	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n191
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
-	MOZ_MAKE_FLAGS="${MAKEOPTS}" \
+	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
 	emake DESTDIR="${D}" install
 
 	# Install icons and .desktop for menu entry
@@ -251,12 +251,8 @@ src_install() {
 			|| die
 	fi
 
-	# Required in order to use plugins and even run torbrowser on hardened, with jit useflag.
-	if use jit; then
-		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
-	else
-		pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/plugin-container
-	fi
+	# Required in order to use plugins and even run torbrowser on hardened.
+	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
 
 	# Profile without the tor-launcher extension
 	# see: https://trac.torproject.org/projects/tor/ticket/10160
@@ -280,9 +276,27 @@ src_install() {
 
 pkg_preinst() {
 	gnome2_icon_savelist
+
+	# if the apulse libs are available in MOZILLA_FIVE_HOME then apulse
+	# doesn't need to be forced into the LD_LIBRARY_PATH
+	if use pulseaudio && [ -d "${EPREFIX}"}/usr/$(get_libdir)/apulse ] ; then
+		einfo "APULSE found - Generating library symlinks for sound support"
+		local lib
+		pushd "${ED}"${MOZILLA_FIVE_HOME} &>/dev/null || die
+		for lib in "${EPREFIX}"/usr/$(get_libdir)/apulse/libpulse* ; do
+			# a quickpkg rolled by hand will grab symlinks as part of the package,
+			# so we need to avoid creating them if they already exist.
+			if ! [ -L ${lib##*/} ]; then
+				ln -s "${lib}" || die
+			fi
+		done
+		popd &>/dev/null || die
+	fi
 }
 
 pkg_postinst() {
+	gnome2_icon_cache_update
+
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
 		ewarn "the exact same sources. Use this only if you know what you are doing!"
@@ -296,13 +310,11 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "45.7.0_p650" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "52.1.0_p700" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
 	fi
-
-	gnome2_icon_cache_update
 }
 
 pkg_postrm() {
