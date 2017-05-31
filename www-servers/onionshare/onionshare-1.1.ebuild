@@ -22,7 +22,7 @@ RDEPEND="${DEPEND}
 	dev-python/flask[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP}]
 	>=net-libs/stem-1.4.0[${PYTHON_USEDEP}]
-	|| ( >=net-vpn/tor-0.2.7.1 www-client/torbrowser-launcher )"
+	>=net-vpn/tor-0.2.7.1"
 
 pkg_preinst() {
 	gnome2_icon_savelist
