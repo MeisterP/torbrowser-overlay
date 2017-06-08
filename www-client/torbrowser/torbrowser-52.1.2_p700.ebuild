@@ -11,9 +11,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions.alpha
-TOR_PV="7.0a3"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-2-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-7.0
+TOR_PV="7.0"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-52.0-patches-08"
@@ -92,17 +92,17 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
 	eapply "${WORKDIR}/firefox"
-	eapply "${FILESDIR}/${PN}-52.1.0-add_gentoo_preferences.patch"
+	eapply "${FILESDIR}/${PN}-52.1.2-add_gentoo_preferences.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-52.1.0-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-52.1.2-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-52.1.0-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-52.1.2-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-52.1.0-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-52.1.2-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -169,13 +169,13 @@ src_configure() {
 	# Rename the install directory and the executable
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-52.1.0esr-7.0-2#n3920
+	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-52.1.2esr-7.0-1#n3920
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-52.1.0esr-7.0-2
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-52.1.2esr-7.0-1
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -279,15 +279,15 @@ pkg_preinst() {
 
 	# if the apulse libs are available in MOZILLA_FIVE_HOME then apulse
 	# doesn't need to be forced into the LD_LIBRARY_PATH
-	if use pulseaudio && [ -d "${EPREFIX}"}/usr/$(get_libdir)/apulse ] ; then
+	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9" ; then
 		einfo "APULSE found - Generating library symlinks for sound support"
 		local lib
 		pushd "${ED}"${MOZILLA_FIVE_HOME} &>/dev/null || die
-		for lib in "${EPREFIX}"/usr/$(get_libdir)/apulse/libpulse* ; do
+		for lib in ../apulse/libpulse{.so{,.0},-simple.so{,.0}} ; do
 			# a quickpkg rolled by hand will grab symlinks as part of the package,
 			# so we need to avoid creating them if they already exist.
 			if ! [ -L ${lib##*/} ]; then
-				ln -s "${lib}" || die
+				ln -s "${lib}" ${lib##*/} || die
 			fi
 		done
 		popd &>/dev/null || die
@@ -296,6 +296,12 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
+
+	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9" ; then
+		elog "Apulse was detected at merge time on this system and so it will always be"
+		elog "used for sound.  If you wish to use pulseaudio instead please unmerge"
+		elog "media-sound/apulse."
+	fi
 
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
@@ -310,7 +316,7 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "52.1.0_p700" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "52.1.2_p700" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."

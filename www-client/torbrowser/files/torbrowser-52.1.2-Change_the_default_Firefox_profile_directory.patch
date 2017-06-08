@@ -1,7 +1,7 @@
-From a0f589864f4a474db18fe8aeb334d28cd567740c Mon Sep 17 00:00:00 2001
+From 3aa81087b19c6cc7d990ea16036dcfcd25a75aeb Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Sun, 23 Apr 2017 15:11:19 +0200
-Subject: [PATCH 1/3] Revert "Bug 9173: Change the default Firefox profile
+Subject: [PATCH 1/4] Revert "Bug 9173: Change the default Firefox profile
  directory to be TBB-relative."
 
 This reverts commit ffef323b7eb6fb29e4c9860d865f7e03cb5cbf92.
@@ -13,7 +13,7 @@ This reverts commit ffef323b7eb6fb29e4c9860d865f7e03cb5cbf92.
  4 files changed, 202 insertions(+), 57 deletions(-)
 
 diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
-index eda05d5..bd181d0 100644
+index eda05d53ef8e..bd181d0bd038 100644
 --- a/toolkit/xre/nsXREDirProvider.cpp
 +++ b/toolkit/xre/nsXREDirProvider.cpp
 @@ -33,7 +33,6 @@
@@ -247,7 +247,7 @@ index eda05d5..bd181d0 100644
  #else
  #error "Don't know how to get profile path on your platform"
 diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
-index e99cf67..c468d1d 100644
+index e99cf673bc0d..c468d1d0ba80 100644
 --- a/toolkit/xre/nsXREDirProvider.h
 +++ b/toolkit/xre/nsXREDirProvider.h
 @@ -54,19 +54,19 @@ public:
@@ -288,7 +288,7 @@ index e99cf67..c468d1d 100644
    static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
  #endif
 diff --git a/xpcom/io/moz.build b/xpcom/io/moz.build
-index c88c792..8de8d12 100644
+index c88c792a44a7..8de8d12a9115 100644
 --- a/xpcom/io/moz.build
 +++ b/xpcom/io/moz.build
 @@ -133,10 +133,7 @@ FINAL_LIBRARY = 'xul'
@@ -304,7 +304,7 @@ index c88c792..8de8d12 100644
  if CONFIG['_MSC_VER']:
      # This is intended as a temporary hack to support building with VS2015.
 diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
-index ebf70a2..2ecc472 100644
+index ebf70a25c4c8..2ecc472575d5 100644
 --- a/xpcom/io/nsAppFileLocationProvider.cpp
 +++ b/xpcom/io/nsAppFileLocationProvider.cpp
 @@ -15,7 +15,6 @@
@@ -436,5 +436,5 @@ index ebf70a2..2ecc472 100644
  
    return rv;
 -- 
-2.10.2
+2.13.0
 
