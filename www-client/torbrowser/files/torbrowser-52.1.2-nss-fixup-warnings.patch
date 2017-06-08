@@ -1,0 +1,25 @@
+From 79e5f25a8575d8f81ffa8b87dfe901e0c104bd71 Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Sun, 16 Aug 2015 14:47:29 +0200
+Subject: [PATCH 3/4] security/nss/coreconf/Linux.mk: add -fno-strict-aliasing
+
+taken from nss-3.15-gentoo-fixup-warnings.patch
+---
+ security/nss/coreconf/Linux.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/security/nss/coreconf/Linux.mk b/security/nss/coreconf/Linux.mk
+index 438dab48afc0..e6b493a89988 100644
+--- a/security/nss/coreconf/Linux.mk
++++ b/security/nss/coreconf/Linux.mk
+@@ -129,6 +129,7 @@ ifdef MOZ_DEBUG_SYMBOLS
+ 		OPTIMIZER += -gdwarf-2
+ 	endif
+ endif
++OPTIMIZER += -fno-strict-aliasing
+ endif
+ 
+ ifndef COMPILER_TAG
+-- 
+2.13.0
+

@@ -1,0 +1,26 @@
+From 9a8bb93fd4c11a41532701df86e4c8b6870c69e8 Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Sun, 23 Apr 2017 15:25:27 +0200
+Subject: [PATCH 4/4] browser/installer/package-manifest.in: Install the Gentoo
+ preference file into the omni.jar
+
+see 1002_add_gentoo_preferences.patch
+---
+ browser/installer/package-manifest.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/browser/installer/package-manifest.in b/browser/installer/package-manifest.in
+index 12332494839b..490c46e860cd 100644
+--- a/browser/installer/package-manifest.in
++++ b/browser/installer/package-manifest.in
+@@ -644,6 +644,7 @@
+ 
+ ; [Default Preferences]
+ ; All the pref files must be part of base to prevent migration bugs
++@RESPATH@/browser/@PREF_DIR@/all-gentoo.js
+ @RESPATH@/browser/@PREF_DIR@/firefox.js
+ @RESPATH@/browser/@PREF_DIR@/firefox-branding.js
+ @RESPATH@/greprefs.js
+-- 
+2.13.0
+
