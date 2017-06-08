@@ -230,6 +230,20 @@ src_install() {
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
 
+	# Reenable defaults/profile functionality
+	# see: https://bugzilla.mozilla.org/show_bug.cgi?id=1234012
+	# see: https://mike.kaply.com/2016/05/24/default-profile-directory-doesnt-work-in-firefox-46/
+	echo "pref(\"general.config.filename\", \"profile.cfg\");" \
+		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		|| die
+
+	echo "pref(\"general.config.obscure_value\", 0);" \
+		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
+		|| die
+
+	insinto ${MOZILLA_FIVE_HOME}
+	doins "${FILESDIR}/profile.cfg"
+
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
 	emake DESTDIR="${D}" install
 
@@ -262,7 +276,7 @@ src_install() {
 	dodoc "${profile_dir}/extensions/tor-launcher@torproject.org.xpi"
 	rm "${profile_dir}/extensions/tor-launcher@torproject.org.xpi" || die "Failed to remove torlauncher extension"
 
-	insinto ${MOZILLA_FIVE_HOME}/browser/defaults/profile
+	insinto ${MOZILLA_FIVE_HOME}/defaults/profile
 	doins -r "${profile_dir}"/{extensions,preferences,bookmarks.html}
 
 	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/RelativeLink/start-tor-browser#n301
