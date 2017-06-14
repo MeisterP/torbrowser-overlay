@@ -12,8 +12,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-7.0
-TOR_PV="7.0"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-1-build2"
+TOR_PV="7.0.1"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-52.0-patches-08"
@@ -91,6 +91,7 @@ src_unpack() {
 src_prepare() {
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
+	rm "${WORKDIR}/firefox/1006_fix_hardened_pie_detection.patch" || die
 	eapply "${WORKDIR}/firefox"
 	eapply "${FILESDIR}/${PN}-52.1.2-add_gentoo_preferences.patch"
 
