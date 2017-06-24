@@ -28,7 +28,7 @@ DEPEND="${PYTHON_DEPS}
 		>=dev-python/twisted-web-14.0.1[${PYTHON_USEDEP}]
 	)"
 RDEPEND="${DEPEND}
-	app-crypt/gnupg
+	app-crypt/gpgme[${PYTHON_USEDEP}]
 	dev-python/psutil[${PYTHON_USEDEP}]
 	dev-python/pyliblzma[${PYTHON_USEDEP}]"
 
