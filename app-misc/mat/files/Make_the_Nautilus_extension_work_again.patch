@@ -1,0 +1,33 @@
+From 94ca62a429bb6a3a5f293de26053e54bbfeea9f9 Mon Sep 17 00:00:00 2001
+From: intrigeri <intrigeri@boum.org>
+Date: Sat, 18 Mar 2017 08:31:27 +0000
+Subject: [PATCH] Make the Nautilus extension work again.
+
+It was broken since commit 0d1fe2555e90db35eeb531a1b6026ff64f1f5ae5,
+i.e. in the MAT 0.6 and 0.6.1 releases.
+
+The impact is: the MAT extension for Nautilus fails to clean metadata,
+without making the user aware of it.
+
+This bug was discovered by the Tails contributor sajolida, and initially
+reported to Debian as https://bugs.debian.org/858058.
+---
+ nautilus/nautilus-mat.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/nautilus/nautilus-mat.py b/nautilus/nautilus-mat.py
+index 0974bef..7c2d740 100644
+--- a/nautilus/nautilus-mat.py
++++ b/nautilus/nautilus-mat.py
+@@ -77,7 +77,7 @@ class MatExtension(GObject.GObject, Nautilus.MenuProvider):
+         :param current_file: Name of the selected file
+         :param menu: Menu id from which the callback was activated. Unused.
+         """
+-        if file.is_gone():
++        if current_file.is_gone():
+             return
+ 
+         # files url in nautilus are starting with 'file://', of length 7
+--
+libgit2 0.25.0
+
