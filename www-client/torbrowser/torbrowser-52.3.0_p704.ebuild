@@ -12,7 +12,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-7.0
-TOR_PV="7.0.3"
+TOR_PV="7.0.4"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-1-build1"
 
 # Patch version
@@ -93,10 +93,6 @@ src_prepare() {
 	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
 	eapply "${WORKDIR}/firefox"
 	eapply "${FILESDIR}/${PN}-52.1.2-add_gentoo_preferences.patch"
-
-	# Apply patch for bug 23044
-	# https://gitweb.torproject.org/builders/tor-browser-bundle.git/commit/?h=maint-7.0&id=a11a8b301950e1c25adcfd5bea07c773f5082533
-	eapply "${FILESDIR}/${PN}-52.2.0-gio.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-52.1.2-Change_the_default_Firefox_profile_directory.patch"
