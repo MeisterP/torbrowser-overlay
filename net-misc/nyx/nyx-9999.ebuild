@@ -8,7 +8,7 @@ PYTHON_REQ_USE="ncurses"
 inherit git-r3 distutils-r1
 
 DESCRIPTION="A ncurses-based status monitor for Tor relays"
-HOMEPAGE="https://gitweb.torproject.org/nyx.git"
+HOMEPAGE="https://nyx.torproject.org"
 EGIT_REPO_URI="https://git.torproject.org/nyx.git"
 
 LICENSE="GPL-3"
@@ -22,5 +22,5 @@ RDEPEND=">=net-libs/stem-1.5[${PYTHON_USEDEP}]
 python_install_all() {
 	distutils-r1_python_install_all
 	doman nyx.1
-	dodoc nyxrc.sample
+	dodoc web/nyxrc.sample
 }
