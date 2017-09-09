@@ -16,7 +16,7 @@ SLOT="0"
 KEYWORDS=""
 
 DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
-RDEPEND=">=net-libs/stem-1.5[${PYTHON_USEDEP}]
+RDEPEND=">=net-libs/stem-1.5.4_p20170909[${PYTHON_USEDEP}]
 	net-vpn/tor"
 
 python_install_all() {
