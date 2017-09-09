@@ -4,15 +4,16 @@
 EAPI=6
 PYTHON_COMPAT=(python{2_7,3_4,3_5,3_6})
 
-inherit vcs-snapshot distutils-r1
+inherit git-r3 distutils-r1
 
 DESCRIPTION="Stem is a Python controller library for Tor"
 HOMEPAGE="https://stem.torproject.org"
-SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
+EGIT_REPO_URI="https://git.torproject.org/stem.git"
+EGIT_COMMIT="3cc85fc9dbb907965279cca4d844999d57010a2b"
 
 LICENSE="LGPL-3"
 SLOT="0"
-KEYWORDS="~amd64 ~arm ~mips ~ppc ~ppc64 ~x86 ~x86-fbsd"
+KEYWORDS="~amd64 ~x86"
 IUSE="test"
 
 DEPEND="test? ( dev-python/mock[${PYTHON_USEDEP}]
