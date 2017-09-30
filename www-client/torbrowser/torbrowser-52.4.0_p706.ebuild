@@ -12,11 +12,11 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-7.0
-TOR_PV="7.0.5"
+TOR_PV="7.0.6"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-52.2-patches-01"
+PATCH="${MY_PN}-52.4-patches-01"
 
 MOZCONFIG_OPTIONAL_GTK2ONLY=1
 MOZCONFIG_OPTIONAL_WIFI=1
