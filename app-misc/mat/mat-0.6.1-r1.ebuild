@@ -28,8 +28,8 @@ RDEPEND="${DEPEND}
 	dev-python/pygtk[${PYTHON_USEDEP}]
 	sys-apps/coreutils"
 
-PATCHES=( ${FILESDIR}/Make_the_Nautilus_extension_work_again.patch
-	${FILESDIR}/Removed_System_category_from_desktop_entry_file.patch )
+PATCHES=( "${FILESDIR}/Make_the_Nautilus_extension_work_again.patch"
+	"${FILESDIR}/Removed_System_category_from_desktop_entry_file.patch" )
 
 src_prepare() {
 	default
