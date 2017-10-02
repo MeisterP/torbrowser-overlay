@@ -3,7 +3,7 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python3_4 )
+PYTHON_COMPAT=( python3_{4,5,6} )
 DISTUTILS_SINGLE_IMPL=1
 
 inherit eutils distutils-r1 gnome2-utils
