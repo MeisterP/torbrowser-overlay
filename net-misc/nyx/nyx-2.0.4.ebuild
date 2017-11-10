@@ -5,15 +5,15 @@ EAPI=6
 PYTHON_COMPAT=(python{2_7,3_4,3_5,3_6})
 PYTHON_REQ_USE="ncurses"
 
-inherit git-r3 distutils-r1
+inherit distutils-r1
 
 DESCRIPTION="Terminal status monitor for Tor"
 HOMEPAGE="https://nyx.torproject.org"
-EGIT_REPO_URI="https://git.torproject.org/nyx.git"
+SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 
 DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
 RDEPEND=">=net-libs/stem-1.6.0[${PYTHON_USEDEP}]
