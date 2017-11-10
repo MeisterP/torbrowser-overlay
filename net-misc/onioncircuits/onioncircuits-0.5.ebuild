@@ -9,7 +9,7 @@ inherit gnome2-utils distutils-r1
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
-SRC_URI="http://http.debian.net/debian/pool/main/o/${PN}/${PN}_${PV}.orig.tar.gz"
+SRC_URI="http://ftp.debian.org/debian/pool/main/o/${PN}/${PN}_${PV}.orig.tar.xz"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -24,7 +24,7 @@ RDEPEND="${PYTHON_DEPS}
 	net-libs/stem[${PYTHON_USEDEP}]
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
-DOCS=( README README.translators ${FILESDIR}/README.controlport )
+DOCS=( HACKING README README.translators ${FILESDIR}/README.controlport )
 
 pkg_preinst() {
 	gnome2_icon_savelist
