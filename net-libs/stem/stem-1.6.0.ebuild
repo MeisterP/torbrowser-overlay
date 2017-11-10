@@ -2,14 +2,13 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
-PYTHON_COMPAT=( python2_7 python3_{4,5,6} )
+PYTHON_COMPAT=(python{2_7,3_4,3_5,3_6})
 
-inherit git-r3 distutils-r1
+inherit vcs-snapshot distutils-r1
 
 DESCRIPTION="Stem is a Python controller library for Tor"
 HOMEPAGE="https://stem.torproject.org"
-EGIT_REPO_URI="https://git.torproject.org/stem.git"
-EGIT_COMMIT="3cc85fc9dbb907965279cca4d844999d57010a2b"
+SRC_URI="mirror://pypi/${PN:0:1}/${PN}/${P}.tar.gz"
 
 LICENSE="LGPL-3"
 SLOT="0"
