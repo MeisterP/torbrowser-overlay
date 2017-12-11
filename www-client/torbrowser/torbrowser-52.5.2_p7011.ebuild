@@ -16,7 +16,7 @@ TOR_PV="7.0.11"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-2-build1"
 
 # Patch version
-PATCH="${MY_PN}-52.4-patches-02"
+PATCH="${MY_PN}-52.5-patches-01"
 
 MOZCONFIG_OPTIONAL_GTK2ONLY=1
 MOZCONFIG_OPTIONAL_WIFI=1
