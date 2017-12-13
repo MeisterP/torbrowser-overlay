@@ -4,7 +4,6 @@
 EAPI=6
 
 PYTHON_COMPAT=( python3_{4,5,6} )
-DISTUTILS_SINGLE_IMPL=1
 
 inherit eutils distutils-r1 gnome2-utils
 
@@ -24,9 +23,7 @@ RDEPEND="${DEPEND}
 	>=net-libs/stem-1.4.0[${PYTHON_USEDEP}]
 	>=net-vpn/tor-0.2.7.1"
 
-pkg_preinst() {
-	gnome2_icon_savelist
-}
+PATCHES=( "${FILESDIR}/avoid_spamming_the_logs.patch" )
 
 pkg_postinst() {
 	gnome2_icon_cache_update

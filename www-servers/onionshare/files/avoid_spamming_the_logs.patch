@@ -1,0 +1,30 @@
+From 4da79cac7944a01262f53dd78e4b4c81b790bf98 Mon Sep 17 00:00:00 2001
+From: intrigeri <intrigeri@debian.org>
+Date: Thu, 7 Dec 2017 06:04:48 +0000
+Subject: [PATCH] Nautilus extension: avoid spamming the logs due to missing
+ method.
+
+Without this change I see a dozen or so warnings in the Journal:
+
+    nautilus_menu_provider_get_background_items: assertion
+    'NAUTILUS_IS_MENU_PROVIDER (provider)' failed
+
+Nautilus upstream developers are going to discuss if/how they want to address
+this on their side; in the meantime they recommend simply adding a no-op method
+to silence the logs, so here we go.
+---
+ install/scripts/onionshare-nautilus.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/install/scripts/onionshare-nautilus.py b/install/scripts/onionshare-nautilus.py
+index d5e8391..6674dd1 100644
+--- a/install/scripts/onionshare-nautilus.py
++++ b/install/scripts/onionshare-nautilus.py
+@@ -93,3 +93,7 @@ def menu_activate_cb(self, menu, files):
+         for file in files:
+             file_list.append(self.url2path(file))
+         self.exec_onionshare(file_list)
++
++    # Workaround https://bugzilla.gnome.org/show_bug.cgi?id=784278
++    def get_background_items(self, window, file):
++        return None
