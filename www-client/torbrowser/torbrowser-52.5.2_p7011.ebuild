@@ -290,8 +290,6 @@ src_install() {
 }
 
 pkg_preinst() {
-	gnome2_icon_savelist
-
 	# if the apulse libs are available in MOZILLA_FIVE_HOME then apulse
 	# doesn't need to be forced into the LD_LIBRARY_PATH
 	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9" ; then
