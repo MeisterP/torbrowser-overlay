@@ -26,10 +26,6 @@ RDEPEND="${PYTHON_DEPS}
 
 DOCS=( HACKING README README.translators ${FILESDIR}/README.controlport )
 
-pkg_preinst() {
-	gnome2_icon_savelist
-}
-
 pkg_postinst() {
 	gnome2_icon_cache_update
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
