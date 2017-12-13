@@ -9,14 +9,16 @@ inherit eutils gnome2-utils distutils-r1
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
 HOMEPAGE="https://mat.boum.org/"
-SRC_URI="https://mat.boum.org/files/${P}.tar.xz"
+SRC_URI="https://mat.boum.org/files/${P}.tar.xz
+	https://0xacab.org/mat/mat/raw/f775d4a61c0ab6c44e23a94a20820dd8e327de6f/data/mat.png -> ${P}_logo.png"
 
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="+audio +exif +pdf"
 
-DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]"
+DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]
+	media-gfx/imagemagick[png]"
 RDEPEND="${DEPEND}
 	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
 	exif? ( media-libs/exiftool )
@@ -29,15 +31,17 @@ RDEPEND="${DEPEND}
 	sys-apps/coreutils"
 
 PATCHES=( "${FILESDIR}/Make_the_Nautilus_extension_work_again.patch"
+	"${FILESDIR}/Avoid_spamming_the_logs.patch"
 	"${FILESDIR}/Removed_System_category_from_desktop_entry_file.patch" )
 
 src_prepare() {
 	default
-	sed -i -e "s#share/doc/${PN}#share/doc/${PF}#g" setup.py || die
-}
 
-pkg_preinst() {
-	gnome2_icon_savelist
+	convert "${DISTDIR}/${P}_logo.png" \
+		-gravity center -background none -extent 3000x3000 \
+		-resize 256 data/mat.png || die
+
+	sed -i -e "s#share/doc/${PN}#share/doc/${PF}#g" setup.py || die
 }
 
 pkg_postinst() {
