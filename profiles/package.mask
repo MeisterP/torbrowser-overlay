@@ -1,0 +1,6 @@
+# Poncho <poncho@spahan.ch> (13 Dec 2017)
+# From https://mat.boum.org/
+# The MAT maintenance and development is currently on hold
+# The current version might have bugs, and doesn't work on Python3
+# Please avoid using it
+app-misc/mat
