@@ -32,7 +32,7 @@ SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
-IUSE="hardened test"
+IUSE="+gpg hardened test"
 
 EGIT_REPO_URI="https://git.torproject.org/tor-browser.git"
 EGIT_CLONE_TYPE="shallow"
@@ -42,9 +42,13 @@ PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c}/mozilla/patchset
 
 SRC_URI="${SRC_URI}
 	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
-		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz )
+		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
+		gpg? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz.asc
+		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz.asc ) )
 	amd64? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
-		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz )
+		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
+		gpg? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz.asc
+		${ARCHIVE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz.asc ) )
 	${PATCH_URIS[@]}"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
@@ -55,6 +59,8 @@ RDEPEND=">=dev-libs/nss-3.28.3
 
 DEPEND="${RDEPEND}
 	${ASM_DEPEND}
+	gpg? ( app-crypt/gnupg
+		app-crypt/torbrowser-keys )
 	virtual/opengl"
 
 QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
@@ -84,11 +90,32 @@ pkg_pretend() {
 }
 
 src_unpack() {
+
+	if use gpg
+	then
+		# git specifies -u and gkeys-gpg specifies --local-user, which causes
+		# verify-tag to fail with a gkeys-gpg traceback.  There is no config option
+		# to specify a keyring, so the keyring must be imported.
+		gpg --import '/var/lib/gentoo/gkeys/keyrings/torbrowser/release/pubring.gpg'
+		gpg --import-ownertrust '/var/lib/gentoo/gkeys/keyrings/torbrowser/release/trustdb.txt'
+
+		if use amd64
+		then
+			gpg --verify "${DISTDIR}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz.asc" "${DISTDIR}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz" || die 'Failed to verify signature'
+		elif use x86
+		then
+			gpg --verify "${DISTDIR}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz.asc" "${DISTDIR}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz" || die 'Failed to verify signature'
+		fi
+	fi
+
 	unpack ${A}
 	git-r3_src_unpack
 }
 
 src_prepare() {
+
+	use gpg && git verify-tag "${EGIT_COMMIT}" || die 'Failed to verify tag signature'
+
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
 	rm "${WORKDIR}/firefox/2003_fix_sandbox_prlimit64.patch" || die
