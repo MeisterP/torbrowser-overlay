@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -16,7 +16,7 @@ TOR_PV="7.0.11"
 EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-2-build1"
 
 # Patch version
-PATCH="${MY_PN}-52.5-patches-01"
+PATCH="${MY_PN}-52.5-patches-02"
 
 MOZCONFIG_OPTIONAL_GTK2ONLY=1
 MOZCONFIG_OPTIONAL_WIFI=1
