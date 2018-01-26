@@ -11,9 +11,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/versions?h=maint-7.0
-TOR_PV="7.0.11"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-7.0-2-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-7.5#n4
+TOR_PV="7.5"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV}-2-build1"
 
 # Patch version
 PATCH="${MY_PN}-52.5-patches-02"
@@ -92,18 +92,19 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}/firefox/1002_add_gentoo_preferences.patch" || die
 	rm "${WORKDIR}/firefox/2003_fix_sandbox_prlimit64.patch" || die
+	rm "${WORKDIR}/firefox/2007_fix_nvidia_latest.patch" || die
 	eapply "${WORKDIR}/firefox"
-	eapply "${FILESDIR}/${PN}-52.1.2-add_gentoo_preferences.patch"
+	eapply "${FILESDIR}/${PN}-52.6.0-add_gentoo_preferences.patch"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-52.1.2-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}/${PN}-52.6.0-Change_the_default_Firefox_profile_directory.patch"
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-52.1.2-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}/${PN}-52.6.0-allow-lightspark-and-freshplayerplugin.patch"
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-52.1.2-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}/${PN}-52.6.0-nss-fixup-warnings.patch"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -170,13 +171,13 @@ src_configure() {
 	# Rename the install directory and the executable
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-52.1.2esr-7.0-1#n3920
+	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-52.6.0esr-7.5-2#n3917
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
 
 	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-52.1.2esr-7.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-52.6.0esr-7.5-2
 	mozconfig_annotate 'torbrowser' --without-system-nspr
 	mozconfig_annotate 'torbrowser' --without-system-nss
 
@@ -213,11 +214,11 @@ src_install() {
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n150
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-7.5#n23
 	touch "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n159
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-7.5#n158
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
@@ -226,7 +227,7 @@ src_install() {
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/extension-overrides.js" \
 		|| die
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/descriptors/linux/gitian-bundle.yml#n191
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-7.5#n196
 	echo "pref(\"general.useragent.locale\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -329,7 +330,7 @@ pkg_postinst() {
 		elog "for further information."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "52.1.2_p700" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "52.6.0_p750" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."

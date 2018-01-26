@@ -1,4 +1,4 @@
-From 94eb4b1c9577498bc4409c13a7eefca73a90e1d2 Mon Sep 17 00:00:00 2001
+From 1564c1cc9bb0e982209ab79a6568d11fad618e73 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Wed, 12 Aug 2015 12:00:47 +0200
 Subject: [PATCH 2/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
@@ -22,5 +22,5 @@ index cd1707beaf5f..dcc770ed3814 100644
        strstr(leafStr, "Flash Player") == leafStr ||
        strstr(leafStr, "NPSWF") == leafStr) {
 -- 
-2.13.0
+2.13.6
 

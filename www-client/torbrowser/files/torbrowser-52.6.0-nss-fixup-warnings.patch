@@ -1,4 +1,4 @@
-From 79e5f25a8575d8f81ffa8b87dfe901e0c104bd71 Mon Sep 17 00:00:00 2001
+From c1da15330f9b736fec3517dc44b0eda661eaaa41 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Sun, 16 Aug 2015 14:47:29 +0200
 Subject: [PATCH 3/4] security/nss/coreconf/Linux.mk: add -fno-strict-aliasing
@@ -21,5 +21,5 @@ index 438dab48afc0..e6b493a89988 100644
  
  ifndef COMPILER_TAG
 -- 
-2.13.0
+2.13.6
 

@@ -1,4 +1,4 @@
-From 3aa81087b19c6cc7d990ea16036dcfcd25a75aeb Mon Sep 17 00:00:00 2001
+From e074b4a800dbe098069380e281e141803ba561a2 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Sun, 23 Apr 2017 15:11:19 +0200
 Subject: [PATCH 1/4] Revert "Bug 9173: Change the default Firefox profile
@@ -436,5 +436,5 @@ index ebf70a25c4c8..2ecc472575d5 100644
  
    return rv;
 -- 
-2.13.0
+2.13.6
 
