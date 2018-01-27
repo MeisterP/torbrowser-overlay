@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -20,10 +20,8 @@ DEPEND="${PYTHON_DEPS}"
 RDEPEND="${DEPEND}
 	dev-python/flask[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP}]
-	>=net-libs/stem-1.4.0[${PYTHON_USEDEP}]
+	>=net-libs/stem-1.6.0[${PYTHON_USEDEP}]
 	>=net-vpn/tor-0.2.7.1"
-
-PATCHES=( "${FILESDIR}/avoid_spamming_the_logs.patch" )
 
 pkg_postinst() {
 	gnome2_icon_cache_update
