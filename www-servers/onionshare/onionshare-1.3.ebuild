@@ -5,7 +5,7 @@ EAPI=6
 
 PYTHON_COMPAT=( python3_{4,5,6} )
 
-inherit eutils distutils-r1 gnome2-utils
+inherit eutils gnome2-utils distutils-r1
 
 DESCRIPTION="Share a file securely and anonymously over Tor"
 HOMEPAGE="https://onionshare.org/"
