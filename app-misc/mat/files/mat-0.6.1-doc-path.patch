@@ -1,0 +1,12 @@
+diff --git a/setup.py b/setup.py
+index d4fffff..011100a 100755
+--- a/setup.py
++++ b/setup.py
+@@ -45,7 +45,6 @@ setup(
+         ('share/applications', ['mat.desktop']),
+         ('share/mat', ['data/FORMATS', 'data/mat.glade']),
+         ('share/pixmaps', ['data/mat.png']),
+-        ('share/doc/mat', ['README.md', 'README.security']),
+         ('share/man/man1', ['mat.1', 'mat-gui.1']),
+         ('share/nautilus-python/extensions', ['nautilus/nautilus-mat.py'])
+     ],
