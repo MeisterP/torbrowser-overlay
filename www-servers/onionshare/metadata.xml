@@ -5,4 +5,7 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
+	<use>
+		<flag name="nautilus">Add support for the nautilus menu integration</flag>
+	</use>
 </pkgmetadata>
