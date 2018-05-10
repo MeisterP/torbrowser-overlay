@@ -12,8 +12,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-7.5#n4
-TOR_PV="7.5.3"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
+TOR_PV="7.5.4"
+EGIT_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-52.5-patches-02"
