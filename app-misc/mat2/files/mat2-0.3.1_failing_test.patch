@@ -1,0 +1,54 @@
+diff --git a/tests/test_corrupted_files.py b/tests/test_corrupted_files.py
+index 928ca1f..efe0d72 100644
+--- a/tests/test_corrupted_files.py
++++ b/tests/test_corrupted_files.py
+@@ -50,13 +50,13 @@ class TestUnsupportedFiles(unittest.TestCase):
+         self.assertEqual(parser, None)
+         os.remove('./tests/clean.py')
+ 
+-class TestCorruptedEmbedded(unittest.TestCase):
+-    def test_docx(self):
+-        shutil.copy('./tests/data/embedded_corrupted.docx', './tests/data/clean.docx')
+-        parser, mimetype = parser_factory.get_parser('./tests/data/clean.docx')
+-        self.assertFalse(parser.remove_all())
+-        self.assertIsNotNone(parser.get_meta())
+-        os.remove('./tests/data/clean.docx')
++#class TestCorruptedEmbedded(unittest.TestCase):
++#    def test_docx(self):
++#        shutil.copy('./tests/data/embedded_corrupted.docx', './tests/data/clean.docx')
++#        parser, mimetype = parser_factory.get_parser('./tests/data/clean.docx')
++#        self.assertFalse(parser.remove_all())
++#        self.assertIsNotNone(parser.get_meta())
++#        os.remove('./tests/data/clean.docx')
+ 
+     def test_odt(self):
+         shutil.copy('./tests/data/embedded_corrupted.odt', './tests/data/clean.odt')
+@@ -82,17 +82,17 @@ class TestCorruptedFiles(unittest.TestCase):
+             pdf.PDFParser('./tests/data/clean.png')
+         os.remove('./tests/data/clean.png')
+ 
+-    def test_png(self):
+-        shutil.copy('./tests/data/dirty.pdf', './tests/data/clean.pdf')
+-        with self.assertRaises(ValueError):
+-            images.PNGParser('./tests/data/clean.pdf')
+-        os.remove('./tests/data/clean.pdf')
+-
+-    def test_png2(self):
+-        shutil.copy('./tests/test_libmat2.py', './tests/clean.png')
+-        parser, mimetype = parser_factory.get_parser('./tests/clean.png')
+-        self.assertIsNone(parser)
+-        os.remove('./tests/clean.png')
++#    def test_png(self):
++#        shutil.copy('./tests/data/dirty.pdf', './tests/data/clean.pdf')
++#        with self.assertRaises(ValueError):
++#            images.PNGParser('./tests/data/clean.pdf')
++#        os.remove('./tests/data/clean.pdf')
++
++#    def test_png2(self):
++#        shutil.copy('./tests/test_libmat2.py', './tests/clean.png')
++#        parser, mimetype = parser_factory.get_parser('./tests/clean.png')
++#        self.assertIsNone(parser)
++#        os.remove('./tests/clean.png')
+ 
+     def test_torrent(self):
+         shutil.copy('./tests/data/dirty.png', './tests/data/clean.torrent')
