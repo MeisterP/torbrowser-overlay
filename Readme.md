@@ -56,3 +56,14 @@ new identity feature), `www-client/torbrowser` needs to access a control port.
   are **unset** and that you **don't** have the system wide tor running on port `9150`.
 
   With `www-client/torbrowser-launcher`, all menu entries are available and working.
+
+
+##  Tor Hidden Service
+
+A mirror of this repository is available at [vivmyccb3jdb7yij.onion](http://vivmyccb3jdb7yij.onion/poncho/torbrowser-overlay)
+
+```
+git -c http.proxy=socks5h://127.0.0.1:9050 clone http://vivmyccb3jdb7yij.onion/Poncho/torbrowser-overlay.git
+cd torbrowser-overlay
+git config --add remote.origin.proxy "socks5h://127.0.0.1:9050"
+```
