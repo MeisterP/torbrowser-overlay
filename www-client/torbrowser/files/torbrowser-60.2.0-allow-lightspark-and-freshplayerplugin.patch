@@ -1,7 +1,7 @@
-From 1564c1cc9bb0e982209ab79a6568d11fad618e73 Mon Sep 17 00:00:00 2001
+From a03a408cbda217e5123e47bdb7abdb9a67090d69 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Wed, 12 Aug 2015 12:00:47 +0200
-Subject: [PATCH 2/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
+Subject: [PATCH 2/3] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
  freshwrapper
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 2/4] dom/plugins/base/nsPluginHost.cpp: allow lightspar and
  1 file changed, 2 insertions(+)
 
 diff --git a/dom/plugins/base/nsPluginHost.cpp b/dom/plugins/base/nsPluginHost.cpp
-index cd1707beaf5f..dcc770ed3814 100644
+index 72c8f8005ad8..08d61672baf3 100644
 --- a/dom/plugins/base/nsPluginHost.cpp
 +++ b/dom/plugins/base/nsPluginHost.cpp
-@@ -2077,6 +2077,8 @@ PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
+@@ -1951,6 +1951,8 @@ PRBool nsPluginHost::GhettoBlacklist(nsIFile *pluginFile)
    // libgnashplugin.so, libflashplayer.so, Flash Player-10.4-10.5.plugin,
    // NPSWF32.dll, NPSWF64.dll
    if (strstr(leafStr, "libgnashplugin") == leafStr ||
@@ -22,5 +22,5 @@ index cd1707beaf5f..dcc770ed3814 100644
        strstr(leafStr, "Flash Player") == leafStr ||
        strstr(leafStr, "NPSWF") == leafStr) {
 -- 
-2.13.6
+2.16.4
 

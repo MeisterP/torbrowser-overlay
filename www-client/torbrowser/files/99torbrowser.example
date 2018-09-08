@@ -9,18 +9,12 @@
 # shown. This is used by TorButton to authenticate to Tor's ControlPort, and
 # is necessary for using TB with a system-installed Tor
 
-TOR_CONTROL_PORT=9051
-TOR_CONTROL_HOST=127.0.0.1
-TOR_CONTROL_PASSWD='"secret"'
+#TOR_SOCKS_HOST=127.0.0.1
+#TOR_SOCKS_PORT=9150
+#TOR_SOCKS_IPC_PATH=/var/run/tor/socks
+
+#TOR_CONTROL_HOST=127.0.0.1
+#TOR_CONTROL_PORT=9151
+#TOR_CONTROL_PASSWD='"secret"'
 #TOR_CONTROL_COOKIE_AUTH_FILE=/var/run/tor/control.authcookie
-
-# Environment variable to skip TorButton control port verification
-#TOR_SKIP_CONTROLPORTTEST=1
-
-# Environment variable to disable the "TorButton" -> "Open Network Settings..."
-# menu item.
-#TOR_NO_DISPLAY_NETWORK_SETTINGS=1
-
-# Environment variable to disable the "TorButton" -> "Check for Updates..."
-# menu item.
-#TOR_HIDE_UPDATE_CHECK_UI=1
+#TOR_CONTROL_IPC_PATH=/var/run/tor/control
