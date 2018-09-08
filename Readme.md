@@ -4,7 +4,7 @@ To add the torbrowser overlay, run `layman -a torbrowser`.
 
 Install either `www-client/torbrowser-launcher` or `www-client/torbrowser`. If unsure, choose `www-client/torbrowser-launcher`.
 
-![Tor Browser Bundle start page](https://upload.wikimedia.org/wikipedia/commons/1/12/Tor_Browser_Bundle_start_page.png)
+![Tor Browser Bundle start page](https://extra.torproject.org/blog/2018-09-05-tor-browser-80/tb8-onboarding.gif)
 
 
 ## www-client/torbrowser-launcher
@@ -32,8 +32,12 @@ as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
 If you want to start from scratch just remove the directory `~/.mozilla/torbrowser`.
 
 Torbrowser uses port `9150` to connect to Tor. You can change the port
-in the connection settings to match your setup.
-See `Preferences -> Advanced -> Network -> Connection -> SOCKS Host`
+in `/etc/env.d/99torbrowser` to match your setup. See
+[99torbrowser.example](https://github.com/MeisterP/torbrowser-overlay/blob/master/www-client/torbrowser/files/99torbrowser.example)
+for possible settings.
+You can do this either with gentoo's `/etc/env.d`
+[mechanism](https://wiki.gentoo.org/wiki/Handbook:AMD64/Working/EnvVar/en#Defining_variables_globally)
+or on the command line.
 
 
 ### Advanced torbutton functionality
@@ -41,18 +45,17 @@ See `Preferences -> Advanced -> Network -> Connection -> SOCKS Host`
 To get the advanced functionality of Torbutton (network information,
 new identity feature), `www-client/torbrowser` needs to access a control port.
 
-![Tor Onion Menu ](https://people.torproject.org/~mikeperry/images/OnionMenu.jpg)
+![Tor Onion Menu ](https://extra.torproject.org/blog/2018-09-05-tor-browser-80/tb8-circuit-display-onion-small.gif)
 
 * If you use `www-client/torbrowser`, you need to **adjust and export** the environment variables from
   [99torbrowser.example](https://github.com/MeisterP/torbrowser-overlay/blob/master/www-client/torbrowser/files/99torbrowser.example).
-  You can do this either with gentoo's `/etc/env.d`
-  [mechanism](https://wiki.gentoo.org/wiki/Handbook:X86/Working/EnvVar#Defining_variables_globally)
+  You can do this either in `/etc/env.d/99torbrowser` with gentoo's `/etc/env.d`
+  [mechanism](https://wiki.gentoo.org/wiki/Handbook:AMD64/Working/EnvVar/en#Defining_variables_globally)
   or on the command line.
 
-  _Tor Network Settings_ and _Check for Tor Browser Update_ functionality is not working with the `www-client/torbrowser`.
+  _Tor Network Settings_ and _Check for Tor Browser Update_ functionality is not working with the `www-client/torbrowser` and is therefore disabled.
 
-* If you use `www-client/torbrowser-launcher`, make sure that the environment variables from
-  [99torbrowser.example](https://github.com/MeisterP/torbrowser-overlay/blob/master/www-client/torbrowser/files/99torbrowser.example)
+* If you use `www-client/torbrowser-launcher`, make sure that the environment variables in `/etc/env.d/99torbrowser`
   are **unset** and that you **don't** have the system wide tor running on port `9150`.
 
   With `www-client/torbrowser-launcher`, all menu entries are available and working.
