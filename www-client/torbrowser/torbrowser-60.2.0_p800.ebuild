@@ -13,12 +13,12 @@ fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n4
 TOR_PV="8.0"
-EGIT_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}.0-1-build1"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}.0-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-60.0-patches-03"
 
-inherit git-r3 check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
+inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
 		mozconfig-v6.60 pax-utils autotools
 
 DESCRIPTION="The Tor Browser"
@@ -33,13 +33,12 @@ SLOT="0"
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
 IUSE="hardened"
 
-EGIT_REPO_URI="https://git.torproject.org/tor-browser.git"
-EGIT_CLONE_TYPE="shallow"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
 
 PATCH_URIS=( https://dev.gentoo.org/~whissi/dist/firefox/${PATCH}.tar.xz https://dev.gentoo.org/~{anarchy,axs,polynomial-c}/mozilla/patchsets/${PATCH}.tar.xz )
 SRC_URI="${SRC_URI}
+	https://gitweb.torproject.org/tor-browser.git/snapshot/${TOR_COMMIT}.tar.gz -> ${TOR_COMMIT}.tar.gz
 	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
 		${ARCHIVE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz )
 	amd64? ( ${BASE_SRC_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
@@ -92,7 +91,7 @@ pkg_pretend() {
 
 src_unpack() {
 	unpack ${A}
-	git-r3_src_unpack
+	mv "${WORKDIR}/${TOR_COMMIT}" "${WORKDIR}/${P}" || die
 }
 
 src_prepare() {
