@@ -1,6 +1,4 @@
-# Poncho <poncho@spahan.ch> (13 Dec 2017)
-# From https://mat.boum.org/
-# The MAT maintenance and development is currently on hold
-# The current version might have bugs, and doesn't work on Python3
-# Please avoid using it
-app-misc/mat
+# Poncho <poncho@spahan.ch> (09 Sep 2018)
+# From https://0xacab.org/jvoisin/mat2
+# This software is currently in beta, please don't use it for anything critical.
+app-misc/mat2
