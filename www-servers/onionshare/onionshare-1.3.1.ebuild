@@ -14,12 +14,19 @@ SRC_URI="https://github.com/micahflee/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="nautilus"
+IUSE="nautilus test"
 
-DEPEND="${PYTHON_DEPS}"
-RDEPEND="${DEPEND}
+DEPEND="${PYTHON_DEPS}
+	test? ( dev-python/pytest[${PYTHON_USEDEP}] )"
+RDEPEND="${PYTHON_DEPS}
 	dev-python/flask[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP}]
 	>=net-libs/stem-1.6.0[${PYTHON_USEDEP}]
 	>=net-vpn/tor-0.2.7.1
 	nautilus? ( dev-python/nautilus-python )"
+
+PATCHES=( ${FILESDIR}/onionshare-1.3.1_nautilus_shebang.patch )
+
+python_test() {
+	${EPYTHON} -m pytest test || die
+}

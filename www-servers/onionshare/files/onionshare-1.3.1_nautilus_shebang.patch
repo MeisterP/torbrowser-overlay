@@ -1,0 +1,26 @@
+diff --git a/install/scripts/onionshare-nautilus.py b/install/scripts/onionshare-nautilus.py
+index ed50fb2..301b748 100644
+--- a/install/scripts/onionshare-nautilus.py
++++ b/install/scripts/onionshare-nautilus.py
+@@ -1,9 +1,11 @@
++#!/usr/bin/env python3
++
+ import os
+ import sys
+ import json
+ import locale
+ import subprocess
+-import urllib
++import urllib.request
+ import gi
+ gi.require_version('Nautilus', '3.0')
+ 
+@@ -66,7 +68,7 @@ class OnionShareExtension(GObject.GObject, Nautilus.MenuProvider):
+     def url2path(self,url):
+         file_uri = url.get_activation_uri()
+         arg_uri = file_uri[7:]
+-        path = urllib.url2pathname(arg_uri)
++        path = urllib.request.url2pathname(arg_uri)
+         return path
+ 
+     def exec_onionshare(self, filenames):
