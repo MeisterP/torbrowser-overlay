@@ -11,9 +11,9 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n4
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
 TOR_PV="8.0"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}.0-1-build1"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}.0-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-60.0-patches-03"
@@ -168,13 +168,22 @@ src_configure() {
 
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
 
-	# Rename the install directory and the executable
+	# Use .mozconfig settings from torbrowser (setting this here since it gets overwritten by mozcoreconf-v6.eclass)
+	# see https://gitweb.torproject.org/tor-browser.git/tree/.mozconfig?h=tor-browser-60.2.0esr-8.0-1
+	echo "mk_add_options MOZ_APP_DISPLAYNAME=\"Tor Browser\"" >> "${S}"/.mozconfig
+	echo "mk_add_options MOZILLA_OFFICIAL=1" >> "${S}"/.mozconfig
+	echo "mk_add_options BUILD_OFFICIAL=1" >> "${S}"/.mozconfig
+
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
-	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-60.2.0esr-8.0-1-build1#n3205
+	mozconfig_annotate 'torbrowser' --enable-official-branding
+
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
-	#mozconfig_annotate 'torbrowser' --enable-tor-browser-data-outside-app-dir
+
+	mozconfig_annotate 'torbrowser' --disable-webrtc
+	mozconfig_annotate 'torbrowser' --disable-eme
+	mozconfig_annotate 'torbrowser' --enable-proxy-bypass-protection
 
 	# torbrowser uses a patched nss library
 	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-60.2.0esr-8.0-1-build1
@@ -213,10 +222,11 @@ src_install() {
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?#n156
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.0#n147
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.0#n186
 	echo "pref(\"intl.locale.requested\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -246,7 +256,7 @@ src_install() {
 		newicon -s ${size} "${icon_path}/default${size}.png" ${PN}.png
 	done
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/RelativeLink/start-tor-browser#n26
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-8.0
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	rm "${D}/usr/bin/torbrowser" || die # symlink to /usr/lib64/torbrowser/torbrowser
 	newbin - torbrowser <<-EOF
@@ -259,9 +269,10 @@ src_install() {
 		export TOR_SKIP_LAUNCH=1
 		export TOR_SKIP_CONTROLPORTTEST=1
 
-		exec /usr/$(get_libdir)/torbrowser/torbrowser --class="Tor Browser" "\${@}"
+		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" "\${@}"
 	EOF
-	make_desktop_entry "${PN}" "Tor Browser" "${PN}" "Network;WebBrowser" "StartupWMClass=Tor Browser"
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-8.0#n25
+	make_desktop_entry "${PN}" "Tor Browser" "${PN}" "Network;WebBrowser;Security" "StartupWMClass=Tor Browser"
 
 	# Add StartupNotify=true bug 237317
 	if use startup-notification ; then
