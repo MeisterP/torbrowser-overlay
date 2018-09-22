@@ -3,7 +3,7 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python2_7 )
+PYTHON_COMPAT=( python3_{4,5,6} )
 DISTUTILS_SINGLE_IMPL=1
 
 inherit distutils-r1 gnome2-utils xdg-utils
@@ -17,20 +17,12 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE=""
 
-DEPEND="${PYTHON_DEPS}
-	dev-python/pygtk:2[${PYTHON_USEDEP}]
-	|| (
-		>=dev-python/twisted-16.0.0[${PYTHON_USEDEP},crypt]
-		>=dev-python/twisted-core-14.0.1[${PYTHON_USEDEP},crypt]
-	)
-	|| (
-		>=dev-python/twisted-16.0.0[${PYTHON_USEDEP}]
-		>=dev-python/twisted-web-14.0.1[${PYTHON_USEDEP}]
-	)"
-RDEPEND="${DEPEND}
-	app-crypt/gpgme[${PYTHON_USEDEP}]
-	dev-python/psutil[${PYTHON_USEDEP}]
-	dev-python/pyliblzma[${PYTHON_USEDEP}]"
+RDEPEND="${PYTHON_DEPS}
+	app-crypt/gpgme[python,${PYTHON_USEDEP}]
+	dev-python/PyQt5[${PYTHON_USEDEP}]
+	dev-python/PySocks[${PYTHON_USEDEP}]
+	dev-python/requests[${PYTHON_USEDEP}]"
+DEPEND="${PYTHON_DEPS}"
 
 python_install_all() {
 	distutils-r1_python_install_all
@@ -47,7 +39,6 @@ pkg_postinst() {
 	elog "dependencies may be installed:"
 	elog ""
 	optfeature "updating over system TOR" "net-vpn/tor dev-python/txsocksx"
-	optfeature "modem sound support" dev-python/pygame
 }
 
 pkg_postrm() {
