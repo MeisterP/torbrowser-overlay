@@ -325,7 +325,7 @@ pkg_postinst() {
 		elog "media-sound/apulse."
 	fi
 
-	#if [[ -z ${REPLACING_VERSIONS} ]]; then
+	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
 		ewarn "the exact same sources. Use this only if you know what you are doing!"
 		elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
@@ -335,7 +335,7 @@ pkg_postinst() {
 		elog "To get the advanced functionality of Torbutton (network information,"
 		elog "new identity), Torbrowser needs to access a control port."
 		elog "Set the Variables in /etc/env.d/99torbrowser accordingly."
-	#fi
+	fi
 
 	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "60.2.0_p800" ]]; then
 		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
