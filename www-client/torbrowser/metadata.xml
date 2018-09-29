@@ -6,6 +6,7 @@
 	<name>Poncho</name>
 </maintainer>
 <use>
+	<flag name="clang">Use Clang compiler instead of GCC</flag>
 	<flag name="custom-optimization">Build with user-specified compiler optimizations
 		(-Os, -O0, -O1, -O2, -O3) from CFLAGS (unsupported)</flag>
 	<flag name="system-harfbuzz">Use the system-wide <pkg>media-libs/harfbuzz</pkg>
