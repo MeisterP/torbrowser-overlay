@@ -28,7 +28,6 @@ RDEPEND="${DEPEND}
 	media-libs/exiftool"
 
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
-PATCHES=( ${FILESDIR}/mat2-0.3.1_failing_test.patch )
 
 python_test() {
 	"${EPYTHON}" -m unittest discover -v || die "Tests fail with ${EPYTHON}"
@@ -37,7 +36,7 @@ python_test() {
 python_install_all() {
 	distutils-r1_python_install_all
 
-	newman doc/mat.1 mat2.1
+	doman doc/mat2.1
 	doicon data/mat2.png # 1,920px × 2,783px
 	doicon -s scalable data/mat2.svg
 
