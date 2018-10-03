@@ -6,7 +6,7 @@ WANT_AUTOCONF="2.1"
 MOZ_ESR="1"
 
 PYTHON_COMPAT=( python3_{5,6,7} )
-PYTHON_REQ_USE='ncurses,sqlite,ssl,threads'
+PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 MY_PN="firefox"
 if [[ ${MOZ_ESR} == 1 ]]; then
@@ -15,8 +15,8 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
-TOR_PV="8.0.1"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build5"
+TOR_PV="8.0.2"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 
 # Patch version
 PATCH="${MY_PN}-60.0-patches-03"
@@ -101,7 +101,10 @@ src_prepare() {
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}/firefox/2005_ffmpeg4.patch"
 	eapply "${WORKDIR}/firefox"
-	eapply "${FILESDIR}/bug_1461221.patch"
+
+	eapply "${FILESDIR}"/bug_1461221.patch
+	eapply "${FILESDIR}"/firefox-60.0-blessings-TERM.patch # 654316
+	eapply "${FILESDIR}"/firefox-60.0-missing-errno_h-in-SandboxOpenedFiles_cpp.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-60.2.0-Change_the_default_Firefox_profile_directory.patch"
@@ -169,7 +172,19 @@ src_configure() {
 		mozconfig_use_enable hardened hardening
 	fi
 
+	# Disable built-in ccache support to avoid sandbox violation, #665420
+	# Use FEATURES=ccache instead!
+	mozconfig_annotate '' --without-ccache
+	sed -i -e 's/ccache_stats = None/return None/' \
+		python/mozbuild/mozbuild/controller/building.py || \
+		die "Failed to disable ccache stats call"
+
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
+
+	if use clang ; then
+		# https://bugzilla.mozilla.org/show_bug.cgi?id=1423822
+		mozconfig_annotate 'elf-hack is broken when using Clang' --disable-elf-hack
+	fi
 
 	# Use .mozconfig settings from torbrowser (setting this here since it gets overwritten by mozcoreconf-v6.eclass)
 	# see https://gitweb.torproject.org/tor-browser.git/tree/.mozconfig?h=tor-browser-60.2.0esr-8.0-1
@@ -262,7 +277,7 @@ src_install() {
 
 	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-8.0
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
-	rm "${D}/usr/bin/torbrowser" || die # symlink to /usr/lib64/torbrowser/torbrowser
+	rm "${ED%/}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 	newbin - torbrowser <<-EOF
 		#!/bin/sh
 
@@ -284,6 +299,14 @@ src_install() {
 			>> "${ED}/usr/share/applications/${PN}-${PN}.desktop" \
 			|| die
 	fi
+
+	# Don't install llvm-symbolizer from sys-devel/llvm package
+	[[ -f "${ED%/}${MOZILLA_FIVE_HOME}/llvm-symbolizer" ]] && \
+		rm "${ED%/}${MOZILLA_FIVE_HOME}/llvm-symbolizer"
+
+	# torbrowser and torbrowser-bin are identical
+	rm "${ED%/}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
+	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
 
 	# Required in order to use plugins and even run torbrowser on hardened.
 	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
@@ -322,7 +345,7 @@ pkg_preinst() {
 pkg_postinst() {
 	gnome2_icon_cache_update
 
-	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9" ; then
+	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9"; then
 		elog "Apulse was detected at merge time on this system and so it will always be"
 		elog "used for sound.  If you wish to use pulseaudio instead please unmerge"
 		elog "media-sound/apulse."
