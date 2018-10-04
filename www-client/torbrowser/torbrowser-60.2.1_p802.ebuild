@@ -104,6 +104,7 @@ src_prepare() {
 
 	eapply "${FILESDIR}"/bug_1461221.patch
 	eapply "${FILESDIR}"/firefox-60.0-blessings-TERM.patch # 654316
+	eapply "${FILESDIR}"/firefox-60.0-rust-1.29-comp.patch
 	eapply "${FILESDIR}"/firefox-60.0-missing-errno_h-in-SandboxOpenedFiles_cpp.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
