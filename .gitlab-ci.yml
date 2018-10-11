@@ -1,0 +1,14 @@
+variables:
+  GIT_DEPTH: 1
+
+stages:
+  - repoman
+
+repoman:
+  image:
+    name: chaoslab/repoman:latest
+    entrypoint: ["/bin/bash", "-c"]
+  stage: repoman
+  script:
+    - repoman --version
+    - repoman -xiIdv

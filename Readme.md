@@ -1,4 +1,4 @@
-# torbrowser-overlay [![Build Status](https://travis-ci.org/MeisterP/torbrowser-overlay.svg?branch=master)](https://travis-ci.org/MeisterP/torbrowser-overlay)
+# torbrowser-overlay [![pipeline status](https://0xacab.org/Poncho/torbrowser-overlay/badges/master/pipeline.svg)](https://0xacab.org/Poncho/torbrowser-overlay/pipelines)
 
 To add the torbrowser overlay, run `layman -a torbrowser` or `eselect repository enable torbrowser`.
 
@@ -63,7 +63,7 @@ new identity feature), `www-client/torbrowser` needs to access a control port.
 
 ##  Tor Hidden Service
 
-A mirror of this repository is available at [vivmyccb3jdb7yij.onion](http://vivmyccb3jdb7yij.onion/poncho/torbrowser-overlay)
+A hidden service of this repository is available at [vivmyccb3jdb7yij.onion](http://vivmyccb3jdb7yij.onion/poncho/torbrowser-overlay)
 
 ```
 git -c http.proxy=socks5h://127.0.0.1:9050 clone http://vivmyccb3jdb7yij.onion/Poncho/torbrowser-overlay.git
