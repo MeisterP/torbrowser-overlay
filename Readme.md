@@ -1,4 +1,4 @@
-# torbrowser-overlay [![pipeline status](https://0xacab.org/Poncho/torbrowser-overlay/badges/master/pipeline.svg)](https://0xacab.org/Poncho/torbrowser-overlay/pipelines)
+# torbrowser-overlay [![gentoo qa-reports](https://img.shields.io/badge/gentoo-QA%20check-6E56AF.svg)](https://qa-reports.gentoo.org/output/repos/torbrowser.html) [![pipeline status](https://0xacab.org/Poncho/torbrowser-overlay/badges/master/pipeline.svg)](https://0xacab.org/Poncho/torbrowser-overlay/pipelines)
 
 To add the torbrowser overlay, run `layman -a torbrowser` or `eselect repository enable torbrowser`.
 
