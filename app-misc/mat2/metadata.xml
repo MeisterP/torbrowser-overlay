@@ -8,6 +8,7 @@
 	<use>
 		<flag name="audio">Add support for audio files</flag>
 		<flag name="image">Add support for image files</flag>
+		<flag name="video">Add support for video files</flag>
 		<flag name="nautilus">Add support for the nautilus menu integration</flag>
 	</use>
 </pkgmetadata>

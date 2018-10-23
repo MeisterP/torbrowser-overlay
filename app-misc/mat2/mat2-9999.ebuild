@@ -15,7 +15,7 @@ EGIT_REPO_URI="https://0xacab.org/jvoisin/mat2.git"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS=""
-IUSE="+audio +image nautilus +pdf"
+IUSE="+audio +image +pdf +video nautilus "
 
 DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
@@ -23,7 +23,10 @@ RDEPEND="${DEPEND}
 	image? ( x11-libs/gdk-pixbuf[introspection] )
 	pdf? ( dev-python/pycairo[${PYTHON_USEDEP}]
 		app-text/poppler[introspection] )
+	video? ( virtual/ffmpeg )
+
 	nautilus? ( dev-python/nautilus-python[${PYTHON_USEDEP}] )
+
 	dev-python/pygobject[${PYTHON_USEDEP}]
 	media-libs/exiftool"
 
