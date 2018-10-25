@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -15,11 +15,11 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
-TOR_PV="8.0.2"
+TOR_PV="8.0.3"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-60.0-patches-03"
+PATCH="${MY_PN}-60.0-patches-04"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
 		mozconfig-v6.60 pax-utils autotools
@@ -99,13 +99,10 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	rm "${WORKDIR}/firefox/2005_ffmpeg4.patch"
+	rm -v "${WORKDIR}/firefox/2005_ffmpeg4.patch" \
+		"${WORKDIR}/firefox/2012_update-cc-to-honor-CC.patch" \
+		|| die "Failed to remove unused patches"
 	eapply "${WORKDIR}/firefox"
-
-	eapply "${FILESDIR}"/bug_1461221.patch
-	eapply "${FILESDIR}"/firefox-60.0-blessings-TERM.patch # 654316
-	eapply "${FILESDIR}"/firefox-60.0-rust-1.29-comp.patch
-	eapply "${FILESDIR}"/firefox-60.0-missing-errno_h-in-SandboxOpenedFiles_cpp.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}/${PN}-60.2.0-Change_the_default_Firefox_profile_directory.patch"
