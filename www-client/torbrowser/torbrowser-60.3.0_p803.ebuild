@@ -39,7 +39,7 @@ IUSE="hardened"
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
 
-PATCH_URIS=( https://dev.gentoo.org/~whissi/dist/firefox/${PATCH}.tar.xz https://dev.gentoo.org/~{anarchy,axs,polynomial-c}/mozilla/patchsets/${PATCH}.tar.xz )
+PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c,whissi}/mozilla/patchsets/${PATCH}.tar.xz )
 SRC_URI="${SRC_URI}
 	https://gitweb.torproject.org/tor-browser.git/snapshot/${TOR_COMMIT}.tar.gz -> ${TOR_COMMIT}.tar.gz
 	x86? ( ${BASE_SRC_URI}/tor-browser-linux32-${TOR_PV}_en-US.tar.xz
@@ -99,20 +99,20 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	rm -v "${WORKDIR}/firefox/2005_ffmpeg4.patch" \
-		"${WORKDIR}/firefox/2012_update-cc-to-honor-CC.patch" \
+	rm -v "${WORKDIR}"/firefox/2005_ffmpeg4.patch \
+		"${WORKDIR}"/firefox/2012_update-cc-to-honor-CC.patch \
 		|| die "Failed to remove unused patches"
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}/${PN}-60.2.0-Change_the_default_Firefox_profile_directory.patch"
+	eapply "${FILESDIR}"/torbrowser-60.2.0-Change_the_default_Firefox_profile_directory.patch
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}/${PN}-60.2.0-allow-lightspark-and-freshplayerplugin.patch"
+	eapply "${FILESDIR}"/torbrowser-60.2.0-allow-lightspark-and-freshplayerplugin.patch
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}/${PN}-60.2.0-nss-fixup-warnings.patch"
+	eapply "${FILESDIR}"/torbrowser-60.2.0-nss-fixup-warnings.patch
 
 	# Enable gnomebreakpad
 	if use debug ; then
@@ -194,7 +194,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --disable-eme
 	mozconfig_annotate 'torbrowser' --enable-proxy-bypass-protection
 
-	# rename the binary and set the profile location
+	# Rename the binary and set the profile location
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 
