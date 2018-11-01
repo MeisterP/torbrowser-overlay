@@ -220,6 +220,11 @@ src_configure() {
 src_compile() {
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX}/bin/bash}" MOZ_NOSPAM=1 \
 	./mach build --verbose || die
+
+	# Default bookmarks
+	cp "${WORKDIR}"/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/bookmarks.html \
+		${BUILD_OBJ_DIR}/dist/bin/browser/chrome/en-US/locale/browser/bookmarks.html \
+		|| die
 }
 
 src_install() {
@@ -292,9 +297,9 @@ src_install() {
 	# Required in order to use plugins and even run torbrowser on hardened.
 	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
 
-	# Profile with settings and extensions
-	insinto ${MOZILLA_FIVE_HOME}/defaults/profile
-	doins -r "${WORKDIR}"/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/{extensions,bookmarks.html}
+	# Default Extensions
+	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
+	doins "${WORKDIR}"/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/extensions/*
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
