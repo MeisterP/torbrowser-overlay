@@ -9,7 +9,7 @@ DISTUTILS_SINGLE_IMPL=1
 inherit distutils-r1 gnome2-utils
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
-HOMEPAGE="https://mat.boum.org/ https://0xacab.org/jvoisin/mat2"
+HOMEPAGE="https://0xacab.org/jvoisin/mat2"
 SRC_URI="https://0xacab.org/jvoisin/mat2/-/archive/${PV}/${P}.tar.gz"
 
 LICENSE="GPL-3"
