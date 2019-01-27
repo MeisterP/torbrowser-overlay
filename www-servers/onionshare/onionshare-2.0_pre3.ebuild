@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -9,7 +9,7 @@ inherit distutils-r1
 
 MY_PV=${PV/_pre/.dev}
 
-DESCRIPTION="Share a file securely and anonymously over Tor"
+DESCRIPTION="Securely and anonymously send and receive files over Tor"
 HOMEPAGE="https://onionshare.org/"
 SRC_URI="https://github.com/micahflee/onionshare/archive/v${MY_PV}.tar.gz -> ${P}.tar.gz"
 
