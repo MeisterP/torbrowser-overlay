@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -15,11 +15,11 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
-TOR_PV="8.0.4"
+TOR_PV="8.0.5"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-60.0-patches-04"
+PATCH="${MY_PN}-60.5-patches-01"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
 		mozconfig-v6.60 pax-utils autotools
@@ -99,20 +99,18 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	rm -v "${WORKDIR}"/firefox/2005_ffmpeg4.patch \
-		"${WORKDIR}"/firefox/2012_update-cc-to-honor-CC.patch \
-		|| die "Failed to remove unused patches"
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}"/torbrowser-60.2.0-Change_the_default_Firefox_profile_directory.patch
+	eapply "${FILESDIR}"/torbrowser-60.5.0-Do_not_store_data_in_the_app_bundle.patch
+	eapply "${FILESDIR}"/torbrowser-60.5.0-Change_the_default_Firefox_profile_directory.patch
 
 	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
 	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}"/torbrowser-60.2.0-allow-lightspark-and-freshplayerplugin.patch
+	eapply "${FILESDIR}"/torbrowser-60.5.0-allow-lightspark-and-freshplayerplugin.patch
 
 	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}"/torbrowser-60.2.0-nss-fixup-warnings.patch
+	eapply "${FILESDIR}"/torbrowser-60.5.0-nss-fixup-warnings.patch
 
 	# Enable gnomebreakpad
 	if use debug ; then
