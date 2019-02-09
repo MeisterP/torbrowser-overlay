@@ -1,4 +1,4 @@
-# Copyright 1999-2018 Gentoo Authors
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -15,7 +15,7 @@ EGIT_REPO_URI="https://0xacab.org/jvoisin/mat2.git"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS=""
-IUSE="+audio +image +pdf +video nautilus "
+IUSE="+audio +image +pdf +video nautilus +sandbox"
 
 DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
@@ -26,6 +26,7 @@ RDEPEND="${DEPEND}
 	video? ( virtual/ffmpeg )
 
 	nautilus? ( dev-python/nautilus-python[${PYTHON_USEDEP}] )
+	sandbox? ( sys-apps/bubblewrap )
 
 	dev-python/pygobject[${PYTHON_USEDEP}]
 	media-libs/exiftool"
@@ -33,6 +34,11 @@ RDEPEND="${DEPEND}
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
 python_test() {
+	if has usersandbox $FEATURES ; then
+		ewarn "Test suite is known to fail with FEATURES=usersandbox -- skipping ..."
+		#ERROR: ld.so: object 'libsandbox.so' from LD_PRELOAD cannot be preloaded"
+		return 0
+	fi
 	"${EPYTHON}" -m unittest discover -v || die "Tests fail with ${EPYTHON}"
 }
 
