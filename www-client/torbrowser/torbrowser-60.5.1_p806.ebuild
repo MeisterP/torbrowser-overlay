@@ -15,7 +15,7 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 fi
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
-TOR_PV="8.0.5"
+TOR_PV="8.0.6"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 
 # Patch version
@@ -52,7 +52,7 @@ ASM_DEPEND=">=dev-lang/yasm-1.1"
 
 RDEPEND="
 	system-icu? ( >=dev-libs/icu-60.2 )
-	>=dev-libs/nss-3.36.4
+	>=dev-libs/nss-3.36.7
 	>=dev-libs/nspr-4.19"
 
 DEPEND="${RDEPEND}
