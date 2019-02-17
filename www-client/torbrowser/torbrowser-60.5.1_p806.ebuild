@@ -49,11 +49,11 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
+NSS_DEPEND=">=dev-db/sqlite-3.8.2
+	>=sys-libs/zlib-1.2.8-r1"
 
-RDEPEND="
-	system-icu? ( >=dev-libs/icu-60.2 )
-	>=dev-libs/nss-3.36.7
-	>=dev-libs/nspr-4.19"
+RDEPEND=" ${NSS_DEPEND}
+	system-icu? ( >=dev-libs/icu-60.2 )"
 
 DEPEND="${RDEPEND}
 	>=sys-devel/llvm-4.0.1
