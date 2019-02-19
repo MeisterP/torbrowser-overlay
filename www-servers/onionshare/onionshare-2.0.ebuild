@@ -15,7 +15,7 @@ SRC_URI="https://github.com/micahflee/onionshare/archive/v${MY_PV}.tar.gz -> ${P
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS=""
+KEYWORDS="~amd64 ~x86"
 IUSE="nautilus test"
 
 DEPEND="${PYTHON_DEPS}
