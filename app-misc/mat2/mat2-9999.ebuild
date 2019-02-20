@@ -20,9 +20,9 @@ IUSE="+audio +image +pdf +video nautilus +sandbox"
 DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]"
 RDEPEND="${DEPEND}
 	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
-	image? ( x11-libs/gdk-pixbuf[introspection] )
+	image? ( x11-libs/gdk-pixbuf[jpeg,tiff,introspection] )
 	pdf? ( dev-python/pycairo[${PYTHON_USEDEP}]
-		app-text/poppler[introspection] )
+		app-text/poppler[cairo,introspection] )
 	video? ( virtual/ffmpeg )
 
 	nautilus? ( dev-python/nautilus-python[${PYTHON_USEDEP}] )
