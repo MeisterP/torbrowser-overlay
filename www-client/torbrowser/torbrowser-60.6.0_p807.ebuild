@@ -19,7 +19,7 @@ TOR_PV="8.0.7"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build1"
 
 # Patch version
-PATCH="${MY_PN}-60.5-patches-01"
+PATCH="${MY_PN}-60.6-patches-01"
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
 		mozconfig-v6.60 pax-utils autotools
