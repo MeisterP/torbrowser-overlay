@@ -3,7 +3,7 @@
 
 EAPI=6
 
-PYTHON_COMPAT=( python3_{5,6} )
+PYTHON_COMPAT=( python3_{5,6,7} )
 DISTUTILS_SINGLE_IMPL=1
 
 inherit distutils-r1 gnome2-utils
@@ -17,7 +17,7 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="+audio +image +pdf +video nautilus +sandbox"
 
-DEPEND="dev-python/python-distutils-extra[${PYTHON_USEDEP}]"
+DEPEND="${PYTHON_DEPS}"
 RDEPEND="${DEPEND}
 	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
 	image? ( x11-libs/gdk-pixbuf[jpeg,tiff,introspection] )
