@@ -19,7 +19,9 @@ TOR_PV="8.0.8"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 
 # Patch version
-PATCH="${MY_PN}-60.6-patches-01"
+PATCH="${MY_PN}-60.6-patches-06"
+
+LLVM_MAX_SLOT=8
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
 		mozconfig-v6.60 pax-utils autotools
@@ -56,10 +58,10 @@ RDEPEND=" ${NSS_DEPEND}
 	system-icu? ( >=dev-libs/icu-60.2 )"
 
 DEPEND="${RDEPEND}
-	>=sys-devel/llvm-4.0.1
-	>=sys-devel/clang-4.0.1
 	amd64? ( ${ASM_DEPEND} virtual/opengl )
 	x86? ( ${ASM_DEPEND} virtual/opengl )"
+
+S="${WORKDIR}/${TOR_COMMIT}"
 
 QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
 
@@ -90,11 +92,6 @@ pkg_pretend() {
 	CHECKREQS_DISK_BUILD="4G"
 
 	check-reqs_pkg_setup
-}
-
-src_unpack() {
-	unpack ${A}
-	mv "${WORKDIR}/${TOR_COMMIT}" "${WORKDIR}/${P}" || die
 }
 
 src_prepare() {
@@ -159,6 +156,14 @@ src_prepare() {
 src_configure() {
 	MEXTENSIONS="default"
 
+	# Add information about TERM to output (build.log) to aid debugging
+	# blessings problems
+	if [[ -n "${TERM}" ]] ; then
+		einfo "TERM is set to: \"${TERM}\""
+	else
+		einfo "TERM is unset."
+	fi
+
 	mozconfig_init
 	mozconfig_config
 
@@ -176,6 +181,10 @@ src_configure() {
 		die "Failed to disable ccache stats call"
 
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
+
+	# allow elfhack to work in combination with unstripped binaries
+	# when they would normally be larger than 2GiB.
+	append-ldflags "-Wl,--compress-debug-sections=zlib"
 
 	if use clang ; then
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1423822
@@ -260,8 +269,9 @@ src_install() {
 	insinto ${MOZILLA_FIVE_HOME}
 	doins "${FILESDIR}/profile.cfg"
 
-	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX%/}/bin/bash}" \
-	emake DESTDIR="${D}" install
+	cd "${S}"
+	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX}/bin/bash}" MOZ_NOSPAM=1 \
+	DESTDIR="${D}" ./mach install || die
 
 	# Install icons, wrapper and desktop file
 	local size sizes icon_path
