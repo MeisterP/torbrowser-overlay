@@ -1,10 +1,10 @@
-From e5b0afd7fee16e7f755095b8b85296fe401fb04d Mon Sep 17 00:00:00 2001
+From 8606e265a95663ca4581cd45e9e43e14f806735b Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
-Date: Wed, 30 Jan 2019 09:55:48 +0100
-Subject: [PATCH 2/4] Revert "Bug 9173: Change the default Firefox profile
+Date: Thu, 2 May 2019 09:02:50 +0200
+Subject: [PATCH 2/2] Revert "Bug 9173: Change the default Firefox profile
  directory to be TBB-relative."
 
-This reverts commit b82691c60b6a3ade6939b0f68f28de1e3c120292.
+This reverts commit 45ca5603ff829e131a1060c3e7db12bd53d18768.
 ---
  toolkit/xre/nsXREDirProvider.cpp       | 147 +++++++++++++++++++------
  toolkit/xre/nsXREDirProvider.h         |  12 +-
@@ -421,5 +421,5 @@ index 2aa5482f5789..f1491595a8ea 100644
  
    return rv;
 -- 
-2.19.2
+2.21.0
 

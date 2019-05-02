@@ -14,9 +14,10 @@ if [[ ${MOZ_ESR} == 1 ]]; then
 	MOZ_PV="${PV/_p*}esr"
 fi
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.0#n4
-TOR_PV="8.0.8"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.5#n4
+TOR_PV="8.5a11"
+#TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%a*}-1-build2"
 
 # Patch version
 PATCH="${MY_PN}-60.6-patches-06"
@@ -24,7 +25,7 @@ PATCH="${MY_PN}-60.6-patches-06"
 LLVM_MAX_SLOT=8
 
 inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
-		mozconfig-v6.60 pax-utils autotools
+	mozconfig-v6.60 pax-utils autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -99,15 +100,8 @@ src_prepare() {
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}"/torbrowser-60.5.0-Do_not_store_data_in_the_app_bundle.patch
-	eapply "${FILESDIR}"/torbrowser-60.5.0-Change_the_default_Firefox_profile_directory.patch
-
-	# FIXME: https://trac.torproject.org/projects/tor/ticket/10925
-	# Except lightspark-plugin and freshplayer-plugin from blocklist
-	eapply "${FILESDIR}"/torbrowser-60.5.0-allow-lightspark-and-freshplayerplugin.patch
-
-	# FIXME: prevent warnings in bundled nss
-	eapply "${FILESDIR}"/torbrowser-60.5.0-nss-fixup-warnings.patch
+	eapply "${FILESDIR}"/torbrowser-60.6.1-Do_not_store_data_in_the_app_bundle.patch
+	eapply "${FILESDIR}"/torbrowser-60.6.1-Change_the_default_Firefox_profile_directory.patch
 
 	# Enable gnomebreakpad
 	if use debug ; then
@@ -192,7 +186,7 @@ src_configure() {
 	fi
 
 	# Use .mozconfig settings from torbrowser (setting this here since it gets overwritten by mozcoreconf-v6.eclass)
-	# see https://gitweb.torproject.org/tor-browser.git/tree/.mozconfig?h=tor-browser-60.2.0esr-8.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/tree/.mozconfig?h=tor-browser-60.6.1esr-8.5-1
 	echo "mk_add_options MOZ_APP_DISPLAYNAME=\"Tor Browser\"" >> "${S}"/.mozconfig
 	echo "mk_add_options MOZILLA_OFFICIAL=1" >> "${S}"/.mozconfig
 	echo "mk_add_options BUILD_OFFICIAL=1" >> "${S}"/.mozconfig
@@ -205,14 +199,9 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --with-app-name=torbrowser
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 
-	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-60.2.0esr-8.0-1#n3205
+	# see https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-60.6.1esr-8.5-1#n3181
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
-
-	# torbrowser uses a patched nss library
-	# see https://gitweb.torproject.org/tor-browser.git/log/security/nss?h=tor-browser-60.2.0esr-8.0-1-build1
-	mozconfig_annotate 'torbrowser' --without-system-nspr
-	mozconfig_annotate 'torbrowser' --without-system-nss
 
 	echo "mk_add_options MOZ_OBJDIR=${BUILD_OBJ_DIR}" >> "${S}"/.mozconfig
 	echo "mk_add_options XARGS=/usr/bin/xargs" >> "${S}"/.mozconfig
@@ -246,11 +235,11 @@ src_install() {
 	mozconfig_install_prefs \
 		"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js"
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.0#n147
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.5#n162
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.0#n186
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-8.5#n201
 	echo "pref(\"intl.locale.requested\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -275,13 +264,13 @@ src_install() {
 
 	# Install icons, wrapper and desktop file
 	local size sizes icon_path
-	sizes="16 24 32 48 64 128 256"
+	sizes="16 32 48 64 128 256 512"
 	icon_path="${S}/browser/branding/official"
 	for size in ${sizes}; do
 		newicon -s ${size} "${icon_path}/default${size}.png" ${PN}.png
 	done
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-8.0
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-8.5
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	rm "${ED%/}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 	newbin - torbrowser <<-EOF
@@ -296,7 +285,7 @@ src_install() {
 
 		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" "\${@}"
 	EOF
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-8.0#n25
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-8.5
 	make_desktop_entry "${PN}" "Tor Browser" "${PN}" "Network;WebBrowser;Security" "StartupWMClass=Tor Browser"
 
 	# Add StartupNotify=true bug 237317
@@ -369,8 +358,8 @@ pkg_postinst() {
 		elog "Set the Variables in /etc/env.d/99torbrowser accordingly."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "60.2.0_p800" ]]; then
-		ewarn "Since this is a major upgrade, you need to start with a fresh profile."
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "60.6.1_p850" ]]; then
+		ewarn "Since this is a major upgrade, it's recommended to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
 	fi

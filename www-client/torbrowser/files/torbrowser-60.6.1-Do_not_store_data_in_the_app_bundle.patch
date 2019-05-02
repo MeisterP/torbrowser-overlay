@@ -1,0 +1,957 @@
+From d28d9d117704398710fc4ae0178782741641ca6b Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Thu, 2 May 2019 09:02:12 +0200
+Subject: [PATCH 1/2] Revert "Bug 13252: Do not store data in the app bundle"
+
+This reverts commit cecd48cd06abb91e2ddf9679f6df080e0d37a04f.
+---
+ .../profile/profileSelection.properties       |   1 -
+ .../extensions/internal/XPIProvider.jsm       |  59 ---
+ toolkit/xre/nsAppRunner.cpp                   | 336 +-----------------
+ toolkit/xre/nsXREDirProvider.cpp              |  43 ++-
+ toolkit/xre/nsXREDirProvider.h                |   6 -
+ xpcom/io/TorFileUtils.cpp                     | 142 --------
+ xpcom/io/TorFileUtils.h                       |  33 --
+ xpcom/io/moz.build                            |   2 -
+ xpcom/io/nsAppFileLocationProvider.cpp        |  53 +--
+ 9 files changed, 67 insertions(+), 608 deletions(-)
+ delete mode 100644 xpcom/io/TorFileUtils.cpp
+ delete mode 100644 xpcom/io/TorFileUtils.h
+
+diff --git a/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties b/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
+index eac3305cdb67..f95017ad12e5 100644
+--- a/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
++++ b/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
+@@ -17,7 +17,6 @@ profileProblemTitle=%S Profile Problem
+ profileReadOnly=You cannot run %S from a read-only file system.  Please copy %S to another location before trying to use it.
+ profileReadOnlyMac=You cannot run %S from a read-only file system.  Please copy %S to your Desktop or Applications folder before trying to use it.
+ profileAccessDenied=%S does not have permission to access the profile. Please adjust your file system permissions and try again.
+-profileMigrationFailed=Migration of your existing %S profile failed.\nNew settings will be used.
+ # Profile manager
+ # LOCALIZATION NOTE (profileTooltip): First %S is the profile name, second %S is the path to the profile folder.
+ profileTooltip=Profile: ‘%S’ - Path: ‘%S’
+diff --git a/toolkit/mozapps/extensions/internal/XPIProvider.jsm b/toolkit/mozapps/extensions/internal/XPIProvider.jsm
+index c9b01bdc7395..9da0ac2c939d 100644
+--- a/toolkit/mozapps/extensions/internal/XPIProvider.jsm
++++ b/toolkit/mozapps/extensions/internal/XPIProvider.jsm
+@@ -110,7 +110,6 @@ const OBSOLETE_PREFERENCES = [
+ const URI_EXTENSION_STRINGS           = "chrome://mozapps/locale/extensions/extensions.properties";
+ 
+ const DIR_EXTENSIONS                  = "extensions";
+-const DIR_PREFERENCES                 = "preferences";
+ const DIR_SYSTEM_ADDONS               = "features";
+ const DIR_STAGE                       = "staged";
+ const DIR_TRASH                       = "trash";
+@@ -3186,58 +3185,6 @@ var XPIProvider = {
+     return addons;
+   },
+ 
+-   /**
+-   * Installs any preference files located in the preferences directory of the
+-   * application's distribution specific directory into the profile.
+-   *
+-   * @return true if any preference files were installed
+-   */
+-  installDistributionPreferences: function XPI_installDistributionPreferences() {
+-    let distroDir;
+-    try {
+-      distroDir = FileUtils.getDir(KEY_APP_DISTRIBUTION, [DIR_PREFERENCES]);
+-    }
+-    catch (e) {
+-      return false;
+-    }
+-
+-    if (!distroDir.exists() || !distroDir.isDirectory())
+-      return false;
+-
+-    let changed = false;
+-    let prefOverrideDir = Services.dirsvc.get("PrefDOverride", Ci.nsIFile);
+-
+-    let entries = distroDir.directoryEntries
+-                           .QueryInterface(Ci.nsIDirectoryEnumerator);
+-    let entry;
+-    while ((entry = entries.nextFile)) {
+-      let fileName = entry.leafName;
+-      if (!entry.isFile() ||
+-          fileName.substring(fileName.length - 3).toLowerCase() != ".js") {
+-        logger.debug("Ignoring distribution preference that isn't a JS file: "
+-                     + entry.path);
+-        continue;
+-      }
+-
+-      try {
+-        if (!prefOverrideDir.exists()) {
+-          prefOverrideDir.create(Ci.nsIFile.DIRECTORY_TYPE,
+-                                 FileUtils.PERMS_DIRECTORY);
+-        }
+-
+-        entry.copyTo(prefOverrideDir, null);
+-        changed = true;
+-      } catch (e) {
+-        logger.debug("Unable to copy " + entry.path + " to " +
+-                     prefOverrideDir.path);
+-      }
+-    }
+-
+-    entries.close();
+-
+-    return changed;
+-  },
+-
+   /**
+    * Imports the xpinstall permissions from preferences into the permissions
+    * manager for the user to change later.
+@@ -3332,12 +3279,6 @@ var XPIProvider = {
+       if (updated) {
+         updateReasons.push("installDistributionAddons");
+       }
+-
+-      // Also copy distribution preferences to the user's profile.
+-      updated = this.installDistributionPreferences();
+-      if (updated) {
+-        updateReasons.push("installDistributionPreferences");
+-      }
+     }
+ 
+     let haveAnyAddons = (XPIStates.size > 0);
+diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
+index 207dcbe744df..6549ea751999 100644
+--- a/toolkit/xre/nsAppRunner.cpp
++++ b/toolkit/xre/nsAppRunner.cpp
+@@ -1834,28 +1834,10 @@ static void GetOverrideStringBundle(nsIStringBundleService* aSBS,
+ 
+   *aResult = nullptr;
+ 
++  // Build Torbutton file URI string by starting from the profiles directory.
+   nsXREDirProvider* dirProvider = nsXREDirProvider::GetSingleton();
+   if (!dirProvider) return;
+ 
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  // Build Torbutton file URI by starting from the distribution directory.
+-  bool persistent = false;  // ignored
+-  nsCOMPtr<nsIFile> distribDir;
+-  nsresult rv = dirProvider->GetFile(XRE_APP_DISTRIBUTION_DIR, &persistent,
+-                                     getter_AddRefs(distribDir));
+-  if (NS_FAILED(rv)) return;
+-
+-  // Create file URI, extract as string, and append Torbutton xpi relative path.
+-  nsCOMPtr<nsIURI> uri;
+-  nsAutoCString uriString;
+-  if (NS_FAILED(NS_NewFileURI(getter_AddRefs(uri), distribDir)) ||
+-      NS_FAILED(uri->GetSpec(uriString))) {
+-    return;
+-  }
+-
+-  uriString.Append("extensions/torbutton@torproject.org.xpi");
+-#else
+-  // Build Torbutton file URI string by starting from the profiles directory.
+   bool persistent = false;  // ignored
+   nsCOMPtr<nsIFile> profilesDir;
+   nsresult rv = dirProvider->GetFile(NS_APP_USER_PROFILES_ROOT_DIR, &persistent,
+@@ -1871,7 +1853,6 @@ static void GetOverrideStringBundle(nsIStringBundleService* aSBS,
+   }
+ 
+   uriString.Append("profile.default/extensions/torbutton@torproject.org.xpi");
+-#endif
+ 
+   nsAutoCString userAgentLocale;
+   if (!NS_SUCCEEDED(Preferences::GetCString("general.useragent.locale",
+@@ -1917,10 +1898,6 @@ enum ProfileStatus {
+   PROFILE_STATUS_READ_ONLY,
+   PROFILE_STATUS_IS_LOCKED,
+   PROFILE_STATUS_OTHER_ERROR
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  ,
+-  PROFILE_STATUS_MIGRATION_FAILED
+-#endif
+ };
+ 
+ static const char kProfileProperties[] =
+@@ -1951,8 +1928,6 @@ class ReturnAbortOnError {
+ 
+ }  // namespace
+ 
+-// If aUnlocker is NULL, it is also OK for the following arguments to be NULL:
+-//   aProfileDir, aProfileLocalDir, aResult.
+ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+                                              nsIFile* aProfileLocalDir,
+                                              ProfileStatus aStatus,
+@@ -1965,7 +1940,7 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+   rv = xpcom.Initialize();
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  if (aProfileDir) mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
++  mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
+ 
+   rv = xpcom.SetWindowCreator(aNative);
+   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+@@ -1997,23 +1972,18 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+     static const char kReadOnly[] = "profileReadOnlyMac";
+ #endif
+     static const char kAccessDenied[] = "profileAccessDenied";
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-    static const char kMigrationFailed[] = "profileMigrationFailed";
+-#endif
+ 
+     const char* errorKey = aUnlocker ? kRestartUnlocker : kRestartNoUnlocker;
+-    const char* titleKey = "profileProblemTitle";
+-    if (PROFILE_STATUS_READ_ONLY == aStatus) errorKey = kReadOnly;
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-    else if (PROFILE_STATUS_MIGRATION_FAILED == aStatus)
+-      errorKey = kMigrationFailed;
+-#endif
++    if (PROFILE_STATUS_READ_ONLY == aStatus)
++      errorKey = kReadOnly;
+     else if (PROFILE_STATUS_ACCESS_DENIED == aStatus)
+       errorKey = kAccessDenied;
+-    else
+-      titleKey = "restartTitle";
+ 
+     GetFormattedString(overrideSB, sb, errorKey, params, 2, killMessage);
++    const char* titleKey = ((PROFILE_STATUS_READ_ONLY == aStatus) ||
++                            (PROFILE_STATUS_ACCESS_DENIED == aStatus))
++                               ? "profileProblemTitle"
++                               : "restartTitle";
+ 
+     nsAutoString killTitle;
+     GetFormattedString(overrideSB, sb, titleKey, params, 1, killTitle);
+@@ -2058,8 +2028,7 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+       }
+     } else {
+ #ifdef MOZ_WIDGET_ANDROID
+-      if (aProfileDir && aProfileLocalDir && aResult &&
+-          java::GeckoAppShell::UnlockProfile()) {
++      if (java::GeckoAppShell::UnlockProfile()) {
+         return NS_LockProfilePath(aProfileDir, aProfileLocalDir, nullptr,
+                                   aResult);
+       }
+@@ -2317,212 +2286,6 @@ static ProfileStatus CheckProfileWriteAccess(nsIToolkitProfile* aProfile) {
+   return CheckProfileWriteAccess(profileDir);
+ }
+ 
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-// Obtain an nsIFile for the app root directory, e.g., TorBrowser.app on
+-// Mac OS and the directory that contains Browser/ on Linux and Windows.
+-static nsresult GetAppRootDir(nsIFile* aAppDir, nsIFile** aAppRootDir) {
+-  NS_ENSURE_ARG_POINTER(aAppDir);
+-
+-#ifdef XP_MACOSX
+-  nsCOMPtr<nsIFile> tmpDir;
+-  nsresult rv = aAppDir->GetParent(getter_AddRefs(tmpDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  return tmpDir->GetParent(aAppRootDir);
+-#else
+-  return aAppDir->Clone(aAppRootDir);
+-#endif
+-}
+-
+-static ProfileStatus CheckTorBrowserDataWriteAccess(nsIFile* aAppDir) {
+-  // Check whether we can write to the directory that will contain
+-  // TorBrowser-Data.
+-  nsCOMPtr<nsIFile> tbDataDir;
+-  nsXREDirProvider* dirProvider = nsXREDirProvider::GetSingleton();
+-  if (!dirProvider) return PROFILE_STATUS_OTHER_ERROR;
+-  nsresult rv =
+-      dirProvider->GetTorBrowserUserDataDir(getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, PROFILE_STATUS_OTHER_ERROR);
+-  nsCOMPtr<nsIFile> tbDataDirParent;
+-  rv = tbDataDir->GetParent(getter_AddRefs(tbDataDirParent));
+-  NS_ENSURE_SUCCESS(rv, PROFILE_STATUS_OTHER_ERROR);
+-  return CheckProfileWriteAccess(tbDataDirParent);
+-}
+-
+-// Move the directory defined by combining aSrcParentDir and aSrcRelativePath
+-// to the location defined by combining aDestParentDir and aDestRelativePath.
+-// If the source directory does not exist, no changes are made and NS_OK is
+-// returned.
+-// If the destination directory exists, its contents are removed after the
+-// source directory has been moved (if the move fails for some reason, the
+-// original contents of the destination directory are restored).
+-static nsresult migrateOneTorBrowserDataDir(
+-    nsIFile* aSrcParentDir, const nsACString& aSrcRelativePath,
+-    nsIFile* aDestParentDir, const nsACString& aDestRelativePath) {
+-  NS_ENSURE_ARG_POINTER(aSrcParentDir);
+-  NS_ENSURE_ARG_POINTER(aDestParentDir);
+-
+-  nsCOMPtr<nsIFile> srcDir;
+-  nsresult rv = aSrcParentDir->Clone(getter_AddRefs(srcDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  if (!aSrcRelativePath.IsEmpty()) {
+-    rv = srcDir->AppendRelativeNativePath(aSrcRelativePath);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-  }
+-
+-  bool srcDirExists = false;
+-  srcDir->Exists(&srcDirExists);
+-  if (!srcDirExists) return NS_OK;  // Old data does not exist; skip migration.
+-
+-  nsCOMPtr<nsIFile> destDir;
+-  rv = aDestParentDir->Clone(getter_AddRefs(destDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  if (!aDestRelativePath.IsEmpty()) {
+-    rv = destDir->AppendRelativeNativePath(aDestRelativePath);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-  }
+-
+-  nsCOMPtr<nsIFile> destParentDir;
+-  rv = destDir->GetParent(getter_AddRefs(destParentDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  nsAutoString destLeafName;
+-  rv = destDir->GetLeafName(destLeafName);
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  bool destDirExists = false;
+-  destDir->Exists(&destDirExists);
+-  nsCOMPtr<nsIFile> tmpDir;
+-  if (destDirExists) {
+-    // The destination directory exists. When we are migrating an old
+-    // Tor Browser profile, we expect this to be the case because we first
+-    // allow the standard Mozilla startup code to create a new profile as
+-    // usual, and then later (here) we set aside that profile directory and
+-    // replace it with the old Tor Browser profile that we need to migrate.
+-    // For now, move the Mozilla profile directory aside and set tmpDir to
+-    // point to its new, temporary location in case migration fails and we
+-    // need to restore the profile that was created by the Mozilla code.
+-    nsAutoString tmpName(NS_LITERAL_STRING("tmp"));
+-    rv = destDir->RenameTo(nullptr, tmpName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    nsCOMPtr<nsIFile> dir;
+-    rv = destParentDir->Clone(getter_AddRefs(dir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = dir->Append(tmpName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    tmpDir = dir;
+-  }
+-
+-  // Move the old directory to the new location using MoveTo() so that
+-  // timestamps are preserved (MoveTo() is atomic as long as the source and
+-  // destination are on the same volume).
+-  rv = srcDir->MoveTo(destParentDir, destLeafName);
+-  if (NS_FAILED(rv)) {
+-    // The move failed. Restore the directory that we were trying to replace.
+-    if (tmpDir) tmpDir->RenameTo(nullptr, destLeafName);
+-    return rv;
+-  }
+-
+-  // Success. If we set aside a directory earlier by renaming it, remove it.
+-  if (tmpDir) tmpDir->Remove(true);
+-
+-  return NS_OK;
+-}
+-
+-static nsresult deleteFile(nsIFile* aParentDir,
+-                           const nsACString& aRelativePath) {
+-  NS_ENSURE_ARG_POINTER(aParentDir);
+-
+-  nsCOMPtr<nsIFile> file;
+-  nsresult rv = aParentDir->Clone(getter_AddRefs(file));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  if (!aRelativePath.IsEmpty()) {
+-    rv = file->AppendRelativeNativePath(aRelativePath);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-  }
+-
+-  return file->Remove(false);
+-}
+-
+-// When this function is called, aProfile is a brand new profile and
+-// aAppDir is the directory that contains the firefox executable.
+-// Our strategy is to check if an old "in application" profile exists at
+-// <AppRootDir>/TorBrowser/Data/Browser/profile.default. If so, we set
+-// aside the new profile directory and replace it with the old one.
+-// We use a similar approach for the Tor data and UpdateInfo directories.
+-static nsresult migrateInAppTorBrowserProfile(nsIToolkitProfile* aProfile,
+-                                              nsIFile* aAppDir) {
+-  NS_ENSURE_ARG_POINTER(aProfile);
+-  NS_ENSURE_ARG_POINTER(aAppDir);
+-
+-  nsCOMPtr<nsIFile> appRootDir;
+-  nsresult rv = GetAppRootDir(aAppDir, getter_AddRefs(appRootDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  // Create an nsIFile for the old <AppRootDir>/TorBrowser directory.
+-  nsCOMPtr<nsIFile> oldTorBrowserDir;
+-  rv = appRootDir->Clone(getter_AddRefs(oldTorBrowserDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = oldTorBrowserDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("TorBrowser"));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  // Get an nsIFile for the TorBrowser-Data directory.
+-  nsCOMPtr<nsIFile> newTBDataDir;
+-  nsXREDirProvider* dirProvider = nsXREDirProvider::GetSingleton();
+-  if (!dirProvider) return NS_ERROR_UNEXPECTED;
+-  rv = dirProvider->GetTorBrowserUserDataDir(getter_AddRefs(newTBDataDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  // Try to migrate the browser profile. If this fails, we return an error
+-  // code and we do not try to migrate any other data.
+-  nsCOMPtr<nsIFile> newProfileDir;
+-  rv = aProfile->GetRootDir(getter_AddRefs(newProfileDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  nsAutoCString path(NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR
+-                                        "Browser" XPCOM_FILE_PATH_SEPARATOR
+-                                        "profile.default"));
+-  rv = migrateOneTorBrowserDataDir(oldTorBrowserDir, path, newProfileDir,
+-                                   NS_LITERAL_CSTRING(""));
+-  NS_ENSURE_SUCCESS(rv, rv);  // Return immediately upon failure.
+-
+-  // Try to migrate the Tor data directory but do not return upon failure.
+-  nsAutoCString torDataDirPath(
+-      NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR "Tor"));
+-  rv = migrateOneTorBrowserDataDir(oldTorBrowserDir, torDataDirPath,
+-                                   newTBDataDir, NS_LITERAL_CSTRING("Tor"));
+-  if (NS_SUCCEEDED(rv)) {
+-    // Make a "best effort" attempt to remove the Tor data files that should
+-    // no longer be stored in the Tor user data directory (they have been
+-    // relocated to a read-only Tor directory, e.g.,
+-    // TorBrowser.app/Contents/Resources/TorBrowser/Tor.
+-    deleteFile(newTBDataDir,
+-               NS_LITERAL_CSTRING("Tor" XPCOM_FILE_PATH_SEPARATOR "geoip"));
+-    deleteFile(newTBDataDir,
+-               NS_LITERAL_CSTRING("Tor" XPCOM_FILE_PATH_SEPARATOR "geoip6"));
+-    deleteFile(newTBDataDir, NS_LITERAL_CSTRING("Tor" XPCOM_FILE_PATH_SEPARATOR
+-                                                "torrc-defaults"));
+-  }
+-
+-  // Try to migrate the UpdateInfo directory.
+-  nsCOMPtr<nsIFile> newUpdateInfoDir;
+-  nsresult rv2 =
+-      dirProvider->GetUpdateRootDir(getter_AddRefs(newUpdateInfoDir));
+-  if (NS_SUCCEEDED(rv2)) {
+-    nsAutoCString updateInfoPath(NS_LITERAL_CSTRING("UpdateInfo"));
+-    rv2 = migrateOneTorBrowserDataDir(oldTorBrowserDir, updateInfoPath,
+-                                      newUpdateInfoDir, NS_LITERAL_CSTRING(""));
+-  }
+-
+-  // If all pieces of the migration succeeded, remove the old TorBrowser
+-  // directory.
+-  if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(rv2)) {
+-    oldTorBrowserDir->Remove(true);
+-  }
+-
+-  return NS_OK;
+-}
+-#endif
+-
+ static bool gDoMigration = false;
+ static bool gDoProfileReset = false;
+ static nsAutoCString gResetOldProfileName;
+@@ -2537,9 +2300,6 @@ static nsAutoCString gResetOldProfileName;
+ // 6) display the profile-manager UI
+ static nsresult SelectProfile(nsIProfileLock** aResult,
+                               nsIToolkitProfileService* aProfileSvc,
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-                              nsIFile* aAppDir,
+-#endif
+                               nsINativeAppSupport* aNative, bool* aStartOffline,
+                               nsACString* aProfileName) {
+   StartupTimeline::Record(StartupTimeline::SELECT_PROFILE);
+@@ -2598,27 +2358,6 @@ static nsresult SelectProfile(nsIProfileLock** aResult,
+   }
+ 
+   nsCOMPtr<nsIFile> lf = GetFileFromEnv("XRE_PROFILE_PATH");
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  // If we are transitioning away from an embedded profile, ignore the
+-  // XRE_PROFILE_PATH value if it matches the old default profile location.
+-  // This ensures that a new default profile will be created immediately
+-  // after applying an update and that our migration code will then be
+-  // executed.
+-  if (lf) {
+-    nsCOMPtr<nsIFile> oldTorProfileDir;
+-    nsresult rv = GetAppRootDir(aAppDir, getter_AddRefs(oldTorProfileDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = oldTorProfileDir->AppendRelativeNativePath(NS_LITERAL_CSTRING(
+-        "TorBrowser" XPCOM_FILE_PATH_SEPARATOR "Data" XPCOM_FILE_PATH_SEPARATOR
+-        "Browser" XPCOM_FILE_PATH_SEPARATOR "profile.default"));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool isOldProfile = false;
+-    rv = lf->Equals(oldTorProfileDir, &isOldProfile);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    if (isOldProfile) lf = nullptr;  // Ignore this XRE_PROFILE_PATH value.
+-  }
+-#endif
+-
+   if (lf) {
+     nsCOMPtr<nsIFile> localDir = GetFileFromEnv("XRE_PROFILE_LOCAL_PATH");
+     if (!localDir) {
+@@ -2891,20 +2630,6 @@ static nsresult SelectProfile(nsIProfileLock** aResult,
+       aProfileSvc->SetDefaultProfile(profile);
+ #endif
+       aProfileSvc->Flush();
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-      // Handle migration from an older version of Tor Browser in which the
+-      // user data was stored inside the application directory.
+-      rv = migrateInAppTorBrowserProfile(profile, aAppDir);
+-      if (!NS_SUCCEEDED(rv)) {
+-        // Display an error alert and continue startup. Since XPCOM was
+-        // initialized in a limited way inside ProfileErrorDialog() and
+-        // because it cannot be reinitialized, use LaunchChild() to start
+-        // the browser.
+-        ProfileErrorDialog(profile, PROFILE_STATUS_MIGRATION_FAILED, nullptr,
+-                           aNative, aResult);
+-        return LaunchChild(aNative);
+-      }
+-#endif
+       rv = profile->Lock(nullptr, aResult);
+       if (NS_SUCCEEDED(rv)) {
+         if (aProfileName)
+@@ -3586,14 +3311,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
+   if (PR_GetEnv("XRE_MAIN_BREAK")) NS_BREAK();
+ #endif
+ 
+-#if defined(XP_MACOSX) && defined(TOR_BROWSER_DATA_OUTSIDE_APP_DIR)
+-  bool hideDockIcon = (CheckArg("invisible") == ARG_FOUND);
+-  if (hideDockIcon) {
+-    ProcessSerialNumber psn = {0, kCurrentProcess};
+-    TransformProcessType(&psn, kProcessTransformToBackgroundApplication);
+-  }
+-#endif
+-
+ #ifdef USE_GLX_TEST
+   // bug 639842 - it's very important to fire this process BEFORE we set up
+   // error handling. indeed, this process is expected to be crashy, and we
+@@ -4524,20 +4241,10 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+     return 0;
+   }
+ 
+-#if (defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)) || \
+-    defined(TOR_BROWSER_DATA_OUTSIDE_APP_DIR)
+-  nsCOMPtr<nsIFile> exeFile, exeDir;
+-  bool persistent;
+-  rv = mDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
+-                            getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, 1);
+-  rv = exeFile->GetParent(getter_AddRefs(exeDir));
+-  NS_ENSURE_SUCCESS(rv, 1);
+-#endif
+-
+ #if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
+   // Check for and process any available updates
+   nsCOMPtr<nsIFile> updRoot;
++  bool persistent;
+   rv = mDirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                             getter_AddRefs(updRoot));
+   // XRE_UPDATE_ROOT_DIR may fail. Fallback to appDir if failed
+@@ -4590,22 +4297,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+ #endif
+ 
+   rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc));
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  if (NS_FAILED(rv)) {
+-    // NS_NewToolkitProfileService() returns a generic NS_ERROR_FAILURE error
+-    // if creation of the TorBrowser-Data directory fails due to access denied
+-    // or because of a read-only disk volume. Do an extra check here to detect
+-    // these errors so we can display an informative error message.
+-    ProfileStatus status = CheckTorBrowserDataWriteAccess(exeDir);
+-    if ((PROFILE_STATUS_ACCESS_DENIED == status) ||
+-        (PROFILE_STATUS_READ_ONLY == status)) {
+-      ProfileErrorDialog(nullptr, nullptr, status, nullptr, mNativeApp,
+-                         nullptr);
+-      return 1;
+-    }
+-  }
+-#endif
+-
+   if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
+     PR_fprintf(PR_STDERR,
+                "Error: Access was denied while trying to open files in "
+@@ -4617,11 +4308,8 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+     return 1;
+   }
+ 
+-  rv = SelectProfile(getter_AddRefs(mProfileLock), mProfileSvc,
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-                     exeDir,
+-#endif
+-                     mNativeApp, &mStartOffline, &mProfileName);
++  rv = SelectProfile(getter_AddRefs(mProfileLock), mProfileSvc, mNativeApp,
++                     &mStartOffline, &mProfileName);
+   if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
+     *aExitFlag = true;
+     return 0;
+diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
+index d811da50b63d..dbbaffd2a15f 100644
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -44,8 +44,6 @@
+ #include "mozilla/Preferences.h"
+ #include "mozilla/Telemetry.h"
+ 
+-#include "TorFileUtils.h"
+-
+ #include <stdlib.h>
+ 
+ #ifdef XP_WIN
+@@ -1337,18 +1335,34 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+   NS_ENSURE_ARG_POINTER(aFile);
+   nsCOMPtr<nsIFile> localDir;
+ 
+-  nsresult rv = GetTorBrowserUserDataDir(getter_AddRefs(localDir));
++  nsresult rv = GetAppDir()->Clone(getter_AddRefs(localDir));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-#if !defined(ANDROID)
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  rv = localDir->AppendNative(NS_LITERAL_CSTRING("Browser"));
+-#else
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
++  int levelsToRemove = 1;  // In FF21+, appDir points to browser subdirectory.
++#if defined(XP_MACOSX)
++  levelsToRemove += 2;
+ #endif
++  while (localDir && (levelsToRemove > 0)) {
++    // When crawling up the hierarchy, components named "." do not count.
++    nsAutoCString removedName;
++    rv = localDir->GetNativeLeafName(removedName);
++    NS_ENSURE_SUCCESS(rv, rv);
++    bool didRemove = !removedName.Equals(".");
++
++    // Remove a directory component.
++    nsCOMPtr<nsIFile> parentDir;
++    rv = localDir->GetParent(getter_AddRefs(parentDir));
++    NS_ENSURE_SUCCESS(rv, rv);
++    localDir = parentDir;
++    if (didRemove) --levelsToRemove;
++  }
++
++  if (!localDir) return NS_ERROR_FAILURE;
++
++  rv = localDir->AppendRelativeNativePath(
++      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
++                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+   NS_ENSURE_SUCCESS(rv, rv);
+-#endif
+ 
+   if (aLocal) {
+     rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
+@@ -1433,15 +1447,6 @@ nsresult nsXREDirProvider::GetUserDataDirectory(nsIFile** aFile, bool aLocal) {
+   return NS_OK;
+ }
+ 
+-nsresult nsXREDirProvider::GetTorBrowserUserDataDir(nsIFile** aFile) {
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> exeFile;
+-  bool per = false;
+-  nsresult rv = GetFile(XRE_EXECUTABLE_FILE, &per, getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  return TorBrowser_GetUserDataDir(exeFile, aFile);
+-}
+-
+ nsresult nsXREDirProvider::EnsureDirectoryExists(nsIFile* aDirectory) {
+   bool exists;
+   nsresult rv = aDirectory->Exists(&exists);
+diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
+index 6fe9d9ecbce5..6b92f3812882 100644
+--- a/toolkit/xre/nsXREDirProvider.h
++++ b/toolkit/xre/nsXREDirProvider.h
+@@ -87,12 +87,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+    */
+   nsresult GetProfileDir(nsIFile** aResult);
+ 
+-  /**
+-   * Get the TorBrowser user data directory by calling the
+-   * TorBrowser_GetUserDataDir() utility function.
+-   */
+-  nsresult GetTorBrowserUserDataDir(nsIFile** aFile);
+-
+  protected:
+   nsresult GetFilesInternal(const char* aProperty,
+                             nsISimpleEnumerator** aResult);
+diff --git a/xpcom/io/TorFileUtils.cpp b/xpcom/io/TorFileUtils.cpp
+deleted file mode 100644
+index d698b06eb479..000000000000
+--- a/xpcom/io/TorFileUtils.cpp
++++ /dev/null
+@@ -1,142 +0,0 @@
+-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#include "TorFileUtils.h"
+-#include "nsString.h"
+-#ifdef MOZ_WIDGET_COCOA
+-#include <Carbon/Carbon.h>
+-#include "nsILocalFileMac.h"
+-#endif
+-
+-static nsresult GetAppRootDir(nsIFile *aExeFile, nsIFile** aFile);
+-
+-//-----------------------------------------------------------------------------
+-nsresult
+-TorBrowser_GetUserDataDir(nsIFile *aExeFile, nsIFile** aFile)
+-{
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> tbDataDir;
+-
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  nsAutoCString tbDataLeafName(NS_LITERAL_CSTRING("TorBrowser-Data"));
+-  nsCOMPtr<nsIFile> appRootDir;
+-  nsresult rv = GetAppRootDir(aExeFile, getter_AddRefs(appRootDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#ifndef XP_MACOSX
+-  // On all platforms except Mac OS, we always operate in a "portable" mode
+-  // where the TorBrowser-Data directory is located next to the application.
+-  rv = appRootDir->GetParent(getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = tbDataDir->AppendNative(tbDataLeafName);
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#else
+-  // For Mac OS, determine whether we should store user data in the OS's
+-  // standard location (i.e., under ~/Library/Application Support). We use
+-  // the OS location if (1) the application is installed in a directory whose
+-  // path contains "/Applications" or (2) the TorBrowser-Data directory does
+-  // not exist and cannot be created (which probably means we lack write
+-  // permission to the directory that contains the application).
+-  nsAutoString appRootPath;
+-  rv = appRootDir->GetPath(appRootPath);
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  bool useOSLocation = (appRootPath.Find("/Applications",
+-                                         true /* ignore case */) >= 0);
+-  if (!useOSLocation) {
+-    // We hope to use the portable (aka side-by-side) approach, but before we
+-    // commit to that, let's ensure that we can create the TorBrowser-Data
+-    // directory. If it already exists, we will try to use it; if not and we
+-    // fail to create it, we will switch to ~/Library/Application Support.
+-    rv = appRootDir->GetParent(getter_AddRefs(tbDataDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = tbDataDir->AppendNative(tbDataLeafName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool exists = false;
+-    rv = tbDataDir->Exists(&exists);
+-    if (NS_SUCCEEDED(rv) && !exists)
+-      rv = tbDataDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+-    useOSLocation = NS_FAILED(rv);
+-  }
+-
+-  if (useOSLocation) {
+-    // We are using ~/Library/Application Support/TorBrowser-Data. We do not
+-    // need to create that directory here because the code in nsXREDirProvider
+-    // will do so (and the user should always have write permission for
+-    // ~/Library/Application Support; if they do not we have no more options).
+-    FSRef fsRef;
+-    OSErr err = ::FSFindFolder(kUserDomain, kApplicationSupportFolderType,
+-                               kCreateFolder, &fsRef);
+-    NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
+-    // To convert the FSRef returned by FSFindFolder() into an nsIFile that
+-    // points to ~/Library/Application Support, we first create an empty
+-    // nsIFile object (no path) and then use InitWithFSRef() to set the
+-    // path.
+-    rv = NS_NewNativeLocalFile(EmptyCString(), true,
+-                               getter_AddRefs(tbDataDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(tbDataDir);
+-    if (!dirFileMac)
+-      return NS_ERROR_UNEXPECTED;
+-    rv = dirFileMac->InitWithFSRef(&fsRef);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = tbDataDir->AppendNative(tbDataLeafName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-  }
+-#endif
+-
+-#elif defined(ANDROID)
+-  // Orfox stores data in the app home directory.
+-  const char* homeDir = getenv("HOME");
+-  if (!homeDir || !*homeDir)
+-    return NS_ERROR_FAILURE;
+-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
+-                                      getter_AddRefs(tbDataDir));
+-#else
+-  // User data is embedded within the application directory (i.e.,
+-  // TOR_BROWSER_DATA_OUTSIDE_APP_DIR is not defined).
+-  nsresult rv = GetAppRootDir(aExeFile, getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = tbDataDir->AppendNative(NS_LITERAL_CSTRING("TorBrowser"));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#endif
+-
+-  tbDataDir.forget(aFile);
+-  return NS_OK;
+-}
+-
+-static nsresult
+-GetAppRootDir(nsIFile *aExeFile, nsIFile** aFile)
+-{
+-  NS_ENSURE_ARG_POINTER(aExeFile);
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> appRootDir = aExeFile;
+-
+-  int levelsToRemove = 1; // Remove firefox (the executable file).
+-#if defined(XP_MACOSX)
+-  levelsToRemove += 2;   // On Mac OS, we must also remove Contents/MacOS.
+-#endif
+-  while (appRootDir && (levelsToRemove > 0)) {
+-    // When crawling up the hierarchy, components named "." do not count.
+-    nsAutoCString removedName;
+-    nsresult rv = appRootDir->GetNativeLeafName(removedName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool didRemove = !removedName.Equals(".");
+-
+-    // Remove a directory component.
+-    nsCOMPtr<nsIFile> parentDir;
+-    rv = appRootDir->GetParent(getter_AddRefs(parentDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    appRootDir = parentDir;
+-
+-    if (didRemove)
+-      --levelsToRemove;
+-  }
+-
+-  if (!appRootDir)
+-    return NS_ERROR_FAILURE;
+-
+-  appRootDir.forget(aFile);
+-  return NS_OK;
+-}
+diff --git a/xpcom/io/TorFileUtils.h b/xpcom/io/TorFileUtils.h
+deleted file mode 100644
+index d5e86abf9685..000000000000
+--- a/xpcom/io/TorFileUtils.h
++++ /dev/null
+@@ -1,33 +0,0 @@
+-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#ifndef TorFileUtils_h__
+-#define TorFileUtils_h__
+-
+-#include "nsIFile.h"
+-
+-/**
+- * TorBrowser_GetUserDataDir
+- *
+- * Retrieve the Tor Browser user data directory.
+- * When built with --enable-tor-browser-data-outside-app-dir, the directory
+- * is next to the application directory, except on Mac OS where it may be
+- * there or it may be at ~/Library/Application Support/TorBrowser-Data (the
+- * latter location is used if the .app bundle is in a directory whose path
+- * contains /Applications or if we lack write access to the directory that
+- * contains the .app).
+- * When built without --enable-tor-browser-data-outside-app-dir, this
+- * directory is TorBrowser.app/TorBrowser.
+- *
+- * @param aExeFile  The firefox executable.
+- * @param aFile     Out parameter that is set to the Tor Browser user data
+- *                  directory.
+- * @return NS_OK on success.  Error otherwise.
+- */
+-extern nsresult
+-TorBrowser_GetUserDataDir(nsIFile *aExeFile, nsIFile** aFile);
+-
+-#endif // !TorFileUtils_h__
+diff --git a/xpcom/io/moz.build b/xpcom/io/moz.build
+index f1c5b597b083..7357ded22996 100644
+--- a/xpcom/io/moz.build
++++ b/xpcom/io/moz.build
+@@ -79,7 +79,6 @@ EXPORTS += [
+     'nsUnicharInputStream.h',
+     'nsWildCard.h',
+     'SpecialSystemDirectory.h',
+-    'TorFileUtils.h',
+ ]
+ 
+ EXPORTS.mozilla += [
+@@ -126,7 +125,6 @@ UNIFIED_SOURCES += [
+ 
+ SOURCES += [
+     'FilePreferences.cpp',
+-    'TorFileUtils.cpp',
+ ]
+ 
+ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
+index 3906c6590090..2aa5482f5789 100644
+--- a/xpcom/io/nsAppFileLocationProvider.cpp
++++ b/xpcom/io/nsAppFileLocationProvider.cpp
+@@ -27,8 +27,6 @@
+ #include <sys/param.h>
+ #endif
+ 
+-#include "TorFileUtils.h"
+-
+ // WARNING: These hard coded names need to go away. They need to
+ // come from localizable resources
+ 
+@@ -250,14 +248,8 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
+ // GetProductDirectory - Gets the directory which contains the application data
+ // folder
+ //
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-// UNIX and WIN   : <App Folder>/../TorBrowser-Data/Browser
+-// Mac            : <App Folder>/../../../TorBrowser-Data/Browser OR
+-//                  ~/Library/Application Support/TorBrowser-Data/Browser
+-#else
+ // UNIX and WIN   : <App Folder>/TorBrowser/Data/Browser
+ // Mac            : <App Folder>/../../TorBrowser/Data/Browser
+-#endif
+ //----------------------------------------------------------------------------------------
+ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+                                                         bool aLocal) {
+@@ -265,25 +257,42 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+     return NS_ERROR_INVALID_ARG;
+   }
+ 
+-  nsresult rv = NS_ERROR_UNEXPECTED;
++  nsresult rv;
+   bool exists;
+-  nsCOMPtr<nsIFile> localDir, exeFile;
++  nsCOMPtr<nsIFile> localDir;
+ 
+-  nsCOMPtr<nsIProperties> directoryService(
+-      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = directoryService->Get(XRE_EXECUTABLE_FILE, NS_GET_IID(nsIFile),
+-                             getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = TorBrowser_GetUserDataDir(exeFile, getter_AddRefs(localDir));
++  rv = CloneMozBinDirectory(getter_AddRefs(localDir));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  rv = localDir->AppendNative(NS_LITERAL_CSTRING("Browser"));
+-#else
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
++  int levelsToRemove = 1;  // In FF21+, bin dir points to browser subdirectory.
++#if defined(XP_MACOSX)
++  levelsToRemove += 2;
+ #endif
++  while (localDir && (levelsToRemove > 0)) {
++    // When crawling up the hierarchy, components named "." do not count.
++    nsAutoCString removedName;
++    rv = localDir->GetNativeLeafName(removedName);
++    NS_ENSURE_SUCCESS(rv, rv);
++    bool didRemove = !removedName.Equals(".");
++
++    // Remove a directory component.
++    nsCOMPtr<nsIFile> parentDir;
++    rv = localDir->GetParent(getter_AddRefs(parentDir));
++    NS_ENSURE_SUCCESS(rv, rv);
++    localDir = parentDir;
++
++    if (didRemove) {
++      --levelsToRemove;
++    }
++  }
++
++  if (!localDir) {
++    return NS_ERROR_FAILURE;
++  }
++
++  rv = localDir->AppendRelativeNativePath(
++      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
++                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   if (aLocal) {
+-- 
+2.21.0
+
