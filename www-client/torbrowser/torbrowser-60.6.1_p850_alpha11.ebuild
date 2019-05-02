@@ -3,16 +3,11 @@
 
 EAPI=6
 WANT_AUTOCONF="2.1"
-MOZ_ESR="1"
 
 PYTHON_COMPAT=( python3_{5,6,7} )
 PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
-MY_PN="firefox"
-if [[ ${MOZ_ESR} == 1 ]]; then
-	# ESR releases have slightly different version numbers
-	MOZ_PV="${PV/_p*}esr"
-fi
+MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.5#n4
 TOR_PV="8.5a11"
@@ -20,12 +15,12 @@ TOR_PV="8.5a11"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%a*}-1-build2"
 
 # Patch version
-PATCH="${MY_PN}-60.6-patches-06"
+PATCH="firefox-60.6-patches-06"
 
 LLVM_MAX_SLOT=8
 
-inherit check-reqs flag-o-matic toolchain-funcs eutils gnome2-utils llvm \
-	mozconfig-v6.60 pax-utils autotools
+inherit check-reqs desktop flag-o-matic toolchain-funcs eutils gnome2-utils \
+	llvm mozconfig-v6.60 pax-utils xdg-utils autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -52,11 +47,10 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 ASM_DEPEND=">=dev-lang/yasm-1.1"
-NSS_DEPEND=">=dev-db/sqlite-3.8.2
-	>=sys-libs/zlib-1.2.8-r1"
 
-RDEPEND=" ${NSS_DEPEND}
-	system-icu? ( >=dev-libs/icu-60.2 )"
+RDEPEND="system-icu? ( >=dev-libs/icu-60.2 )
+	>=dev-libs/nss-3.36.7
+	>=dev-libs/nspr-4.19"
 
 DEPEND="${RDEPEND}
 	amd64? ( ${ASM_DEPEND} virtual/opengl )
@@ -66,10 +60,22 @@ S="${WORKDIR}/${TOR_COMMIT}"
 
 QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
 
-BUILD_OBJ_DIR="${S}/ff"
+BUILD_OBJ_DIR="${WORKDIR}/torbrowser-build"
 
 llvm_check_deps() {
-	has_version "sys-devel/clang:${LLVM_SLOT}"
+	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
+		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..."
+		return 1
+	fi
+
+	if use clang ; then
+		if ! has_version --host-root "=sys-devel/lld-${LLVM_SLOT}*" ; then
+			ewarn "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..."
+			return 1
+		fi
+	fi
+
+	einfo "Will use LLVM slot ${LLVM_SLOT}!"
 }
 
 pkg_setup() {
@@ -96,12 +102,14 @@ pkg_pretend() {
 }
 
 src_prepare() {
-	# Apply gentoo firefox patches
-	eapply "${WORKDIR}/firefox"
+	local PATCHES=(
+		# Apply gentoo firefox patches
+		"${WORKDIR}/firefox"
 
-	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}"/torbrowser-60.6.1-Do_not_store_data_in_the_app_bundle.patch
-	eapply "${FILESDIR}"/torbrowser-60.6.1-Change_the_default_Firefox_profile_directory.patch
+		# Revert "Change the default Firefox profile directory to be TBB-relative"
+		"${FILESDIR}"/${PN}-60.6.1-Do_not_store_data_in_the_app_bundle.patch
+		"${FILESDIR}"/${PN}-60.6.1-Change_the_default_Firefox_profile_directory.patch
+	)
 
 	# Enable gnomebreakpad
 	if use debug ; then
@@ -134,8 +142,7 @@ src_prepare() {
 	sed '/^MOZ_DEV_EDITION=1/d' \
 		-i "${S}"/browser/branding/aurora/configure.sh || die
 
-	# Allow user to apply any additional patches without modifing ebuild
-	eapply_user
+	default
 
 	# Autotools configure is now called old-configure.in
 	# This works because there is still a configure.in that happens to be for the
@@ -191,6 +198,8 @@ src_configure() {
 	echo "mk_add_options MOZILLA_OFFICIAL=1" >> "${S}"/.mozconfig
 	echo "mk_add_options BUILD_OFFICIAL=1" >> "${S}"/.mozconfig
 	mozconfig_annotate 'torbrowser' --enable-official-branding
+	mozconfig_annotate 'torbrowser' --disable-maintenance-service
+	mozconfig_annotate 'torbrowser' --disable-crashreporter
 	mozconfig_annotate 'torbrowser' --disable-webrtc
 	mozconfig_annotate 'torbrowser' --disable-eme
 	mozconfig_annotate 'torbrowser' --enable-proxy-bypass-protection
@@ -204,7 +213,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 
 	echo "mk_add_options MOZ_OBJDIR=${BUILD_OBJ_DIR}" >> "${S}"/.mozconfig
-	echo "mk_add_options XARGS=/usr/bin/xargs" >> "${S}"/.mozconfig
+	echo "mk_add_options XARGS="${EPREFIX}"/usr/bin/xargs" >> "${S}"/.mozconfig
 
 	# Default mozilla_five_home no longer valid option
 	sed '/with-default-mozilla-five-home=/d' -i "${S}"/.mozconfig
@@ -220,15 +229,15 @@ src_configure() {
 src_compile() {
 	MOZ_MAKE_FLAGS="${MAKEOPTS}" SHELL="${SHELL:-${EPREFIX}/bin/bash}" MOZ_NOSPAM=1 \
 	./mach build --verbose || die
-
-	# Default bookmarks
-	cp "${WORKDIR}"/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/bookmarks.html \
-		${BUILD_OBJ_DIR}/dist/bin/browser/chrome/en-US/locale/browser/bookmarks.html \
-		|| die
 }
 
 src_install() {
+	local profile_dir="${WORKDIR}/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default"
 	cd "${BUILD_OBJ_DIR}" || die
+
+	# Default bookmarks
+	cat "${profile_dir}"/bookmarks.html > \
+		"${BUILD_OBJ_DIR}"/dist/bin/browser/chrome/en-US/locale/browser/bookmarks.html
 
 	# Pax mark xpcshell for hardened support, only used for startupcache creation.
 	pax-mark m "${BUILD_OBJ_DIR}"/dist/bin/xpcshell
@@ -254,12 +263,22 @@ src_install() {
 	DESTDIR="${D}" ./mach install || die
 
 	# Install icons, wrapper and desktop file
-	local size sizes icon_path
-	sizes="16 32 48 64 128 256 512"
+	local size icon_path
 	icon_path="${S}/browser/branding/official"
-	for size in ${sizes}; do
-		newicon -s ${size} "${icon_path}/default${size}.png" ${PN}.png
+	for size in 16 32 48 64 128 256 512; do
+		newicon -s ${size} "${icon_path}/default${size}.png" "${PN}.png"
 	done
+	newicon "${icon_path}/default48.png" "${PN}.png"
+
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-8.5
+	domenu "${FILESDIR}"/torbrowser.desktop
+
+	# Add StartupNotify=true bug 237317
+	if use startup-notification ; then
+		echo "StartupNotify=true" \
+			>> "${ED}/usr/share/applications/${PN}.desktop" \
+			|| die
+	fi
 
 	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-8.5
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
@@ -276,15 +295,6 @@ src_install() {
 
 		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" "\${@}"
 	EOF
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-8.5
-	make_desktop_entry "${PN}" "Tor Browser" "${PN}" "Network;WebBrowser;Security" "StartupWMClass=Tor Browser"
-
-	# Add StartupNotify=true bug 237317
-	if use startup-notification ; then
-		echo "StartupNotify=true" \
-			>> "${ED}/usr/share/applications/${PN}-${PN}.desktop" \
-			|| die
-	fi
 
 	# Don't install llvm-symbolizer from sys-devel/llvm package
 	[[ -f "${ED%/}${MOZILLA_FIVE_HOME}/llvm-symbolizer" ]] && \
@@ -295,11 +305,11 @@ src_install() {
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
 
 	# Required in order to use plugins and even run torbrowser on hardened.
-	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,torbrowser-bin,plugin-container}
+	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,plugin-container}
 
 	# Default Extensions
-	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
-	doins "${WORKDIR}"/tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/extensions/*
+	insinto ${MOZILLA_FIVE_HOME}/browser
+	doins -r "${profile_dir}"/extensions
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
@@ -330,6 +340,7 @@ pkg_preinst() {
 
 pkg_postinst() {
 	gnome2_icon_cache_update
+	xdg_desktop_database_update
 
 	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9"; then
 		elog "Apulse was detected at merge time on this system and so it will always be"
@@ -358,4 +369,5 @@ pkg_postinst() {
 
 pkg_postrm() {
 	gnome2_icon_cache_update
+	xdg_desktop_database_update
 }
