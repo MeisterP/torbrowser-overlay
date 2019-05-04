@@ -34,12 +34,12 @@ RDEPEND="${DEPEND}
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
 python_test() {
-	if has usersandbox $FEATURES ; then
-		ewarn "Test suite is known to fail with FEATURES=usersandbox -- skipping ..."
-		#ERROR: ld.so: object 'libsandbox.so' from LD_PRELOAD cannot be preloaded"
-		return 0
-	fi
 	"${EPYTHON}" -m unittest discover -v || die "Tests fail with ${EPYTHON}"
+	if has usersandbox $FEATURES ; then
+		einfo "The following LD_PRELOAD errors can be ignored:"
+		einfo "ERROR: ld.so: object 'libsandbox.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored."
+		einfo "see https://wiki.gentoo.org/wiki/Knowledge_Base:Object_libsandbox.so_from_LD_PRELOAD_cannot_be_preloaded"
+	fi
 }
 
 python_install_all() {
