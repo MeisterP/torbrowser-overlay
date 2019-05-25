@@ -1,7 +1,3 @@
-# Poncho <poncho@spahan.ch> (02 May 2019)
-# alpha version for testing
->=www-client/torbrowser-60.6.1_p850_alpha11
-
 # Poncho <poncho@spahan.ch> (09 Sep 2018)
 # From https://0xacab.org/jvoisin/mat2
 # This software is currently in beta, please don't use it for anything critical.

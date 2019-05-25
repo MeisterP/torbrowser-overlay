@@ -10,12 +10,12 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.5#n4
-TOR_PV="8.5a12"
-#TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%a*}-2-build3"
+TOR_PV="8.5"
+#TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV}-1-build1"
 
 # Patch version
-PATCH="firefox-60.6-patches-06"
+PATCH="firefox-60.6-patches-07"
 
 LLVM_MAX_SLOT=8
 
@@ -360,7 +360,7 @@ pkg_postinst() {
 		elog "Set the Variables in /etc/env.d/99torbrowser accordingly."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "60.6.1_p850" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "60.7.0_p850" ]]; then
 		ewarn "Since this is a major upgrade, it's recommended to start with a fresh profile."
 		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
 		ewarn "and let Torbrowser generate a new one."
