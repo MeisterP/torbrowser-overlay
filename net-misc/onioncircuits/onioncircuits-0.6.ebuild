@@ -1,11 +1,11 @@
-# Copyright 1999-2019 Gentoo Foundation
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
 PYTHON_COMPAT=( python2_7 python3_{5,6} )
 
-inherit gnome2-utils distutils-r1
+inherit xdg-utils distutils-r1
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
@@ -26,8 +26,11 @@ RDEPEND="${PYTHON_DEPS}
 
 DOCS=( HACKING README README.translators ${FILESDIR}/README.controlport )
 
+PATCHES=( ${FILESDIR}/Fix_duplicate_entry_in_onioncircuits.desktop.patch )
+
 pkg_postinst() {
-	gnome2_icon_cache_update
+	xdg_desktop_database_update
+	xdg_icon_cache_update
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
 		elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
@@ -36,5 +39,6 @@ pkg_postinst() {
 }
 
 pkg_postrm() {
-	gnome2_icon_cache_update
+	xdg_desktop_database_update
+	xdg_icon_cache_update
 }

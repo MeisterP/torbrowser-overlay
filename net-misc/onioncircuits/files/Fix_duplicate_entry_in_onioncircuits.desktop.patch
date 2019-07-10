@@ -1,0 +1,22 @@
+From 7507c3d4b74bfa9297441247718ff3b937f53428 Mon Sep 17 00:00:00 2001
+From: segfault <segfault@riseup.net>
+Date: Thu, 4 Apr 2019 18:39:08 +0200
+Subject: Fix duplicate entry in onioncircuits.desktop
+
+---
+ onioncircuits.desktop | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/onioncircuits.desktop b/onioncircuits.desktop
+index 564abf7..44d5a27 100644
+--- a/onioncircuits.desktop
++++ b/onioncircuits.desktop
+@@ -9,5 +9,4 @@ Type=Application
+ Icon=onioncircuits
+ Categories=GTK;Network;
+ Keywords=tor;monitor;circuits;
+-StartupNotify=true
+ StartupWMClass=onioncircuits
+-- 
+cgit v1.1
+
