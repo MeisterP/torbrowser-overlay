@@ -10,8 +10,8 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-8.5#n4
-TOR_PV="8.5.4"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
+TOR_PV="8.5.5"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build2"
 
 # Patch version
 PATCH="firefox-60.6-patches-07"
