@@ -108,6 +108,9 @@ src_prepare() {
 		# Revert "Change the default Firefox profile directory to be TBB-relative"
 		"${FILESDIR}"/${PN}-60.6.1-Do_not_store_data_in_the_app_bundle.patch
 		"${FILESDIR}"/${PN}-60.6.1-Change_the_default_Firefox_profile_directory.patch
+
+		# https://bugs.gentoo.org/695794
+		"${FILESDIR}"/${PN}-60.9.0_fix_cssparser.patch
 	)
 
 	# Enable gnomebreakpad
