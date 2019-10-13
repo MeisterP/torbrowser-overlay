@@ -5,7 +5,7 @@ EAPI=7
 
 PYTHON_COMPAT=( python3_{5,6,7} )
 
-inherit distutils-r1
+inherit distutils-r1 xdg
 
 DESCRIPTION="Securely and anonymously send and receive files over Tor"
 HOMEPAGE="https://onionshare.org/"
@@ -22,6 +22,7 @@ DEPEND="${PYTHON_DEPS}
 		dev-python/pytest[${PYTHON_USEDEP}] )"
 RDEPEND="${PYTHON_DEPS}
 	dev-python/flask[${PYTHON_USEDEP}]
+	>=dev-python/flask-httpauth-3.2.4[${PYTHON_USEDEP}]
 	dev-python/pycrypto[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP}]
 	dev-python/PySocks[${PYTHON_USEDEP}]
@@ -29,7 +30,10 @@ RDEPEND="${PYTHON_DEPS}
 	>=net-vpn/tor-0.2.7.1
 	nautilus? ( dev-python/nautilus-python )"
 
-PATCHES=( ${FILESDIR}/onionshare-1.3.1_nautilus_shebang.patch )
+PATCHES=(
+	"${FILESDIR}"/2.2-org.onionshare.OnionShare.desktop-fix-StartupWMClass.patch
+	"${FILESDIR}"/2.2-scripts-onionshare-nautilus.py-use-python3.patch
+)
 
 python_test() {
 	${EPYTHON} -m pytest tests/ || die
