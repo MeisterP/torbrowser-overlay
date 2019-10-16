@@ -16,7 +16,7 @@ TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build2"
 # Patch version
 PATCH="firefox-60.6-patches-07"
 
-LLVM_MAX_SLOT=8
+LLVM_MAX_SLOT=9
 
 inherit check-reqs desktop flag-o-matic toolchain-funcs eutils gnome2-utils \
 	llvm mozconfig-v6.60 pax-utils xdg-utils autotools
@@ -35,6 +35,8 @@ IUSE="hardened"
 
 BASE_SRC_URI="https://dist.torproject.org/${PN}/${TOR_PV}"
 ARCHIVE_SRC_URI="https://archive.torproject.org/tor-package-archive/${PN}/${TOR_PV}"
+
+SDIR="release"
 
 PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c,whissi}/mozilla/patchsets/${PATCH}.tar.xz )
 SRC_URI="${SRC_URI}
@@ -59,7 +61,7 @@ S="${WORKDIR}/${TOR_COMMIT}"
 
 QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
 
-BUILD_OBJ_DIR="${WORKDIR}/torbrowser-build"
+BUILD_OBJ_DIR="${S}/torbrowser-build"
 
 llvm_check_deps() {
 	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
@@ -146,6 +148,12 @@ src_prepare() {
 
 	default
 
+	local n_jobs=$(makeopts_jobs)
+	if [[ ${n_jobs} == 1 ]]; then
+		einfo "Building with MAKEOPTS=-j1 is known to fail (bug #687028); Forcing MAKEOPTS=-j2 ..."
+		export MAKEOPTS=-j2
+	fi
+
 	# Autotools configure is now called old-configure.in
 	# This works because there is still a configure.in that happens to be for the
 	# shell wrapper configure script
@@ -215,7 +223,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --disable-tor-browser-update
 
 	echo "mk_add_options MOZ_OBJDIR=${BUILD_OBJ_DIR}" >> "${S}"/.mozconfig
-	echo "mk_add_options XARGS="${EPREFIX}"/usr/bin/xargs" >> "${S}"/.mozconfig
+	echo "mk_add_options XARGS=/usr/bin/xargs" >> "${S}"/.mozconfig
 
 	# Default mozilla_five_home no longer valid option
 	sed '/with-default-mozilla-five-home=/d' -i "${S}"/.mozconfig
