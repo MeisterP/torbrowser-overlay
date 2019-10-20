@@ -1,0 +1,11 @@
+diff --unified --new-file --recursive --show-c-function tor-browser-68.1.0esr-9.0-2-build5/toolkit/torproject/torbutton/chrome/content/aboutTor/aboutTor.xhtml tor-browser-68.1.0esr-9.0-2-build5-fix/toolkit/torproject/torbutton/chrome/content/aboutTor/aboutTor.xhtml
+--- tor-browser-68.1.0esr-9.0-2-build5/toolkit/torproject/torbutton/chrome/content/aboutTor/aboutTor.xhtml	2019-10-12 14:09:12.000000000 +0200
++++ tor-browser-68.1.0esr-9.0-2-build5-fix/toolkit/torproject/torbutton/chrome/content/aboutTor/aboutTor.xhtml	2019-10-18 13:01:45.844626155 +0200
+@@ -38,7 +38,6 @@ window.addEventListener("pageshow", func
+   <div class="torcontent-container">
+     <div id="torbrowser-info">
+       <div id="torbrowser-version"/>
+-      <div id="torbrowser-changelog-link"><a href="about:tbupdate">&aboutTor.viewChangelog.label;</a></div>
+     </div>
+     <img class="torcontent-logo" src="resource://torbutton-assets/torbrowser_mobile_logo.png"/>
+     <div id="torstatus" class="top">
