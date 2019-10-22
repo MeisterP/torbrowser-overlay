@@ -12,10 +12,11 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.1.0esr-9.0-2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0a8"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%a*}-2-build5"
-TORBUTTON_COMMIT="a1fe61ca5e14e166617c516f2af449b043a3ef1"
-TORLAUNCHER_VERSION="0.2.19.5"
+TOR_PV="9.0"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV}-1-build1"
+#TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
+TORBUTTON_COMMIT="9d744c6adc5ee3608e519c5db49528cd6ee6fe5"
+TORLAUNCHER_VERSION="0.2.20.1"
 
 # Patch version
 PATCH="firefox-68.0-patches-12"
@@ -236,6 +237,7 @@ src_unpack() {
 src_prepare() {
 	# Apply gentoo firefox patches
 	rm "${WORKDIR}"/firefox/2013_avoid_noinline_on_GCC_with_skcms.patch
+	rm "${WORKDIR}"/firefox/2015_fix_cssparser.patch
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
@@ -575,15 +577,9 @@ pkg_postinst() {
 		elog "in /etc/env.d/99torbrowser to match your setup."
 		elog "An example file is available at /usr/share/doc/${P}/99torbrowser.example.bz2"
 		elog ""
-		elog "To get the advanced functionality of Torbutton (network information,"
+		elog "To get the advanced functionality (network information,"
 		elog "new identity), Torbrowser needs to access a control port."
 		elog "Set the Variables in /etc/env.d/99torbrowser accordingly."
-	fi
-
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "68.2.0_p900" ]]; then
-		ewarn "Since this is a major upgrade, it's recommended to start with a fresh profile."
-		ewarn "Either move or remove your profile in \"~/.mozilla/torbrowser/\""
-		ewarn "and let Torbrowser generate a new one."
 	fi
 }
 
