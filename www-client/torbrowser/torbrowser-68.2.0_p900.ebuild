@@ -379,6 +379,10 @@ src_configure() {
 
 	mozconfig_use_enable dbus
 
+	mozconfig_annotate '' --disable-necko-wifi
+
+	mozconfig_annotate '' --disable-geckodriver
+
 	mozconfig_annotate '' --enable-extensions="${MEXTENSIONS}"
 
 	# allow elfhack to work in combination with unstripped binaries
