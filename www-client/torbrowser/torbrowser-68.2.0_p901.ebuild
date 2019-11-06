@@ -12,11 +12,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.1.0esr-9.0-2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV}-1-build1"
-#TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
-TORBUTTON_COMMIT="9d744c6adc5ee3608e519c5db49528cd6ee6fe5"
-TORLAUNCHER_VERSION="0.2.20.1"
+TOR_PV="9.0.1"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
+TORBUTTON_COMMIT="e864f0fe4cfabdc76bc8df312c8509071d4f3d7"
+TORLAUNCHER_VERSION="0.2.20.2"
 
 # Patch version
 PATCH="firefox-68.0-patches-12"
