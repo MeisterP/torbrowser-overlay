@@ -157,18 +157,18 @@ BUILD_OBJ_DIR="${S}/torbrowser-build"
 
 llvm_check_deps() {
 	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
-		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..."
+		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 		return 1
 	fi
 
 	if use clang ; then
 		if ! has_version --host-root "=sys-devel/lld-${LLVM_SLOT}*" ; then
-			ewarn "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..."
+			ewarn "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 			return 1
 		fi
 	fi
 
-	einfo "Will use LLVM slot ${LLVM_SLOT}!"
+	einfo "Will use LLVM slot ${LLVM_SLOT}!" >&2
 }
 
 pkg_setup() {
@@ -238,6 +238,7 @@ src_prepare() {
 	rm "${WORKDIR}"/firefox/2013_avoid_noinline_on_GCC_with_skcms.patch
 	rm "${WORKDIR}"/firefox/2015_fix_cssparser.patch
 	eapply "${WORKDIR}/firefox"
+	eapply "${FILESDIR}"/firefox-68.2.0-rust-1.39+.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}"/${PN}-68.1.0-Do_not_store_data_in_the_app_bundle.patch
@@ -354,6 +355,10 @@ src_configure() {
 		mozconfig_annotate '' --with-system-libevent="${SYSROOT}${EPREFIX}"/usr
 	fi
 
+	if ! use x86; then
+		mozconfig_annotate '' --enable-rust-simd
+	fi
+
 	mozconfig_use_enable startup-notification
 	mozconfig_use_enable system-sqlite
 	mozconfig_use_with system-av1
@@ -439,6 +444,7 @@ src_configure() {
 }
 
 src_compile() {
+	local _virtx=
 	GDK_BACKEND=x11 \
 		MOZ_MAKE_FLAGS="${MAKEOPTS} -O" \
 		SHELL="${SHELL:-${EPREFIX}/bin/bash}" \
