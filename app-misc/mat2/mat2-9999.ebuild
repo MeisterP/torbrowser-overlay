@@ -3,10 +3,10 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{5,6,7} )
+PYTHON_COMPAT=( python3_{5,6,7,8} )
 DISTUTILS_SINGLE_IMPL=1
 
-inherit desktop xdg-utils git-r3 distutils-r1
+inherit desktop git-r3 distutils-r1 xdg
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
 HOMEPAGE="https://0xacab.org/jvoisin/mat2"
@@ -52,12 +52,7 @@ python_install_all() {
 
 	insinto /usr/share/nautilus-python/extensions/
 	doins nautilus/mat2.py
-}
 
-pkg_postinst() {
-	xdg_icon_cache_update
-}
-
-pkg_postrm() {
-	xdg_icon_cache_update
+	insinto /usr/share/kservices5/ServiceMenus/
+	doins dolphin/mat2.desktop
 }
