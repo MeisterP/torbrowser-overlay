@@ -10,11 +10,11 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
-# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.1.0esr-9.0-2
+# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.3.0esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
 TOR_PV="9.0.1"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
-TORBUTTON_COMMIT="e864f0fe4cfabdc76bc8df312c8509071d4f3d7"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
+TORBUTTON_COMMIT="ae1a9af4a4830bde7034565615a853102e5fe1d"
 TORLAUNCHER_VERSION="0.2.20.2"
 
 # Patch version
@@ -53,7 +53,7 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.44.1
+	>=dev-libs/nss-3.44.3
 	>=dev-libs/nspr-4.21
 	dev-libs/atk
 	dev-libs/expat
@@ -247,12 +247,6 @@ src_prepare() {
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
-
-	local n_jobs=$(makeopts_jobs)
-	if [[ ${n_jobs} == 1 ]]; then
-		einfo "Building with MAKEOPTS=-j1 is known to fail (bug #687028); Forcing MAKEOPTS=-j2 ..."
-		export MAKEOPTS=-j2
-	fi
 
 	# Fix sandbox violations during make clean, bug 372817
 	sed -e "s:\(/no-such-file\):${T}\1:g" \
