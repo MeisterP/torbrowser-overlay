@@ -33,7 +33,7 @@ pkg_postinst() {
 	xdg_icon_cache_update
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
-		elog "See \"${EROOT}usr/share/doc/${P}/README.controlport\" for"
+		elog "See \"${EROOT}/usr/share/doc/${P}/README.controlport\" for"
 		elog "more information."
 	fi
 }

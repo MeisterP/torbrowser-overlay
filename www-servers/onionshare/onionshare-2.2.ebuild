@@ -16,6 +16,8 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="nautilus test"
 
+RESTRICT="!test? ( test )"
+
 DEPEND="${PYTHON_DEPS}
 	test? ( dev-python/pycrypto[${PYTHON_USEDEP}]
 		dev-python/PyQt5[${PYTHON_USEDEP},testlib]
