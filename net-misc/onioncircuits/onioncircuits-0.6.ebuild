@@ -3,9 +3,9 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python2_7 python3_{5,6} )
+PYTHON_COMPAT=( python3_{5,6,7} )
 
-inherit xdg-utils distutils-r1
+inherit distutils-r1 xdg
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
@@ -29,16 +29,10 @@ DOCS=( HACKING README README.translators ${FILESDIR}/README.controlport )
 PATCHES=( ${FILESDIR}/Fix_duplicate_entry_in_onioncircuits.desktop.patch )
 
 pkg_postinst() {
-	xdg_desktop_database_update
-	xdg_icon_cache_update
+	xdg_pkg_postinst
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
 		elog "Onioncircuits needs acces to a ControlSocket or to a ControlPort."
 		elog "See \"${EROOT}/usr/share/doc/${P}/README.controlport\" for"
 		elog "more information."
 	fi
-}
-
-pkg_postrm() {
-	xdg_desktop_database_update
-	xdg_icon_cache_update
 }
