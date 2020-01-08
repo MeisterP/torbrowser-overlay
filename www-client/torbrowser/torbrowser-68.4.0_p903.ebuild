@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -10,12 +10,12 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
-# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.3.0esr-9.0-1
+# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.4.0esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0.1"
+TOR_PV="9.0.3"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
-TORBUTTON_COMMIT="ae1a9af4a4830bde7034565615a853102e5fe1d"
-TORLAUNCHER_VERSION="0.2.20.2"
+TORBUTTON_COMMIT="e4fcf3067d24d8abc0a00093529bbfefd71c8d0"
+TORLAUNCHER_VERSION="0.2.20.5"
 
 # Patch version
 PATCH="firefox-68.0-patches-12"
@@ -238,7 +238,6 @@ src_prepare() {
 	rm "${WORKDIR}"/firefox/2013_avoid_noinline_on_GCC_with_skcms.patch
 	rm "${WORKDIR}"/firefox/2015_fix_cssparser.patch
 	eapply "${WORKDIR}/firefox"
-	eapply "${FILESDIR}"/firefox-68.2.0-rust-1.39+.patch
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}"/${PN}-68.1.0-Do_not_store_data_in_the_app_bundle.patch
