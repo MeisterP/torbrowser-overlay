@@ -1,10 +1,10 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
 
 GNOME2_LA_PUNT="yes"
-PYTHON_COMPAT=( python3_{5,6,7,8} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 
 inherit gnome2 python-single-r1
 
@@ -21,7 +21,9 @@ REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 # because no (user) plugins could work without them; configure itself
 # requires pygobject:3 or :2 and >=nautilus-2.32
 RDEPEND="
-	dev-python/pygobject:3[${PYTHON_USEDEP}]
+	$(python_gen_cond_dep '
+		dev-python/pygobject:3[${PYTHON_MULTI_USEDEP}]
+	')
 	>=gnome-base/nautilus-3[introspection]
 	${PYTHON_DEPS}
 "
