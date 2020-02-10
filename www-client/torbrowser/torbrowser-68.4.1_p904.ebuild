@@ -24,7 +24,7 @@ LLVM_MAX_SLOT=9
 
 inherit check-reqs desktop flag-o-matic toolchain-funcs eutils \
 	gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
-	autotools multiprocessing
+	autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -129,14 +129,6 @@ DEPEND="${CDEPEND}
 			clang? (
 				=sys-devel/lld-7*
 				sys-devel/llvm:7[gold]
-			)
-		)
-		(
-			sys-devel/clang:6
-			!clang? ( sys-devel/llvm:6 )
-			clang? (
-				=sys-devel/lld-6*
-				sys-devel/llvm:6[gold]
 			)
 		)
 	)
