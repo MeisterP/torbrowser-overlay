@@ -19,18 +19,18 @@ IUSE="+audio +image +pdf +svg +video nautilus +sandbox"
 
 DEPEND="${PYTHON_DEPS}"
 RDEPEND="${DEPEND}
-	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
+	$(python_gen_cond_dep '
+		audio? ( media-libs/mutagen[${PYTHON_MULTI_USEDEP}] )
+		dev-python/pygobject[${PYTHON_MULTI_USEDEP}]
+		nautilus? ( dev-python/nautilus-python[${PYTHON_SINGLE_USEDEP}] )
+		pdf? ( dev-python/pycairo[${PYTHON_MULTI_USEDEP}]
+			app-text/poppler[cairo,introspection] )
+	')
 	image? ( x11-libs/gdk-pixbuf[jpeg,tiff,introspection] )
-	pdf? ( dev-python/pycairo[${PYTHON_USEDEP}]
-		app-text/poppler[cairo,introspection] )
-	svg? ( gnome-base/librsvg[introspection] )
-	video? ( virtual/ffmpeg )
-
-	nautilus? ( dev-python/nautilus-python[${PYTHON_USEDEP}] )
+	media-libs/exiftool
 	sandbox? ( sys-apps/bubblewrap )
-
-	dev-python/pygobject[${PYTHON_USEDEP}]
-	media-libs/exiftool"
+	svg? ( gnome-base/librsvg[introspection] )
+	video? ( virtual/ffmpeg )"
 
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
