@@ -12,15 +12,15 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.4.1esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0.5"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build2"
+TOR_PV="9.0.6"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
 TORBUTTON_COMMIT="e4fcf3067d24d8abc0a00093529bbfefd71c8d0"
 TORLAUNCHER_VERSION="0.2.20.5"
 
 # Patch version
 PATCH="firefox-68.0-patches-12"
 
-LLVM_MAX_SLOT=9
+LLVM_MAX_SLOT=10
 
 inherit check-reqs desktop flag-o-matic toolchain-funcs eutils \
 	gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
@@ -107,6 +107,14 @@ DEPEND="${CDEPEND}
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
 	|| (
+		(
+			sys-devel/clang:10
+			!clang? ( sys-devel/llvm:10 )
+			clang? (
+				=sys-devel/lld-10*
+				sys-devel/llvm:10[gold]
+			)
+		)
 		(
 			sys-devel/clang:9
 			!clang? ( sys-devel/llvm:9 )
