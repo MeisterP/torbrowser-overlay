@@ -12,9 +12,9 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.4.1esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0.6"
-TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-1-build1"
-TORBUTTON_COMMIT="e4fcf3067d24d8abc0a00093529bbfefd71c8d0"
+TOR_PV="9.0.8"
+TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build1"
+TORBUTTON_COMMIT="690704a9bc3bd3a146db9689bc59d3b9e8702b1"
 TORLAUNCHER_VERSION="0.2.20.5"
 
 # Patch version
@@ -155,6 +155,21 @@ QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
 
 BUILD_OBJ_DIR="${S}/torbrowser-build"
 
+fix_path() {
+	local value_to_move=${1}
+	local new_path path_value
+	IFS=:; local -a path_values=( ${PATH} )
+	for path_value in "${path_values[@]}" ; do
+		if [[ ${path_value} == *"${value_to_move}"* ]] ; then
+			new_path="${path_value}${new_path:+:}${new_path}"
+		else
+			new_path+="${new_path:+:}${path_value}"
+		fi
+	done
+
+	echo "${new_path}"
+}
+
 llvm_check_deps() {
 	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
 		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
@@ -171,6 +186,13 @@ llvm_check_deps() {
 	einfo "Will use LLVM slot ${LLVM_SLOT}!" >&2
 }
 
+pkg_pretend() {
+	# Ensure we have enough disk space to compile
+	CHECKREQS_DISK_BUILD="4G"
+
+	check-reqs_pkg_pretend
+}
+
 pkg_setup() {
 	moz_pkgsetup
 
@@ -179,19 +201,22 @@ pkg_setup() {
 		DISPLAY \
 		ORBIT_SOCKETDIR \
 		SESSION_MANAGER \
+		XDG_CACHE_HOME \
 		XDG_SESSION_COOKIE \
 		XAUTHORITY
 
 	addpredict /proc/self/oom_score_adj
 
 	llvm_pkg_setup
-}
 
-pkg_pretend() {
-	# Ensure we have enough disk space to compile
-	CHECKREQS_DISK_BUILD="4G"
-
-	check-reqs_pkg_setup
+	# Workaround for #627726
+	if has ccache ${FEATURES} ; then
+		einfo "Fixing PATH for FEATURES=ccache ..."
+		PATH=$(fix_path 'ccache/bin')
+	elif has distcc ${FEATURES} ; then
+		einfo "Fixing PATH for FEATURES=distcc ..."
+		PATH=$(fix_path 'distcc/bin')
+	fi
 }
 
 src_unpack() {
@@ -570,6 +595,7 @@ pkg_postinst() {
 		elog "Apulse was detected at merge time on this system and so it will always be"
 		elog "used for sound.  If you wish to use pulseaudio instead please unmerge"
 		elog "media-sound/apulse."
+		elog
 	fi
 
 	if [[ -z ${REPLACING_VERSIONS} ]]; then
