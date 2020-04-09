@@ -10,9 +10,9 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
-# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.4.1esr-9.0-1
+# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.7.0esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0.8"
+TOR_PV="9.0.9"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build1"
 TORBUTTON_COMMIT="690704a9bc3bd3a146db9689bc59d3b9e8702b1"
 TORLAUNCHER_VERSION="0.2.20.5"
