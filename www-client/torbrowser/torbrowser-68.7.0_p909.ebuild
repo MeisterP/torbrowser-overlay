@@ -18,7 +18,7 @@ TORBUTTON_COMMIT="690704a9bc3bd3a146db9689bc59d3b9e8702b1"
 TORLAUNCHER_VERSION="0.2.20.5"
 
 # Patch version
-PATCH="firefox-68.0-patches-12"
+PATCH="firefox-68.0-patches-13"
 
 LLVM_MAX_SLOT=10
 
