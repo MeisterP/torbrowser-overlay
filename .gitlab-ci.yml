@@ -1,27 +1,24 @@
-image:
-  name: alpine:3
-
 variables:
   GIT_DEPTH: 1
 
-before_script:
-    - apk add --no-cache alpine-sdk bash git python3 python3-dev py3-lxml py3-yaml py3-pip
-    - pip3 install pkgcheck
-    - git clone --depth 1 https://anongit.gentoo.org/git/proj/portage.git
-    - cd portage && python3 ./setup.py install
-    - cd repoman && python3 ./setup.py install
-    - cd ../.. && rm -rf portage
-    - adduser -S portage && addgroup portage
-    - git clone --depth 1 https://anongit.gentoo.org/git/repo/gentoo.git /var/db/repos/gentoo
+stages:
+  - repoman
+  - pkgcheck
 
 repoman:
-  stage: test
+  image:
+    name: aegypius/repoman
+    entrypoint: [""]
+  stage: repoman
   script:
     - repoman --version
-    - FEATURES='-ipc-sandbox -network-sandbox' ARCH=x86_64 ACCEPT_KEYWORDS=amd64 repoman full -xiIdv
+    - FEATURES='-ipc-sandbox -network-sandbox' repoman full -xiIdv
 
 pkgcheck:
-  stage: test
+  image:
+    name: mgorny/gentoo-overlay-ci
+    entrypoint: [""]
+  stage: pkgcheck
   script:
     - pkgcheck --version
     - pkgcheck scan
