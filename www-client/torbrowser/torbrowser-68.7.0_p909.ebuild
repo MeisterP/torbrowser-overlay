@@ -4,7 +4,7 @@
 EAPI="6"
 WANT_AUTOCONF="2.1"
 
-PYTHON_COMPAT=( python3_{6,7} )
+PYTHON_COMPAT=( python3_{6,7,8} )
 PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 MOZ_PV="${PV/_p*}esr"
@@ -74,7 +74,7 @@ CDEPEND="
 	>=x11-libs/pixman-0.19.2
 	>=dev-libs/glib-2.26:2
 	>=sys-libs/zlib-1.2.3
-	>=virtual/libffi-3.0.10:=
+	>=dev-libs/libffi-3.0.10:=
 	virtual/ffmpeg
 	x11-libs/libX11
 	x11-libs/libXcomposite
@@ -129,14 +129,6 @@ DEPEND="${CDEPEND}
 			clang? (
 				=sys-devel/lld-8*
 				sys-devel/llvm:8[gold]
-			)
-		)
-		(
-			sys-devel/clang:7
-			!clang? ( sys-devel/llvm:7 )
-			clang? (
-				=sys-devel/lld-7*
-				sys-devel/llvm:7[gold]
 			)
 		)
 	)
