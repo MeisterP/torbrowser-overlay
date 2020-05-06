@@ -12,13 +12,13 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.0#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.7.0esr-9.0-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.0#n2
-TOR_PV="9.0.9"
+TOR_PV="9.0.10"
 TOR_COMMIT="tor-browser-${MOZ_PV}-${TOR_PV%.*}-2-build1"
 TORBUTTON_COMMIT="690704a9bc3bd3a146db9689bc59d3b9e8702b1"
 TORLAUNCHER_VERSION="0.2.20.5"
 
 # Patch version
-PATCH="firefox-68.0-patches-13"
+PATCH="firefox-68.0-patches-14"
 
 LLVM_MAX_SLOT=10
 
@@ -75,7 +75,7 @@ CDEPEND="
 	>=dev-libs/glib-2.26:2
 	>=sys-libs/zlib-1.2.3
 	>=dev-libs/libffi-3.0.10:=
-	virtual/ffmpeg
+	media-video/ffmpeg
 	x11-libs/libX11
 	x11-libs/libXcomposite
 	x11-libs/libXdamage
@@ -203,6 +203,10 @@ pkg_setup() {
 
 	# Workaround for #627726
 	if has ccache ${FEATURES} ; then
+		if use clang && use pgo ; then
+			die "Using FEATURES=ccache with USE=clang and USE=pgo is currently known to be broken (bug #718632)."
+		fi
+
 		einfo "Fixing PATH for FEATURES=ccache ..."
 		PATH=$(fix_path 'ccache/bin')
 	elif has distcc ${FEATURES} ; then
