@@ -1,23 +1,19 @@
-variables:
-  GIT_DEPTH: 1
+image: $CI_REGISTRY/poncho/gentoo-qa-image:latest
 
 stages:
   - repoman
   - pkgcheck
 
+variables:
+  GIT_DEPTH: 1
+
 repoman:
-  image:
-    name: aegypius/repoman
-    entrypoint: [""]
   stage: repoman
   script:
     - repoman --version
-    - FEATURES='-ipc-sandbox -network-sandbox' repoman full -xiIdv
+    - repoman full -xiIdv
 
 pkgcheck:
-  image:
-    name: mgorny/gentoo-overlay-ci
-    entrypoint: [""]
   stage: pkgcheck
   script:
     - pkgcheck --version
