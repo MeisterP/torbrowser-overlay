@@ -24,7 +24,7 @@ LLVM_MAX_SLOT=10
 
 inherit check-reqs desktop flag-o-matic toolchain-funcs eutils \
 	gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
-	autotools
+	multiprocessing autotools
 
 DESCRIPTION="The Tor Browser"
 HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
@@ -263,6 +263,12 @@ src_prepare() {
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
+
+	# Make LTO respect MAKEOPTS
+	sed -i \
+		-e "s/multiprocessing.cpu_count()/$(makeopts_jobs)/" \
+		"${S}"/build/moz.configure/toolchain.configure \
+		|| die "sed failed to set num_cores"
 
 	# Fix sandbox violations during make clean, bug 372817
 	sed -e "s:\(/no-such-file\):${T}\1:g" \
@@ -546,7 +552,7 @@ src_install() {
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
 
 	# Required in order to use plugins and even run torbrowser on hardened.
-	pax-mark m "${ED}"${MOZILLA_FIVE_HOME}/{torbrowser,plugin-container}
+	pax-mark m "${ED%/}"${MOZILLA_FIVE_HOME}/{torbrowser,plugin-container}
 
 	# Default Extensions
 	insinto ${MOZILLA_FIVE_HOME}/browser
