@@ -23,7 +23,10 @@ RDEPEND="${PYTHON_DEPS}
 		dev-python/PyQt5[${PYTHON_MULTI_USEDEP}]
 		dev-python/PySocks[${PYTHON_MULTI_USEDEP}]
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
-	')"
+	')
+		dev-libs/dbus-glib
+		dev-libs/libevent
+	"
 DEPEND="${PYTHON_DEPS}"
 
 python_install_all() {
