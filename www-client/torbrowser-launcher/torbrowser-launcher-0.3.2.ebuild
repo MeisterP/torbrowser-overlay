@@ -20,7 +20,7 @@ IUSE=""
 RDEPEND="${PYTHON_DEPS}
 	$(python_gen_cond_dep '
 		app-crypt/gpgme[python,${PYTHON_MULTI_USEDEP}]
-		dev-python/PyQt5[${PYTHON_MULTI_USEDEP}]
+		dev-python/PyQt5[${PYTHON_MULTI_USEDEP},widgets]
 		dev-python/PySocks[${PYTHON_MULTI_USEDEP}]
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
 	')"
