@@ -1,0 +1,484 @@
+From 5caf734f72dca1a40cf39aac476b14fac746e337 Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Sat, 23 May 2020 12:59:59 +0200
+Subject: [PATCH 2/2] Revert "Bug 9173: Change the default Firefox profile
+ directory to be TBB-relative."
+
+This reverts commit 90207624ae1263985737ddccee3e9c9abaeeeea3.
+---
+ toolkit/profile/nsToolkitProfileService.cpp |   5 +-
+ toolkit/xre/nsAppRunner.cpp                 |   2 +-
+ toolkit/xre/nsConsoleWriter.cpp             |   2 +-
+ toolkit/xre/nsXREDirProvider.cpp            | 150 +++++++++++++++-----
+ toolkit/xre/nsXREDirProvider.h              |  16 +--
+ xpcom/io/nsAppFileLocationProvider.cpp      |  97 ++++++++-----
+ 6 files changed, 188 insertions(+), 84 deletions(-)
+
+diff --git a/toolkit/profile/nsToolkitProfileService.cpp b/toolkit/profile/nsToolkitProfileService.cpp
+index 0f5f5a1e6e63..88dfbafcdc3d 100644
+--- a/toolkit/profile/nsToolkitProfileService.cpp
++++ b/toolkit/profile/nsToolkitProfileService.cpp
+@@ -695,11 +695,10 @@ nsresult nsToolkitProfileService::Init() {
+   NS_ASSERTION(gDirServiceProvider, "No dirserviceprovider!");
+   nsresult rv;
+ 
+-  rv = gDirServiceProvider->GetUserAppDataDirectory(getter_AddRefs(mAppData));
++  rv = nsXREDirProvider::GetUserAppDataDirectory(getter_AddRefs(mAppData));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  rv =
+-      gDirServiceProvider->GetUserLocalDataDirectory(getter_AddRefs(mTempData));
++  rv = nsXREDirProvider::GetUserLocalDataDirectory(getter_AddRefs(mTempData));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   rv = mAppData->Clone(getter_AddRefs(mProfileDBFile));
+diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
+index de8d8761985b..8d3ad1a8e821 100644
+--- a/toolkit/xre/nsAppRunner.cpp
++++ b/toolkit/xre/nsAppRunner.cpp
+@@ -3350,7 +3350,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
+   if ((mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
+       NS_SUCCEEDED(CrashReporter::SetExceptionHandler(xreBinDirectory))) {
+     nsCOMPtr<nsIFile> file;
+-    rv = mDirProvider.GetUserAppDataDirectory(getter_AddRefs(file));
++    rv = nsXREDirProvider::GetUserAppDataDirectory(getter_AddRefs(file));
+     if (NS_SUCCEEDED(rv)) {
+       CrashReporter::SetUserAppDataDirectory(file);
+     }
+diff --git a/toolkit/xre/nsConsoleWriter.cpp b/toolkit/xre/nsConsoleWriter.cpp
+index a2673f795bc3..9a9038da0079 100644
+--- a/toolkit/xre/nsConsoleWriter.cpp
++++ b/toolkit/xre/nsConsoleWriter.cpp
+@@ -29,7 +29,7 @@ void WriteConsoleLog() {
+   } else {
+     if (!gLogConsoleErrors) return;
+ 
+-    rv = gDirServiceProvider->GetUserAppDataDirectory(getter_AddRefs(lfile));
++    rv = nsXREDirProvider::GetUserAppDataDirectory(getter_AddRefs(lfile));
+     if (NS_FAILED(rv)) return;
+ 
+     lfile->AppendNative(NS_LITERAL_CSTRING("console.log"));
+diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
+index d2864b6aa7f3..d0f899f549b4 100644
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -34,7 +34,6 @@
+ #include "nsArrayEnumerator.h"
+ #include "nsEnumeratorUtils.h"
+ #include "nsReadableUtils.h"
+-#include "nsXPCOMPrivate.h"  // for XPCOM_FILE_PATH_SEPARATOR
+ 
+ #include "SpecialSystemDirectory.h"
+ 
+@@ -244,6 +243,9 @@ nsresult nsXREDirProvider::GetUserProfilesRootDir(nsIFile** aResult) {
+   nsresult rv = GetUserDataDirectory(getter_AddRefs(file), false);
+ 
+   if (NS_SUCCEEDED(rv)) {
++#if !defined(XP_UNIX) || defined(XP_MACOSX)
++    rv = file->AppendNative(NS_LITERAL_CSTRING("Profiles"));
++#endif
+     // We must create the profile directory here if it does not exist.
+     nsresult tmp = EnsureDirectoryExists(file);
+     if (NS_FAILED(tmp)) {
+@@ -259,6 +261,9 @@ nsresult nsXREDirProvider::GetUserProfilesLocalDir(nsIFile** aResult) {
+   nsresult rv = GetUserDataDirectory(getter_AddRefs(file), true);
+ 
+   if (NS_SUCCEEDED(rv)) {
++#if !defined(XP_UNIX) || defined(XP_MACOSX)
++    rv = file->AppendNative(NS_LITERAL_CSTRING("Profiles"));
++#endif
+     // We must create the profile directory here if it does not exist.
+     nsresult tmp = EnsureDirectoryExists(file);
+     if (NS_FAILED(tmp)) {
+@@ -1422,7 +1427,7 @@ nsXREDirProvider::SetUserDataDirectory(nsIFile* aFile, bool aLocal) {
+ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+                                                     bool aLocal) {
+   // Copied from nsAppFileLocationProvider (more or less)
+-  NS_ENSURE_ARG_POINTER(aFile);
++  nsresult rv;
+   nsCOMPtr<nsIFile> localDir;
+ 
+   if (aLocal && gDataDirHomeLocal) {
+@@ -1432,39 +1437,81 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+     return gDataDirHome->Clone(aFile);
+   }
+ 
+-  nsresult rv = GetAppDir()->Clone(getter_AddRefs(localDir));
++#if defined(XP_MACOSX)
++  FSRef fsRef;
++  OSType folderType;
++  if (aLocal) {
++    folderType = kCachedDataFolderType;
++  } else {
++#  ifdef MOZ_THUNDERBIRD
++    folderType = kDomainLibraryFolderType;
++#  else
++    folderType = kApplicationSupportFolderType;
++#  endif
++  }
++  OSErr err = ::FSFindFolder(kUserDomain, folderType, kCreateFolder, &fsRef);
++  NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
++
++  rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localDir));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  int levelsToRemove = 1;  // In FF21+, appDir points to browser subdirectory.
+-#if defined(XP_MACOSX)
+-  levelsToRemove += 2;
+-#endif
+-  while (localDir && (levelsToRemove > 0)) {
+-    // When crawling up the hierarchy, components named "." do not count.
+-    nsAutoCString removedName;
+-    rv = localDir->GetNativeLeafName(removedName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool didRemove = !removedName.Equals(".");
++  nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(localDir);
++  NS_ENSURE_TRUE(dirFileMac, NS_ERROR_UNEXPECTED);
+ 
+-    // Remove a directory component.
+-    nsCOMPtr<nsIFile> parentDir;
+-    rv = localDir->GetParent(getter_AddRefs(parentDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    localDir = parentDir;
+-    if (didRemove) --levelsToRemove;
++  rv = dirFileMac->InitWithFSRef(&fsRef);
++  NS_ENSURE_SUCCESS(rv, rv);
++
++  localDir = dirFileMac;
++#elif defined(XP_IOS)
++  nsAutoCString userDir;
++  if (GetUIKitDirectory(aLocal, userDir)) {
++    rv = NS_NewNativeLocalFile(userDir, true, getter_AddRefs(localDir));
++  } else {
++    rv = NS_ERROR_FAILURE;
+   }
++  NS_ENSURE_SUCCESS(rv, rv);
++#elif defined(XP_WIN)
++  nsString path;
++  if (aLocal) {
++    rv = GetShellFolderPath(FOLDERID_LocalAppData, path);
++    if (NS_FAILED(rv)) rv = GetRegWindowsAppDataFolder(aLocal, path);
++  }
++  if (!aLocal || NS_FAILED(rv)) {
++    rv = GetShellFolderPath(FOLDERID_RoamingAppData, path);
++    if (NS_FAILED(rv)) {
++      if (!aLocal) rv = GetRegWindowsAppDataFolder(aLocal, path);
++    }
++  }
++  NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  if (!localDir) return NS_ERROR_FAILURE;
++  rv = NS_NewLocalFile(path, true, getter_AddRefs(localDir));
++#elif defined(XP_UNIX)
++  const char* homeDir = getenv("HOME");
++  if (!homeDir || !*homeDir) return NS_ERROR_FAILURE;
+ 
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
+-                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+-  NS_ENSURE_SUCCESS(rv, rv);
++#  ifdef ANDROID /* We want (ProfD == ProfLD) on Android. */
++  aLocal = false;
++#  endif
+ 
+   if (aLocal) {
+-    rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
+-    NS_ENSURE_SUCCESS(rv, rv);
++    // If $XDG_CACHE_HOME is defined use it, otherwise use $HOME/.cache.
++    const char* cacheHome = getenv("XDG_CACHE_HOME");
++    if (cacheHome && *cacheHome) {
++      rv = NS_NewNativeLocalFile(nsDependentCString(cacheHome), true,
++                                 getter_AddRefs(localDir));
++    } else {
++      rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
++                                 getter_AddRefs(localDir));
++      if (NS_SUCCEEDED(rv))
++        rv = localDir->AppendNative(NS_LITERAL_CSTRING(".cache"));
++    }
++  } else {
++    rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
++                               getter_AddRefs(localDir));
+   }
++#else
++#  error "Don't know how to get product dir on your platform"
++#endif
+ 
+   NS_IF_ADDREF(*aFile = localDir);
+   return rv;
+@@ -1653,23 +1700,39 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+   }
+ 
+   nsAutoCString profile;
++  nsAutoCString appName;
++  nsAutoCString vendor;
+   if (gAppData->profile) {
+     profile = gAppData->profile;
++  } else {
++    appName = gAppData->name;
++    vendor = gAppData->vendor;
+   }
+ 
+-  nsresult rv = NS_ERROR_FAILURE;
++  nsresult rv = NS_OK;
+ 
+ #if defined(XP_MACOSX)
+   if (!profile.IsEmpty()) {
+     rv = AppendProfileString(aFile, profile.get());
+-    NS_ENSURE_SUCCESS(rv, rv);
++  } else {
++    // Note that MacOS ignores the vendor when creating the profile hierarchy -
++    // all application preferences directories live alongside one another in
++    // ~/Library/Application Support/
++    rv = aFile->AppendNative(appName);
+   }
++  NS_ENSURE_SUCCESS(rv, rv);
+ 
+ #elif defined(XP_WIN)
+   if (!profile.IsEmpty()) {
+     rv = AppendProfileString(aFile, profile.get());
+-    NS_ENSURE_SUCCESS(rv, rv);
++  } else {
++    if (!vendor.IsEmpty()) {
++      rv = aFile->AppendNative(vendor);
++      NS_ENSURE_SUCCESS(rv, rv);
++    }
++    rv = aFile->AppendNative(appName);
+   }
++  NS_ENSURE_SUCCESS(rv, rv);
+ 
+ #elif defined(ANDROID)
+   // The directory used for storing profiles
+@@ -1679,6 +1742,11 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+   rv = aFile->AppendNative(nsDependentCString("mozilla"));
+   NS_ENSURE_SUCCESS(rv, rv);
+ #elif defined(XP_UNIX)
++  nsAutoCString folder;
++  // Make it hidden (by starting with "."), except when local (the
++  // profile is already under ~/.cache or XDG_CACHE_HOME).
++  if (!aLocal) folder.Assign('.');
++
+   if (!profile.IsEmpty()) {
+     // Skip any leading path characters
+     const char* profileStart = profile.get();
+@@ -1686,16 +1754,32 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+ 
+     // On the off chance that someone wanted their folder to be hidden don't
+     // let it become ".."
+-    if (*profileStart == '.') profileStart++;
++    if (*profileStart == '.' && !aLocal) profileStart++;
+ 
+-    // Make it hidden (by starting with ".").
+-    nsAutoCString folder(".");
+     folder.Append(profileStart);
+     ToLowerCase(folder);
+ 
+     rv = AppendProfileString(aFile, folder.BeginReading());
+-    NS_ENSURE_SUCCESS(rv, rv);
++  } else {
++    if (!vendor.IsEmpty()) {
++      folder.Append(vendor);
++      ToLowerCase(folder);
++
++      rv = aFile->AppendNative(folder);
++      NS_ENSURE_SUCCESS(rv, rv);
++
++      folder.Truncate();
++    }
++
++    // This can be the case in tests.
++    if (!appName.IsEmpty()) {
++      folder.Append(appName);
++      ToLowerCase(folder);
++
++      rv = aFile->AppendNative(folder);
++    }
+   }
++  NS_ENSURE_SUCCESS(rv, rv);
+ 
+ #else
+ #  error "Don't know how to get profile path on your platform"
+diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
+index c76b778f567e..314492d5ab86 100644
+--- a/toolkit/xre/nsXREDirProvider.h
++++ b/toolkit/xre/nsXREDirProvider.h
+@@ -62,19 +62,15 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+ 
+   void DoShutdown();
+ 
+-  nsresult GetUserAppDataDirectory(nsIFile** aFile) {
++  static nsresult GetUserAppDataDirectory(nsIFile** aFile) {
+     return GetUserDataDirectory(aFile, false);
+   }
+-  nsresult GetUserLocalDataDirectory(nsIFile** aFile) {
++  static nsresult GetUserLocalDataDirectory(nsIFile** aFile) {
+     return GetUserDataDirectory(aFile, true);
+   }
+ 
+   // GetUserDataDirectory gets the profile path from gAppData.
+-
+-  // This function now calls GetAppDir(), so it cannot be static anymore.
+-  // The same happens with all the functions (in)directly calling this one (the
+-  // rest of Get*Directory functions in this file)
+-  nsresult GetUserDataDirectory(nsIFile** aFile, bool aLocal);
++  static nsresult GetUserDataDirectory(nsIFile** aFile, bool aLocal);
+ 
+   /* make sure you clone it, if you need to do stuff to it */
+   nsIFile* GetGREDir() { return mGREDir; }
+@@ -115,9 +111,9 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+  protected:
+   nsresult GetFilesInternal(const char* aProperty,
+                             nsISimpleEnumerator** aResult);
+-  nsresult GetUserDataDirectoryHome(nsIFile** aFile, bool aLocal);
+-  nsresult GetSysUserExtensionsDirectory(nsIFile** aFile);
+-  nsresult GetSysUserExtensionsDevDirectory(nsIFile** aFile);
++  static nsresult GetUserDataDirectoryHome(nsIFile** aFile, bool aLocal);
++  static nsresult GetSysUserExtensionsDirectory(nsIFile** aFile);
++  static nsresult GetSysUserExtensionsDevDirectory(nsIFile** aFile);
+ #if defined(XP_UNIX) || defined(XP_MACOSX)
+   static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
+ #endif
+diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
+index 9f2656e4b90a..e79c8303fe12 100644
+--- a/xpcom/io/nsAppFileLocationProvider.cpp
++++ b/xpcom/io/nsAppFileLocationProvider.cpp
+@@ -14,7 +14,6 @@
+ #include "nsSimpleEnumerator.h"
+ #include "prenv.h"
+ #include "nsCRT.h"
+-#include "nsXPCOMPrivate.h"  // for XPCOM_FILE_PATH_SEPARATOR
+ #if defined(MOZ_WIDGET_COCOA)
+ #  include <Carbon/Carbon.h>
+ #  include "nsILocalFileMac.h"
+@@ -248,8 +247,9 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
+ // GetProductDirectory - Gets the directory which contains the application data
+ // folder
+ //
+-// UNIX and WIN   : <App Folder>/TorBrowser/Data/Browser
+-// Mac            : <App Folder>/../../TorBrowser/Data/Browser
++// UNIX   : ~/.mozilla/
++// WIN    : <Application Data folder on user's machine>\Mozilla
++// Mac    : :Documents:Mozilla:
+ //----------------------------------------------------------------------------------------
+ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+                                                         bool aLocal) {
+@@ -261,45 +261,49 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+   bool exists;
+   nsCOMPtr<nsIFile> localDir;
+ 
+-  rv = CloneMozBinDirectory(getter_AddRefs(localDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  int levelsToRemove = 1;  // In FF21+, bin dir points to browser subdirectory.
+-#if defined(XP_MACOSX)
+-  levelsToRemove += 2;
+-#endif
+-  while (localDir && (levelsToRemove > 0)) {
+-    // When crawling up the hierarchy, components named "." do not count.
+-    nsAutoCString removedName;
+-    rv = localDir->GetNativeLeafName(removedName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool didRemove = !removedName.Equals(".");
+-
+-    // Remove a directory component.
+-    nsCOMPtr<nsIFile> parentDir;
+-    rv = localDir->GetParent(getter_AddRefs(parentDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    localDir = parentDir;
+-
+-    if (didRemove) {
+-      --levelsToRemove;
+-    }
++#if defined(MOZ_WIDGET_COCOA)
++  FSRef fsRef;
++  OSType folderType =
++      aLocal ? (OSType)kCachedDataFolderType : (OSType)kDomainLibraryFolderType;
++  OSErr err = ::FSFindFolder(kUserDomain, folderType, kCreateFolder, &fsRef);
++  if (err) {
++    return NS_ERROR_FAILURE;
+   }
+-
++  NS_NewLocalFile(EmptyString(), true, getter_AddRefs(localDir));
+   if (!localDir) {
+     return NS_ERROR_FAILURE;
+   }
+-
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
+-                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-
+-  if (aLocal) {
+-    rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
+-    NS_ENSURE_SUCCESS(rv, rv);
++  nsCOMPtr<nsILocalFileMac> localDirMac(do_QueryInterface(localDir));
++  rv = localDirMac->InitWithFSRef(&fsRef);
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
++#elif defined(XP_WIN)
++  nsCOMPtr<nsIProperties> directoryService =
++      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
++  const char* prop = aLocal ? NS_WIN_LOCAL_APPDATA_DIR : NS_WIN_APPDATA_DIR;
++  rv = directoryService->Get(prop, NS_GET_IID(nsIFile),
++                             getter_AddRefs(localDir));
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
++#elif defined(XP_UNIX)
++  rv = NS_NewNativeLocalFile(nsDependentCString(PR_GetEnv("HOME")), true,
++                             getter_AddRefs(localDir));
++  if (NS_FAILED(rv)) {
++    return rv;
+   }
++#else
++#  error dont_know_how_to_get_product_dir_on_your_platform
++#endif
+ 
++  rv = localDir->AppendRelativeNativePath(DEFAULT_PRODUCT_DIR);
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
+   rv = localDir->Exists(&exists);
+ 
+   if (NS_SUCCEEDED(rv) && !exists) {
+@@ -318,6 +322,10 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+ //----------------------------------------------------------------------------------------
+ // GetDefaultUserProfileRoot - Gets the directory which contains each user
+ // profile dir
++//
++// UNIX   : ~/.mozilla/
++// WIN    : <Application Data folder on user's machine>\Mozilla\Profiles
++// Mac    : :Documents:Mozilla:Profiles:
+ //----------------------------------------------------------------------------------------
+ nsresult nsAppFileLocationProvider::GetDefaultUserProfileRoot(
+     nsIFile** aLocalFile, bool aLocal) {
+@@ -333,6 +341,23 @@ nsresult nsAppFileLocationProvider::GetDefaultUserProfileRoot(
+     return rv;
+   }
+ 
++#if defined(MOZ_WIDGET_COCOA) || defined(XP_WIN)
++  // These 3 platforms share this part of the path - do them as one
++  rv = localDir->AppendRelativeNativePath(NS_LITERAL_CSTRING("Profiles"));
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
++
++  bool exists;
++  rv = localDir->Exists(&exists);
++  if (NS_SUCCEEDED(rv) && !exists) {
++    rv = localDir->Create(nsIFile::DIRECTORY_TYPE, 0775);
++  }
++  if (NS_FAILED(rv)) {
++    return rv;
++  }
++#endif
++
+   localDir.forget(aLocalFile);
+ 
+   return rv;
+-- 
+2.26.2
+

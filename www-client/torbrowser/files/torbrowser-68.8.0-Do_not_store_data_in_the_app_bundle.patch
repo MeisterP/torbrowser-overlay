@@ -1,0 +1,404 @@
+From 8909031f03fab648061f3873038fb9fddca9324f Mon Sep 17 00:00:00 2001
+From: Poncho <poncho@spahan.ch>
+Date: Sat, 23 May 2020 12:59:07 +0200
+Subject: [PATCH 1/2] Revert "Bug 13252: Do not store data in the app bundle"
+
+This reverts commit 715d22f6e15b0ee855ad5da2a5f9522e39ad274c.
+---
+ toolkit/xre/nsXREDirProvider.cpp       |  43 ++++----
+ toolkit/xre/nsXREDirProvider.h         |   6 --
+ xpcom/io/TorFileUtils.cpp              | 142 -------------------------
+ xpcom/io/TorFileUtils.h                |  33 ------
+ xpcom/io/moz.build                     |   5 -
+ xpcom/io/nsAppFileLocationProvider.cpp |  53 +++++----
+ 6 files changed, 55 insertions(+), 227 deletions(-)
+ delete mode 100644 xpcom/io/TorFileUtils.cpp
+ delete mode 100644 xpcom/io/TorFileUtils.h
+
+diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
+index ec3c102e1c87..d2864b6aa7f3 100644
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -47,8 +47,6 @@
+ #include "mozilla/Preferences.h"
+ #include "mozilla/Telemetry.h"
+ 
+-#include "TorFileUtils.h"
+-
+ #include <stdlib.h>
+ 
+ #ifdef XP_WIN
+@@ -1434,18 +1432,34 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+     return gDataDirHome->Clone(aFile);
+   }
+ 
+-  nsresult rv = GetTorBrowserUserDataDir(getter_AddRefs(localDir));
++  nsresult rv = GetAppDir()->Clone(getter_AddRefs(localDir));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-#if !defined(ANDROID)
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  rv = localDir->AppendNative(NS_LITERAL_CSTRING("Browser"));
+-#else
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
++  int levelsToRemove = 1;  // In FF21+, appDir points to browser subdirectory.
++#if defined(XP_MACOSX)
++  levelsToRemove += 2;
+ #endif
++  while (localDir && (levelsToRemove > 0)) {
++    // When crawling up the hierarchy, components named "." do not count.
++    nsAutoCString removedName;
++    rv = localDir->GetNativeLeafName(removedName);
++    NS_ENSURE_SUCCESS(rv, rv);
++    bool didRemove = !removedName.Equals(".");
++
++    // Remove a directory component.
++    nsCOMPtr<nsIFile> parentDir;
++    rv = localDir->GetParent(getter_AddRefs(parentDir));
++    NS_ENSURE_SUCCESS(rv, rv);
++    localDir = parentDir;
++    if (didRemove) --levelsToRemove;
++  }
++
++  if (!localDir) return NS_ERROR_FAILURE;
++
++  rv = localDir->AppendRelativeNativePath(
++      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
++                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+   NS_ENSURE_SUCCESS(rv, rv);
+-#endif
+ 
+   if (aLocal) {
+     rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
+@@ -1546,15 +1560,6 @@ nsresult nsXREDirProvider::GetUserDataDirectory(nsIFile** aFile, bool aLocal) {
+   return NS_OK;
+ }
+ 
+-nsresult nsXREDirProvider::GetTorBrowserUserDataDir(nsIFile** aFile) {
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> exeFile;
+-  bool per = false;
+-  nsresult rv = GetFile(XRE_EXECUTABLE_FILE, &per, getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  return TorBrowser_GetUserDataDir(exeFile, aFile);
+-}
+-
+ nsresult nsXREDirProvider::EnsureDirectoryExists(nsIFile* aDirectory) {
+   bool exists;
+   nsresult rv = aDirectory->Exists(&exists);
+diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
+index a13daac770a3..c76b778f567e 100644
+--- a/toolkit/xre/nsXREDirProvider.h
++++ b/toolkit/xre/nsXREDirProvider.h
+@@ -112,12 +112,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+    */
+   nsresult GetProfileDir(nsIFile** aResult);
+ 
+-  /**
+-   * Get the TorBrowser user data directory by calling the
+-   * TorBrowser_GetUserDataDir() utility function.
+-   */
+-  nsresult GetTorBrowserUserDataDir(nsIFile** aFile);
+-
+  protected:
+   nsresult GetFilesInternal(const char* aProperty,
+                             nsISimpleEnumerator** aResult);
+diff --git a/xpcom/io/TorFileUtils.cpp b/xpcom/io/TorFileUtils.cpp
+deleted file mode 100644
+index bddf8d7bbd95..000000000000
+--- a/xpcom/io/TorFileUtils.cpp
++++ /dev/null
+@@ -1,142 +0,0 @@
+-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#include "TorFileUtils.h"
+-#include "nsString.h"
+-#ifdef MOZ_WIDGET_COCOA
+-#include <Carbon/Carbon.h>
+-#include "nsILocalFileMac.h"
+-#endif
+-
+-static nsresult GetAppRootDir(nsIFile *aExeFile, nsIFile** aFile);
+-
+-//-----------------------------------------------------------------------------
+-nsresult
+-TorBrowser_GetUserDataDir(nsIFile *aExeFile, nsIFile** aFile)
+-{
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> tbDataDir;
+-
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  nsAutoCString tbDataLeafName(NS_LITERAL_CSTRING("TorBrowser-Data"));
+-  nsCOMPtr<nsIFile> appRootDir;
+-  nsresult rv = GetAppRootDir(aExeFile, getter_AddRefs(appRootDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#ifndef XP_MACOSX
+-  // On all platforms except Mac OS, we always operate in a "portable" mode
+-  // where the TorBrowser-Data directory is located next to the application.
+-  rv = appRootDir->GetParent(getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = tbDataDir->AppendNative(tbDataLeafName);
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#else
+-  // For Mac OS, determine whether we should store user data in the OS's
+-  // standard location (i.e., under ~/Library/Application Support). We use
+-  // the OS location if (1) the application is installed in a directory whose
+-  // path contains "/Applications" or (2) the TorBrowser-Data directory does
+-  // not exist and cannot be created (which probably means we lack write
+-  // permission to the directory that contains the application).
+-  nsAutoString appRootPath;
+-  rv = appRootDir->GetPath(appRootPath);
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  bool useOSLocation = (appRootPath.Find("/Applications",
+-                                         true /* ignore case */) >= 0);
+-  if (!useOSLocation) {
+-    // We hope to use the portable (aka side-by-side) approach, but before we
+-    // commit to that, let's ensure that we can create the TorBrowser-Data
+-    // directory. If it already exists, we will try to use it; if not and we
+-    // fail to create it, we will switch to ~/Library/Application Support.
+-    rv = appRootDir->GetParent(getter_AddRefs(tbDataDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = tbDataDir->AppendNative(tbDataLeafName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool exists = false;
+-    rv = tbDataDir->Exists(&exists);
+-    if (NS_SUCCEEDED(rv) && !exists)
+-      rv = tbDataDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+-    useOSLocation = NS_FAILED(rv);
+-  }
+-
+-  if (useOSLocation) {
+-    // We are using ~/Library/Application Support/TorBrowser-Data. We do not
+-    // need to create that directory here because the code in nsXREDirProvider
+-    // will do so (and the user should always have write permission for
+-    // ~/Library/Application Support; if they do not we have no more options).
+-    FSRef fsRef;
+-    OSErr err = ::FSFindFolder(kUserDomain, kApplicationSupportFolderType,
+-                               kCreateFolder, &fsRef);
+-    NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
+-    // To convert the FSRef returned by FSFindFolder() into an nsIFile that
+-    // points to ~/Library/Application Support, we first create an empty
+-    // nsIFile object (no path) and then use InitWithFSRef() to set the
+-    // path.
+-    rv = NS_NewNativeLocalFile(EmptyCString(), true,
+-                               getter_AddRefs(tbDataDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(tbDataDir);
+-    if (!dirFileMac)
+-      return NS_ERROR_UNEXPECTED;
+-    rv = dirFileMac->InitWithFSRef(&fsRef);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    rv = tbDataDir->AppendNative(tbDataLeafName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-  }
+-#endif
+-
+-#elif defined(ANDROID)
+-  // Tor Browser Android stores data in the app home directory.
+-  const char* homeDir = getenv("HOME");
+-  if (!homeDir || !*homeDir)
+-    return NS_ERROR_FAILURE;
+-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
+-                                      getter_AddRefs(tbDataDir));
+-#else
+-  // User data is embedded within the application directory (i.e.,
+-  // TOR_BROWSER_DATA_OUTSIDE_APP_DIR is not defined).
+-  nsresult rv = GetAppRootDir(aExeFile, getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = tbDataDir->AppendNative(NS_LITERAL_CSTRING("TorBrowser"));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-#endif
+-
+-  tbDataDir.forget(aFile);
+-  return NS_OK;
+-}
+-
+-static nsresult
+-GetAppRootDir(nsIFile *aExeFile, nsIFile** aFile)
+-{
+-  NS_ENSURE_ARG_POINTER(aExeFile);
+-  NS_ENSURE_ARG_POINTER(aFile);
+-  nsCOMPtr<nsIFile> appRootDir = aExeFile;
+-
+-  int levelsToRemove = 1; // Remove firefox (the executable file).
+-#if defined(XP_MACOSX)
+-  levelsToRemove += 2;   // On Mac OS, we must also remove Contents/MacOS.
+-#endif
+-  while (appRootDir && (levelsToRemove > 0)) {
+-    // When crawling up the hierarchy, components named "." do not count.
+-    nsAutoCString removedName;
+-    nsresult rv = appRootDir->GetNativeLeafName(removedName);
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    bool didRemove = !removedName.Equals(".");
+-
+-    // Remove a directory component.
+-    nsCOMPtr<nsIFile> parentDir;
+-    rv = appRootDir->GetParent(getter_AddRefs(parentDir));
+-    NS_ENSURE_SUCCESS(rv, rv);
+-    appRootDir = parentDir;
+-
+-    if (didRemove)
+-      --levelsToRemove;
+-  }
+-
+-  if (!appRootDir)
+-    return NS_ERROR_FAILURE;
+-
+-  appRootDir.forget(aFile);
+-  return NS_OK;
+-}
+diff --git a/xpcom/io/TorFileUtils.h b/xpcom/io/TorFileUtils.h
+deleted file mode 100644
+index d5e86abf9685..000000000000
+--- a/xpcom/io/TorFileUtils.h
++++ /dev/null
+@@ -1,33 +0,0 @@
+-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+-/* This Source Code Form is subject to the terms of the Mozilla Public
+- * License, v. 2.0. If a copy of the MPL was not distributed with this
+- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+-
+-#ifndef TorFileUtils_h__
+-#define TorFileUtils_h__
+-
+-#include "nsIFile.h"
+-
+-/**
+- * TorBrowser_GetUserDataDir
+- *
+- * Retrieve the Tor Browser user data directory.
+- * When built with --enable-tor-browser-data-outside-app-dir, the directory
+- * is next to the application directory, except on Mac OS where it may be
+- * there or it may be at ~/Library/Application Support/TorBrowser-Data (the
+- * latter location is used if the .app bundle is in a directory whose path
+- * contains /Applications or if we lack write access to the directory that
+- * contains the .app).
+- * When built without --enable-tor-browser-data-outside-app-dir, this
+- * directory is TorBrowser.app/TorBrowser.
+- *
+- * @param aExeFile  The firefox executable.
+- * @param aFile     Out parameter that is set to the Tor Browser user data
+- *                  directory.
+- * @return NS_OK on success.  Error otherwise.
+- */
+-extern nsresult
+-TorBrowser_GetUserDataDir(nsIFile *aExeFile, nsIFile** aFile);
+-
+-#endif // !TorFileUtils_h__
+diff --git a/xpcom/io/moz.build b/xpcom/io/moz.build
+index 5c313f7cd1cb..ccf895cca501 100644
+--- a/xpcom/io/moz.build
++++ b/xpcom/io/moz.build
+@@ -85,7 +85,6 @@ EXPORTS += [
+     'nsUnicharInputStream.h',
+     'nsWildCard.h',
+     'SpecialSystemDirectory.h',
+-    'TorFileUtils.h',
+ ]
+ 
+ EXPORTS.mozilla += [
+@@ -135,10 +134,6 @@ UNIFIED_SOURCES += [
+     'SpecialSystemDirectory.cpp',
+ ]
+ 
+-SOURCES += [
+-    'TorFileUtils.cpp',
+-]
+-
+ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+     SOURCES += [
+         'CocoaFileUtils.mm',
+diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
+index 273a509877d2..9f2656e4b90a 100644
+--- a/xpcom/io/nsAppFileLocationProvider.cpp
++++ b/xpcom/io/nsAppFileLocationProvider.cpp
+@@ -27,8 +27,6 @@
+ #  include <sys/param.h>
+ #endif
+ 
+-#include "TorFileUtils.h"
+-
+ // WARNING: These hard coded names need to go away. They need to
+ // come from localizable resources
+ 
+@@ -250,14 +248,8 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
+ // GetProductDirectory - Gets the directory which contains the application data
+ // folder
+ //
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-// UNIX and WIN   : <App Folder>/../TorBrowser-Data/Browser
+-// Mac            : <App Folder>/../../../TorBrowser-Data/Browser OR
+-//                  ~/Library/Application Support/TorBrowser-Data/Browser
+-#else
+ // UNIX and WIN   : <App Folder>/TorBrowser/Data/Browser
+ // Mac            : <App Folder>/../../TorBrowser/Data/Browser
+-#endif
+ //----------------------------------------------------------------------------------------
+ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+                                                         bool aLocal) {
+@@ -265,25 +257,42 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+     return NS_ERROR_INVALID_ARG;
+   }
+ 
+-  nsresult rv = NS_ERROR_UNEXPECTED;
++  nsresult rv;
+   bool exists;
+-  nsCOMPtr<nsIFile> localDir, exeFile;
++  nsCOMPtr<nsIFile> localDir;
+ 
+-  nsCOMPtr<nsIProperties> directoryService(
+-      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = directoryService->Get(XRE_EXECUTABLE_FILE, NS_GET_IID(nsIFile),
+-                             getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, rv);
+-  rv = TorBrowser_GetUserDataDir(exeFile, getter_AddRefs(localDir));
++  rv = CloneMozBinDirectory(getter_AddRefs(localDir));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  rv = localDir->AppendNative(NS_LITERAL_CSTRING("Browser"));
+-#else
+-  rv = localDir->AppendRelativeNativePath(
+-      NS_LITERAL_CSTRING("Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
++  int levelsToRemove = 1;  // In FF21+, bin dir points to browser subdirectory.
++#if defined(XP_MACOSX)
++  levelsToRemove += 2;
+ #endif
++  while (localDir && (levelsToRemove > 0)) {
++    // When crawling up the hierarchy, components named "." do not count.
++    nsAutoCString removedName;
++    rv = localDir->GetNativeLeafName(removedName);
++    NS_ENSURE_SUCCESS(rv, rv);
++    bool didRemove = !removedName.Equals(".");
++
++    // Remove a directory component.
++    nsCOMPtr<nsIFile> parentDir;
++    rv = localDir->GetParent(getter_AddRefs(parentDir));
++    NS_ENSURE_SUCCESS(rv, rv);
++    localDir = parentDir;
++
++    if (didRemove) {
++      --levelsToRemove;
++    }
++  }
++
++  if (!localDir) {
++    return NS_ERROR_FAILURE;
++  }
++
++  rv = localDir->AppendRelativeNativePath(
++      NS_LITERAL_CSTRING("TorBrowser" XPCOM_FILE_PATH_SEPARATOR
++                         "Data" XPCOM_FILE_PATH_SEPARATOR "Browser"));
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+   if (aLocal) {
+-- 
+2.26.2
+
