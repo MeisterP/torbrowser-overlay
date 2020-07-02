@@ -4,7 +4,7 @@
 EAPI="6"
 WANT_AUTOCONF="2.1"
 
-PYTHON_COMPAT=( python3_{6,7,8} )
+PYTHON_COMPAT=( python3_{6,7,8,9} )
 PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 MOZ_PV="${PV/_p*}esr"
@@ -12,9 +12,8 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.5#n4
 # and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.9.0esr-9.5-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.5#n2
-TOR_PV="9.5"
+TOR_PV="9.5.1"
 TOR_TAG="9.5-1-build2"
-TORBUTTON_COMMIT="0b6562dfffd0e032ea0051a8c09069fba37d483"
 TORLAUNCHER_VERSION="0.2.21.8"
 
 # Patch version
@@ -42,18 +41,16 @@ IUSE="clang cpu_flags_x86_avx2 dbus hardened pulseaudio startup-notification
 
 PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c,whissi}/mozilla/patchsets/${PATCH}.tar.xz )
 SRC_URI="${SRC_URI}
-	https://gitweb.torproject.org/tor-browser.git/snapshot/tor-browser-${MOZ_PV}-${TOR_TAG}.tar.gz \
-		-> tor-browser-${MOZ_PV}-${TOR_TAG}.tar.gz
-	https://gitweb.torproject.org/torbutton.git/snapshot/${TORBUTTON_COMMIT}.tar.gz \
-		-> torbutton-${TORBUTTON_COMMIT}.tar.gz
-	https://gitweb.torproject.org/tor-launcher.git/snapshot/${TORLAUNCHER_VERSION}.tar.gz \
-		-> tor-launcher-${TORLAUNCHER_VERSION}.tar.gz
+	https://dist.torproject.org/torbrowser/${TOR_PV}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
+	https://dist.torproject.org/torbrowser/${TOR_PV}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
 	https://dist.torproject.org/torbrowser/${TOR_PV}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
+	https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
+	https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
 	https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.44.3
+	>=dev-libs/nss-3.44.4
 	>=dev-libs/nspr-4.21
 	dev-libs/atk
 	dev-libs/expat
@@ -141,11 +138,9 @@ DEPEND="${CDEPEND}
 		x86? ( >=dev-lang/nasm-2.13 )
 	)"
 
-S="${WORKDIR}/tor-browser-${MOZ_PV}-${TOR_TAG}"
+S="${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}"
 
-QA_PRESTRIPPED="usr/lib*/${PN}/torbrowser"
-
-BUILD_OBJ_DIR="${S}/torbrowser-build"
+BUILD_OBJ_DIR="${S}/tbb"
 
 llvm_check_deps() {
 	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
@@ -190,18 +185,11 @@ pkg_setup() {
 src_unpack() {
 	for a in ${A} ; do
 		case "${a}" in
-			"tor-browser-${MOZ_PV}-${TOR_TAG}".tar.gz)
+			"src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz")
 				unpack "${a}"
 				;;
 
-			torbutton-"${TORBUTTON_COMMIT}".tar.gz)
-				local destdir="${S}"/toolkit/torproject/torbutton
-				echo ">>> Unpacking ${a} to ${destdir}"
-				tar -C "${destdir}" -x -o --strip-components 1 \
-					-f "${DISTDIR}/${a}" || die
-				;;
-
-			tor-launcher-"${TORLAUNCHER_VERSION}".tar.gz)
+			"src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz")
 				local destdir="${S}"/browser/extensions/tor-launcher
 				echo ">>> Unpacking ${a} to ${destdir}"
 				mkdir "${destdir}" || die
@@ -209,7 +197,7 @@ src_unpack() {
 					-f "${DISTDIR}/${a}" || die
 				;;
 
-			tor-browser-linux64-"${TOR_PV}"_en-US.tar.xz)
+			"tor-browser-linux64-${TOR_PV}_en-US.tar.xz")
 				local destdir="${WORKDIR}"/profile
 				echo ">>> Unpacking ${a} to ${destdir}"
 				mkdir "${destdir}" || die
