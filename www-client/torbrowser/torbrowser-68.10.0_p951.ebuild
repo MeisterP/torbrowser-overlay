@@ -10,7 +10,6 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.5#n4
-# and https://gitweb.torproject.org/tor-browser.git/log/toolkit/torproject?h=tor-browser-68.9.0esr-9.5-1
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.5#n2
 TOR_PV="9.5.1"
 TOR_TAG="9.5-1-build2"
@@ -23,10 +22,10 @@ LLVM_MAX_SLOT=10
 
 inherit check-reqs desktop flag-o-matic toolchain-funcs eutils \
 	gnome2-utils llvm mozcoreconf-v6 pax-utils xdg-utils \
-	multiprocessing autotools
+	autotools multiprocessing
 
-DESCRIPTION="The Tor Browser"
-HOMEPAGE="https://www.torproject.org/projects/torbrowser.html
+DESCRIPTION="Private browsing without tracking, surveillance, or censorship"
+HOMEPAGE="https://www.torproject.org/
 	https://gitweb.torproject.org/tor-browser.git"
 
 KEYWORDS="~amd64 ~x86"
@@ -65,8 +64,10 @@ CDEPEND="
 	>=media-libs/freetype-2.4.10
 	kernel_linux? ( !pulseaudio? ( media-libs/alsa-lib ) )
 	virtual/freedesktop-icon-theme
-	dbus? ( >=sys-apps/dbus-0.60
-		>=dev-libs/dbus-glib-0.72 )
+	dbus? (
+		>=sys-apps/dbus-0.60
+		>=dev-libs/dbus-glib-0.72
+	)
 	startup-notification? ( >=x11-libs/startup-notification-0.8 )
 	>=x11-libs/pixman-0.19.2
 	>=dev-libs/glib-2.26:2
@@ -84,7 +85,10 @@ CDEPEND="
 		>=media-libs/dav1d-0.3.0:=
 		>=media-libs/libaom-1.0.0:=
 	)
-	system-harfbuzz? ( >=media-libs/harfbuzz-2.4.0:0= >=media-gfx/graphite2-1.3.13 )
+	system-harfbuzz? (
+		>=media-libs/harfbuzz-2.4.0:0=
+		>=media-gfx/graphite2-1.3.13
+	)
 	system-icu? ( >=dev-libs/icu-63.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
@@ -93,8 +97,12 @@ CDEPEND="
 	system-webp? ( >=media-libs/libwebp-1.0.2:0= )"
 
 RDEPEND="${CDEPEND}
-	pulseaudio? ( || ( media-sound/pulseaudio
-		>=media-sound/apulse-0.1.9 ) )"
+	pulseaudio? (
+		|| (
+			media-sound/pulseaudio
+			>=media-sound/apulse-0.1.9
+		)
+	)"
 
 DEPEND="${CDEPEND}
 	app-arch/zip
@@ -103,6 +111,8 @@ DEPEND="${CDEPEND}
 	>=net-libs/nodejs-8.11.0
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
+	virtual/pkgconfig
+	>=virtual/rust-1.34.0
 	|| (
 		(
 			sys-devel/clang:10
@@ -130,7 +140,6 @@ DEPEND="${CDEPEND}
 		)
 	)
 	pulseaudio? ( media-sound/pulseaudio )
-	>=virtual/rust-1.34.0
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	x86? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	!system-av1? (
@@ -140,7 +149,7 @@ DEPEND="${CDEPEND}
 
 S="${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}"
 
-BUILD_OBJ_DIR="${S}/tbb"
+BUILD_OBJ_DIR="${S}/tb"
 
 llvm_check_deps() {
 	if ! has_version --host-root "sys-devel/clang:${LLVM_SLOT}" ; then
@@ -225,14 +234,17 @@ src_prepare() {
 	eapply "${FILESDIR}"/${PN}-68.8.0-Change_the_default_Firefox_profile_directory.patch
 	eapply "${FILESDIR}"/${PN}-68.1.0-hide_about_tbbupdate.patch
 
-	# Allow user to apply any additional patches without modifing ebuild
-	eapply_user
-
 	# Make LTO respect MAKEOPTS
 	sed -i \
 		-e "s/multiprocessing.cpu_count()/$(makeopts_jobs)/" \
 		"${S}"/build/moz.configure/toolchain.configure \
 		|| die "sed failed to set num_cores"
+
+	# Allow user to apply any additional patches without modifing ebuild
+	eapply_user
+
+	einfo "Removing pre-built binaries ..."
+	find "${S}"/third_party -type f \( -name '*.so' -o -name '*.o' \) -print -delete || die
 
 	# Fix sandbox violations during make clean, bug 372817
 	sed -e "s:\(/no-such-file\):${T}\1:g" \
@@ -331,6 +343,7 @@ src_configure() {
 	mozconfig_annotate '' --enable-system-pixman
 	mozconfig_annotate '' --target="${CHOST}"
 	mozconfig_annotate '' --host="${CBUILD:-${CHOST}}"
+	mozconfig_annotate '' --with-toolchain-prefix="${CHOST}-"
 	if use system-libevent ; then
 		mozconfig_annotate '' --with-system-libevent="${SYSROOT}${EPREFIX}"/usr
 	fi
@@ -384,7 +397,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 
 	# Use .mozconfig settings from torbrowser (setting this here since it gets overwritten by mozcoreconf-v6.eclass)
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/mozconfig-linux-x86_64?h=maint-9.0
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/mozconfig-linux-x86_64?h=maint-9.5
 	echo "mk_add_options MOZ_APP_DISPLAYNAME=\"Tor Browser\"" >> "${S}"/.mozconfig
 	export MOZILLA_OFFICIAL=1
 	mozconfig_annotate 'torbrowser' --enable-optimize
@@ -400,8 +413,8 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --enable-proxy-bypass-protection
 	mozconfig_annotate 'torbrowser' MOZ_TELEMETRY_REPORTING=
 
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build?h=maint-9.0#n104
-	# and https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-68.1.0esr-9.0-2#n2193
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build?h=maint-9.5#n123
+	# and https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-68.9.0esr-9.5-1#n2193
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	#mozconfig_annotate 'torbrowser' --with-distribution-id=org.torproject
 	mozconfig_annotate 'torbrowser' --enable-update-channel=release
