@@ -11,7 +11,7 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.5#n4
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.5#n2
-TOR_PV="9.5.3"
+TOR_PV="9.5.4"
 TOR_TAG="9.5-1-build1"
 TORLAUNCHER_VERSION="0.2.21.8"
 
@@ -225,6 +225,7 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
+	rm "${WORKDIR}"/firefox/2016_set_CARGO_PROFILE_RELEASE_LTO.patch
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
