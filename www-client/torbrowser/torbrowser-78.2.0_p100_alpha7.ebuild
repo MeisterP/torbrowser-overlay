@@ -4,19 +4,20 @@
 EAPI="6"
 WANT_AUTOCONF="2.1"
 
-PYTHON_COMPAT=( python3_{6,7,8,9} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-9.5#n4
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-9.5#n2
-TOR_PV="9.5.4"
-TOR_TAG="9.5-1-build1"
-TORLAUNCHER_VERSION="0.2.21.8"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n4
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n11
+# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config#n2
+TOR_PV="10.0a7"
+TOR_TAG="10.0-1-build2"
+TORLAUNCHER_VERSION="0.2.24"
 
 # Patch version
-PATCH="firefox-68.0-patches-15"
+PATCH="firefox-78.0-patches-05"
 
 LLVM_MAX_SLOT=10
 
@@ -34,11 +35,13 @@ SLOT="0"
 # BSD license applies to torproject-related code like the patches
 # icons are under CCPL-Attribution-3.0
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
-IUSE="clang cpu_flags_x86_avx2 dbus hardened pulseaudio startup-notification
-	+system-av1 +system-harfbuzz +system-icu +system-jpeg +system-libevent
-	+system-sqlite +system-libvpx +system-webp"
+IUSE="clang cpu_flags_x86_avx2
+	hardened pulseaudio
+	+system-av1
+	+system-harfbuzz +system-icu +system-jpeg +system-libevent
+	+system-libvpx +system-webp"
 
-PATCH_URIS=( https://dev.gentoo.org/~{anarchy,axs,polynomial-c,whissi}/mozilla/patchsets/${PATCH}.tar.xz )
+PATCH_URIS=( https://dev.gentoo.org/~{whissi,polynomial-c,axs}/mozilla/patchsets/${PATCH}.tar.xz )
 SRC_URI="${SRC_URI}
 	https://dist.torproject.org/torbrowser/${TOR_PV}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	https://dist.torproject.org/torbrowser/${TOR_PV}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
@@ -49,8 +52,8 @@ SRC_URI="${SRC_URI}
 	${PATCH_URIS[@]}"
 
 CDEPEND="
-	>=dev-libs/nss-3.44.4
-	>=dev-libs/nspr-4.21
+	>=dev-libs/nss-3.53.1
+	>=dev-libs/nspr-4.25
 	dev-libs/atk
 	dev-libs/expat
 	>=x11-libs/cairo-1.10[X]
@@ -64,11 +67,8 @@ CDEPEND="
 	>=media-libs/freetype-2.4.10
 	kernel_linux? ( !pulseaudio? ( media-libs/alsa-lib ) )
 	virtual/freedesktop-icon-theme
-	dbus? (
-		>=sys-apps/dbus-0.60
-		>=dev-libs/dbus-glib-0.72
-	)
-	startup-notification? ( >=x11-libs/startup-notification-0.8 )
+	sys-apps/dbus
+	dev-libs/dbus-glib
 	>=x11-libs/pixman-0.19.2
 	>=dev-libs/glib-2.26:2
 	>=sys-libs/zlib-1.2.3
@@ -86,33 +86,32 @@ CDEPEND="
 		>=media-libs/libaom-1.0.0:=
 	)
 	system-harfbuzz? (
-		>=media-libs/harfbuzz-2.4.0:0=
+		>=media-libs/harfbuzz-2.6.4:0=
 		>=media-gfx/graphite2-1.3.13
 	)
-	system-icu? ( >=dev-libs/icu-63.1:= )
+	system-icu? ( >=dev-libs/icu-67.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
-	system-libvpx? ( =media-libs/libvpx-1.7*:0=[postproc] )
-	system-sqlite? ( >=dev-db/sqlite-3.28.0:3[secure-delete] )
-	system-webp? ( >=media-libs/libwebp-1.0.2:0= )"
+	system-libvpx? ( >=media-libs/libvpx-1.8.2:0=[postproc] )
+	system-webp? ( >=media-libs/libwebp-1.1.0:0= )"
 
 RDEPEND="${CDEPEND}
 	pulseaudio? (
 		|| (
 			media-sound/pulseaudio
-			>=media-sound/apulse-0.1.9
+			>=media-sound/apulse-0.1.12-r4
 		)
 	)"
 
 DEPEND="${CDEPEND}
 	app-arch/zip
 	app-arch/unzip
-	>=dev-util/cbindgen-0.8.7
-	>=net-libs/nodejs-8.11.0
+	>=dev-util/cbindgen-0.14.1
+	>=net-libs/nodejs-10.19.0
 	>=sys-devel/binutils-2.30
 	sys-apps/findutils
 	virtual/pkgconfig
-	>=virtual/rust-1.34.0
+	>=virtual/rust-1.41.0
 	|| (
 		(
 			sys-devel/clang:10
@@ -130,16 +129,13 @@ DEPEND="${CDEPEND}
 				sys-devel/llvm:9[gold]
 			)
 		)
-		(
-			sys-devel/clang:8
-			!clang? ( sys-devel/llvm:8 )
-			clang? (
-				=sys-devel/lld-8*
-				sys-devel/llvm:8[gold]
-			)
+	)
+	pulseaudio? (
+		|| (
+			media-sound/pulseaudio
+			>=media-sound/apulse-0.1.12-r4[sdk]
 		)
 	)
-	pulseaudio? ( media-sound/pulseaudio )
 	amd64? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	x86? ( >=dev-lang/yasm-1.1 virtual/opengl )
 	!system-av1? (
@@ -169,7 +165,7 @@ llvm_check_deps() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	CHECKREQS_DISK_BUILD="4G"
+	CHECKREQS_DISK_BUILD="5G"
 
 	check-reqs_pkg_pretend
 }
@@ -225,19 +221,25 @@ src_unpack() {
 
 src_prepare() {
 	# Apply gentoo firefox patches
-	rm "${WORKDIR}"/firefox/2016_set_CARGO_PROFILE_RELEASE_LTO.patch
+	rm "${WORKDIR}"/firefox/0029-bmo-1632429-enum34-and-enum-virtualenv-packages-are-.patch
 	eapply "${WORKDIR}/firefox"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
-	eapply "${FILESDIR}"/${PN}-68.8.0-Do_not_store_data_in_the_app_bundle.patch
-	eapply "${FILESDIR}"/${PN}-68.8.0-Change_the_default_Firefox_profile_directory.patch
+	eapply "${FILESDIR}"/${PN}-78.2.0-Do_not_store_data_in_the_app_bundle.patch
+	eapply "${FILESDIR}"/${PN}-78.2.0-Change_the_default_Firefox_profile_directory.patch
 	eapply "${FILESDIR}"/${PN}-68.1.0-hide_about_tbbupdate.patch
 
-	# Make LTO respect MAKEOPTS
+	# Make ICU respect MAKEOPTS
 	sed -i \
 		-e "s/multiprocessing.cpu_count()/$(makeopts_jobs)/" \
-		"${S}"/build/moz.configure/toolchain.configure \
+		"${S}"/intl/icu_sources_data.py \
 		|| die "sed failed to set num_cores"
+
+	# sed-in toolchain prefix
+	sed -i \
+		-e "s/objdump/${CHOST}-objdump/" \
+		"${S}"/python/mozbuild/mozbuild/configure/check_debug_ranges.py \
+		|| die "sed failed to set toolchain prefix"
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -265,6 +267,13 @@ src_prepare() {
 	sed -i -e "s@check_prog('RUSTFMT', add_rustup_path('rustfmt')@check_prog('RUSTFMT', add_rustup_path('rustfmt_do_not_use')@" \
 		"${S}"/build/moz.configure/rust.configure || die
 
+	if has_version ">=virtual/rust-1.45.0" ; then
+		einfo "Unbreak build with >=rust-1.45.0, bmo#1640982 ..."
+		sed -i \
+			-e 's/\(^cargo_rustc_flags +=.* \)-Clto\( \|$\)/\1/' \
+			"${S}/config/makefiles/rust.mk" || die
+	fi
+
 	# Autotools configure is now called old-configure.in
 	# This works because there is still a configure.in that happens to be for the
 	# shell wrapper configure script
@@ -273,6 +282,9 @@ src_prepare() {
 	# Must run autoconf in js/src
 	cd "${S}"/js/src || die
 	eautoconf old-configure.in
+
+	# Clear checksums that present a problem
+	sed -i 's/\("files":{\)[^}]*/\1/' "${S}"/third_party/rust/target-lexicon-0.9.0/.cargo-checksum.json || die
 }
 
 src_configure() {
@@ -303,11 +315,13 @@ src_configure() {
 	mozconfig_init
 	# common config components
 	mozconfig_annotate 'system_libs' \
-		--with-system-zlib \
-		--with-system-bz2
+		--with-system-zlib
 
 	# Must pass release in order to properly select linker
 	mozconfig_annotate 'Enable by Gentoo' --enable-release
+
+	# libclang.so is not properly detected work around issue
+	mozconfig_annotate '' --with-libclang-path="$(llvm-config --libdir)"
 
 	# Don't let user's LTO flags clash with upstream's flags
 	filter-flags -flto*
@@ -329,15 +343,14 @@ src_configure() {
 	fi
 
 	# These are enabled by default in all mozilla applications
-	mozconfig_annotate '' --with-system-nspr --with-nspr-prefix="${SYSROOT}${EPREFIX}"/usr
-	mozconfig_annotate '' --with-system-nss --with-nss-prefix="${SYSROOT}${EPREFIX}"/usr
+	mozconfig_annotate '' --with-system-nspr
+	mozconfig_annotate '' --with-system-nss
 	mozconfig_annotate '' --x-includes="${SYSROOT}${EPREFIX}"/usr/include \
 		--x-libraries="${SYSROOT}${EPREFIX}"/usr/$(get_libdir)
 	mozconfig_annotate '' --prefix="${EPREFIX}"/usr
 	mozconfig_annotate '' --libdir="${EPREFIX}"/usr/$(get_libdir)
 	mozconfig_annotate 'Gentoo default' --with-system-png
 	mozconfig_annotate '' --enable-system-ffi
-	mozconfig_annotate '' --disable-gconf
 	mozconfig_annotate '' --with-intl-api
 	mozconfig_annotate '' --enable-system-pixman
 	mozconfig_annotate '' --target="${CHOST}"
@@ -351,8 +364,6 @@ src_configure() {
 		mozconfig_annotate '' --enable-rust-simd
 	fi
 
-	mozconfig_use_enable startup-notification
-	mozconfig_use_enable system-sqlite
 	mozconfig_use_with system-av1
 	mozconfig_use_with system-harfbuzz
 	mozconfig_use_with system-harfbuzz system-graphite2
@@ -372,8 +383,6 @@ src_configure() {
 	sed -i -e 's/ccache_stats = None/return None/' \
 		python/mozbuild/mozbuild/controller/building.py || \
 		die "Failed to disable ccache stats call"
-
-	mozconfig_use_enable dbus
 
 	mozconfig_annotate '' --disable-necko-wifi
 
@@ -396,7 +405,7 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --with-app-basename=torbrowser
 
 	# Use .mozconfig settings from torbrowser (setting this here since it gets overwritten by mozcoreconf-v6.eclass)
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/mozconfig-linux-x86_64?h=maint-9.5
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/mozconfig-linux-x86_64
 	echo "mk_add_options MOZ_APP_DISPLAYNAME=\"Tor Browser\"" >> "${S}"/.mozconfig
 	export MOZILLA_OFFICIAL=1
 	mozconfig_annotate 'torbrowser' --enable-optimize
@@ -408,12 +417,13 @@ src_configure() {
 	mozconfig_annotate 'torbrowser' --disable-debug
 	mozconfig_annotate 'torbrowser' --disable-crashreporter
 	mozconfig_annotate 'torbrowser' --disable-webrtc
+	mozconfig_annotate 'torbrowser' --disable-parental-controls
 	mozconfig_annotate 'torbrowser' --disable-eme
 	mozconfig_annotate 'torbrowser' --enable-proxy-bypass-protection
 	mozconfig_annotate 'torbrowser' MOZ_TELEMETRY_REPORTING=
 
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build?h=maint-9.5#n123
-	# and https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-68.9.0esr-9.5-1#n2193
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build#n135
+	# and https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-78.2.0esr-10.0-1#n1969
 	mozconfig_annotate 'torbrowser' --with-tor-browser-version=${TOR_PV}
 	#mozconfig_annotate 'torbrowser' --with-distribution-id=org.torproject
 	mozconfig_annotate 'torbrowser' --enable-update-channel=release
@@ -471,11 +481,11 @@ src_install() {
 			>>"${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/all-gentoo.js" || die
 	fi
 
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-9.0#n118
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build#n134
 	echo "pref(\"extensions.torlauncher.prompt_for_locale\", \"false\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-9.0#n154
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build#n170
 	echo "pref(\"intl.locale.requested\", \"en-US\");" \
 		>> "${BUILD_OBJ_DIR}/dist/bin/browser/defaults/preferences/000-tor-browser.js" \
 		|| die
@@ -492,17 +502,10 @@ src_install() {
 	done
 	newicon "${icon_path}/default48.png" "${PN}.png"
 
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop?h=maint-9.0
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser.desktop
 	domenu "${FILESDIR}"/torbrowser.desktop
 
-	# Add StartupNotify=true bug 237317
-	if use startup-notification ; then
-		echo "StartupNotify=true" \
-			>> "${ED}/usr/share/applications/${PN}.desktop" \
-			|| die
-	fi
-
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser?h=maint-9.0
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	rm "${ED%/}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 
@@ -510,11 +513,12 @@ src_install() {
 		#!/bin/sh
 
 		unset SESSION_MANAGER
+		export GSETTINGS_BACKEND=memory
 
 		export TOR_HIDE_UPDATE_CHECK_UI=1
 		export TOR_NO_DISPLAY_NETWORK_SETTINGS=1
-		export TOR_SKIP_LAUNCH=1
 		export TOR_SKIP_CONTROLPORTTEST=1
+		export TOR_SKIP_LAUNCH=1
 
 		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" "\${@}"
 	EOF
@@ -542,8 +546,6 @@ src_install() {
 }
 
 pkg_preinst() {
-	gnome2_icon_savelist
-
 	# if the apulse libs are available in MOZILLA_FIVE_HOME then apulse
 	# doesn't need to be forced into the LD_LIBRARY_PATH
 	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9" ; then
@@ -562,10 +564,10 @@ pkg_preinst() {
 }
 
 pkg_postinst() {
-	gnome2_icon_cache_update
 	xdg_desktop_database_update
+	xdg_icon_cache_update
 
-	if use pulseaudio && has_version ">=media-sound/apulse-0.1.9"; then
+	if use pulseaudio && has_version ">=media-sound/apulse-0.1.12-r4" ; then
 		elog "Apulse was detected at merge time on this system and so it will always be"
 		elog "used for sound.  If you wish to use pulseaudio instead please unmerge"
 		elog "media-sound/apulse."
@@ -586,6 +588,6 @@ pkg_postinst() {
 }
 
 pkg_postrm() {
-	gnome2_icon_cache_update
 	xdg_desktop_database_update
+	xdg_icon_cache_update
 }

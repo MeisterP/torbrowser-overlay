@@ -1,10 +1,10 @@
-From 5caf734f72dca1a40cf39aac476b14fac746e337 Mon Sep 17 00:00:00 2001
+From a398d70752a4661937c2ce6c60bbc32723dbcb30 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
-Date: Sat, 23 May 2020 12:59:59 +0200
+Date: Thu, 27 Aug 2020 09:53:52 +0200
 Subject: [PATCH 2/2] Revert "Bug 9173: Change the default Firefox profile
  directory to be TBB-relative."
 
-This reverts commit 90207624ae1263985737ddccee3e9c9abaeeeea3.
+This reverts commit 53909e46dd7fac3d0e4a2805cdff38b16822da5b.
 ---
  toolkit/profile/nsToolkitProfileService.cpp |   5 +-
  toolkit/xre/nsAppRunner.cpp                 |   2 +-
@@ -15,10 +15,10 @@ This reverts commit 90207624ae1263985737ddccee3e9c9abaeeeea3.
  6 files changed, 188 insertions(+), 84 deletions(-)
 
 diff --git a/toolkit/profile/nsToolkitProfileService.cpp b/toolkit/profile/nsToolkitProfileService.cpp
-index 0f5f5a1e6e63..88dfbafcdc3d 100644
+index 3f32bd95f9c9..d310e73d1fc3 100644
 --- a/toolkit/profile/nsToolkitProfileService.cpp
 +++ b/toolkit/profile/nsToolkitProfileService.cpp
-@@ -695,11 +695,10 @@ nsresult nsToolkitProfileService::Init() {
+@@ -723,11 +723,10 @@ nsresult nsToolkitProfileService::Init() {
    NS_ASSERTION(gDirServiceProvider, "No dirserviceprovider!");
    nsresult rv;
  
@@ -33,10 +33,10 @@ index 0f5f5a1e6e63..88dfbafcdc3d 100644
  
    rv = mAppData->Clone(getter_AddRefs(mProfileDBFile));
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index de8d8761985b..8d3ad1a8e821 100644
+index 1b08b8e3e9cd..a1faff558b46 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
-@@ -3350,7 +3350,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
+@@ -3315,7 +3315,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
    if ((mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
        NS_SUCCEEDED(CrashReporter::SetExceptionHandler(xreBinDirectory))) {
      nsCOMPtr<nsIFile> file;
@@ -46,7 +46,7 @@ index de8d8761985b..8d3ad1a8e821 100644
        CrashReporter::SetUserAppDataDirectory(file);
      }
 diff --git a/toolkit/xre/nsConsoleWriter.cpp b/toolkit/xre/nsConsoleWriter.cpp
-index a2673f795bc3..9a9038da0079 100644
+index 46735a293a00..0a2c0c342893 100644
 --- a/toolkit/xre/nsConsoleWriter.cpp
 +++ b/toolkit/xre/nsConsoleWriter.cpp
 @@ -29,7 +29,7 @@ void WriteConsoleLog() {
@@ -59,10 +59,10 @@ index a2673f795bc3..9a9038da0079 100644
  
      lfile->AppendNative(NS_LITERAL_CSTRING("console.log"));
 diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
-index d2864b6aa7f3..d0f899f549b4 100644
+index 22bc56abe173..8e56b8501884 100644
 --- a/toolkit/xre/nsXREDirProvider.cpp
 +++ b/toolkit/xre/nsXREDirProvider.cpp
-@@ -34,7 +34,6 @@
+@@ -32,7 +32,6 @@
  #include "nsArrayEnumerator.h"
  #include "nsEnumeratorUtils.h"
  #include "nsReadableUtils.h"
@@ -70,7 +70,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
  
  #include "SpecialSystemDirectory.h"
  
-@@ -244,6 +243,9 @@ nsresult nsXREDirProvider::GetUserProfilesRootDir(nsIFile** aResult) {
+@@ -245,6 +244,9 @@ nsresult nsXREDirProvider::GetUserProfilesRootDir(nsIFile** aResult) {
    nsresult rv = GetUserDataDirectory(getter_AddRefs(file), false);
  
    if (NS_SUCCEEDED(rv)) {
@@ -80,7 +80,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
      // We must create the profile directory here if it does not exist.
      nsresult tmp = EnsureDirectoryExists(file);
      if (NS_FAILED(tmp)) {
-@@ -259,6 +261,9 @@ nsresult nsXREDirProvider::GetUserProfilesLocalDir(nsIFile** aResult) {
+@@ -260,6 +262,9 @@ nsresult nsXREDirProvider::GetUserProfilesLocalDir(nsIFile** aResult) {
    nsresult rv = GetUserDataDirectory(getter_AddRefs(file), true);
  
    if (NS_SUCCEEDED(rv)) {
@@ -90,7 +90,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
      // We must create the profile directory here if it does not exist.
      nsresult tmp = EnsureDirectoryExists(file);
      if (NS_FAILED(tmp)) {
-@@ -1422,7 +1427,7 @@ nsXREDirProvider::SetUserDataDirectory(nsIFile* aFile, bool aLocal) {
+@@ -1409,7 +1414,7 @@ nsresult nsXREDirProvider::SetUserDataProfileDirectory(nsCOMPtr<nsIFile>& aFile,
  nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
                                                      bool aLocal) {
    // Copied from nsAppFileLocationProvider (more or less)
@@ -99,7 +99,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
    nsCOMPtr<nsIFile> localDir;
  
    if (aLocal && gDataDirHomeLocal) {
-@@ -1432,39 +1437,81 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+@@ -1419,39 +1424,81 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
      return gDataDirHome->Clone(aFile);
    }
  
@@ -205,7 +205,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
  
    NS_IF_ADDREF(*aFile = localDir);
    return rv;
-@@ -1653,23 +1700,39 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+@@ -1634,23 +1681,39 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
    }
  
    nsAutoCString profile;
@@ -248,7 +248,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
  
  #elif defined(ANDROID)
    // The directory used for storing profiles
-@@ -1679,6 +1742,11 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+@@ -1660,6 +1723,11 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
    rv = aFile->AppendNative(nsDependentCString("mozilla"));
    NS_ENSURE_SUCCESS(rv, rv);
  #elif defined(XP_UNIX)
@@ -260,7 +260,7 @@ index d2864b6aa7f3..d0f899f549b4 100644
    if (!profile.IsEmpty()) {
      // Skip any leading path characters
      const char* profileStart = profile.get();
-@@ -1686,16 +1754,32 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
+@@ -1667,16 +1735,32 @@ nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
  
      // On the off chance that someone wanted their folder to be hidden don't
      // let it become ".."
@@ -298,10 +298,10 @@ index d2864b6aa7f3..d0f899f549b4 100644
  #else
  #  error "Don't know how to get profile path on your platform"
 diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
-index c76b778f567e..314492d5ab86 100644
+index b9678d4ec577..e55b4e153c56 100644
 --- a/toolkit/xre/nsXREDirProvider.h
 +++ b/toolkit/xre/nsXREDirProvider.h
-@@ -62,19 +62,15 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+@@ -63,19 +63,15 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
  
    void DoShutdown();
  
@@ -324,7 +324,7 @@ index c76b778f567e..314492d5ab86 100644
  
    /* make sure you clone it, if you need to do stuff to it */
    nsIFile* GetGREDir() { return mGREDir; }
-@@ -115,9 +111,9 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+@@ -116,9 +112,9 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
   protected:
    nsresult GetFilesInternal(const char* aProperty,
                              nsISimpleEnumerator** aResult);
@@ -338,10 +338,10 @@ index c76b778f567e..314492d5ab86 100644
    static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
  #endif
 diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
-index 9f2656e4b90a..e79c8303fe12 100644
+index 81551a8e3893..915e8bc7361e 100644
 --- a/xpcom/io/nsAppFileLocationProvider.cpp
 +++ b/xpcom/io/nsAppFileLocationProvider.cpp
-@@ -14,7 +14,6 @@
+@@ -15,7 +15,6 @@
  #include "nsSimpleEnumerator.h"
  #include "prenv.h"
  #include "nsCRT.h"
@@ -349,7 +349,7 @@ index 9f2656e4b90a..e79c8303fe12 100644
  #if defined(MOZ_WIDGET_COCOA)
  #  include <Carbon/Carbon.h>
  #  include "nsILocalFileMac.h"
-@@ -248,8 +247,9 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
+@@ -234,8 +233,9 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
  // GetProductDirectory - Gets the directory which contains the application data
  // folder
  //
@@ -361,7 +361,7 @@ index 9f2656e4b90a..e79c8303fe12 100644
  //----------------------------------------------------------------------------------------
  nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
                                                          bool aLocal) {
-@@ -261,45 +261,49 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+@@ -247,45 +247,49 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
    bool exists;
    nsCOMPtr<nsIFile> localDir;
  
@@ -444,7 +444,7 @@ index 9f2656e4b90a..e79c8303fe12 100644
    rv = localDir->Exists(&exists);
  
    if (NS_SUCCEEDED(rv) && !exists) {
-@@ -318,6 +322,10 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+@@ -304,6 +308,10 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
  //----------------------------------------------------------------------------------------
  // GetDefaultUserProfileRoot - Gets the directory which contains each user
  // profile dir
@@ -455,7 +455,7 @@ index 9f2656e4b90a..e79c8303fe12 100644
  //----------------------------------------------------------------------------------------
  nsresult nsAppFileLocationProvider::GetDefaultUserProfileRoot(
      nsIFile** aLocalFile, bool aLocal) {
-@@ -333,6 +341,23 @@ nsresult nsAppFileLocationProvider::GetDefaultUserProfileRoot(
+@@ -319,6 +327,23 @@ nsresult nsAppFileLocationProvider::GetDefaultUserProfileRoot(
      return rv;
    }
  

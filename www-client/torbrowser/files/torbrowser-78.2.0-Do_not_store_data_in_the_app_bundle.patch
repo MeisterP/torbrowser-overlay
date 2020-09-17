@@ -1,34 +1,165 @@
-From 8909031f03fab648061f3873038fb9fddca9324f Mon Sep 17 00:00:00 2001
+From 7d9df0155ca80998976623719bccdf1f4c7a5a13 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
-Date: Sat, 23 May 2020 12:59:07 +0200
+Date: Thu, 27 Aug 2020 09:53:05 +0200
 Subject: [PATCH 1/2] Revert "Bug 13252: Do not store data in the app bundle"
 
-This reverts commit 715d22f6e15b0ee855ad5da2a5f9522e39ad274c.
+This reverts commit a8c9034b28106614042696c81325941fdda11f51.
 ---
+ toolkit/xre/nsAppRunner.cpp            |  70 ++----------
  toolkit/xre/nsXREDirProvider.cpp       |  43 ++++----
  toolkit/xre/nsXREDirProvider.h         |   6 --
  xpcom/io/TorFileUtils.cpp              | 142 -------------------------
  xpcom/io/TorFileUtils.h                |  33 ------
  xpcom/io/moz.build                     |   5 -
  xpcom/io/nsAppFileLocationProvider.cpp |  53 +++++----
- 6 files changed, 55 insertions(+), 227 deletions(-)
+ 7 files changed, 62 insertions(+), 290 deletions(-)
  delete mode 100644 xpcom/io/TorFileUtils.cpp
  delete mode 100644 xpcom/io/TorFileUtils.h
 
+diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
+index 2be7500d174d..1b08b8e3e9cd 100644
+--- a/toolkit/xre/nsAppRunner.cpp
++++ b/toolkit/xre/nsAppRunner.cpp
+@@ -1893,8 +1893,6 @@ static nsresult ProfileMissingDialog(nsINativeAppSupport* aNative) {
+   }
+ }
+ 
+-// If aUnlocker is NULL, it is also OK for the following arguments to be NULL:
+-//   aProfileDir, aProfileLocalDir, aResult.
+ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+                                              nsIFile* aProfileLocalDir,
+                                              ProfileStatus aStatus,
+@@ -1903,19 +1901,17 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+                                              nsIProfileLock** aResult) {
+   nsresult rv;
+ 
+-  if (aProfileDir) {
+-    bool exists;
+-    aProfileDir->Exists(&exists);
+-    if (!exists) {
+-      return ProfileMissingDialog(aNative);
+-    }
++  bool exists;
++  aProfileDir->Exists(&exists);
++  if (!exists) {
++    return ProfileMissingDialog(aNative);
+   }
+ 
+   ScopedXPCOMStartup xpcom;
+   rv = xpcom.Initialize();
+   NS_ENSURE_SUCCESS(rv, rv);
+ 
+-  if (aProfileDir) mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
++  mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
+ 
+   rv = xpcom.SetWindowCreator(aNative);
+   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+@@ -2005,8 +2001,7 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+       }
+     } else {
+ #ifdef MOZ_WIDGET_ANDROID
+-      if (aProfileDir && aProfileLocalDir && aResult &&
+-          java::GeckoAppShell::UnlockProfile()) {
++      if (java::GeckoAppShell::UnlockProfile()) {
+         return NS_LockProfilePath(aProfileDir, aProfileLocalDir, nullptr,
+                                   aResult);
+       }
+@@ -2114,23 +2109,6 @@ static ReturnAbortOnError ShowProfileManager(
+   return LaunchChild(false);
+ }
+ 
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-static ProfileStatus CheckTorBrowserDataWriteAccess(nsIFile* aAppDir) {
+-  // Check whether we can write to the directory that will contain
+-  // TorBrowser-Data.
+-  nsCOMPtr<nsIFile> tbDataDir;
+-  RefPtr<nsXREDirProvider> dirProvider = nsXREDirProvider::GetSingleton();
+-  if (!dirProvider) return PROFILE_STATUS_OTHER_ERROR;
+-  nsresult rv =
+-      dirProvider->GetTorBrowserUserDataDir(getter_AddRefs(tbDataDir));
+-  NS_ENSURE_SUCCESS(rv, PROFILE_STATUS_OTHER_ERROR);
+-  nsCOMPtr<nsIFile> tbDataDirParent;
+-  rv = tbDataDir->GetParent(getter_AddRefs(tbDataDirParent));
+-  NS_ENSURE_SUCCESS(rv, PROFILE_STATUS_OTHER_ERROR);
+-  return nsToolkitProfileService::CheckProfileWriteAccess(tbDataDirParent);
+-}
+-#endif
+-
+ static bool gDoMigration = false;
+ static bool gDoProfileReset = false;
+ static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
+@@ -3218,14 +3196,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
+   if (PR_GetEnv("XRE_MAIN_BREAK")) NS_BREAK();
+ #endif
+ 
+-#if defined(XP_MACOSX) && defined(TOR_BROWSER_DATA_OUTSIDE_APP_DIR)
+-  bool hideDockIcon = (CheckArg("invisible") == ARG_FOUND);
+-  if (hideDockIcon) {
+-    ProcessSerialNumber psn = {0, kCurrentProcess};
+-    TransformProcessType(&psn, kProcessTransformToBackgroundApplication);
+-  }
+-#endif
+-
+   IncreaseDescriptorLimits();
+ 
+ #ifdef USE_GLX_TEST
+@@ -4083,34 +4053,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+     return 0;
+   }
+ 
+-#if (defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)) || \
+-    defined(TOR_BROWSER_DATA_OUTSIDE_APP_DIR)
+-  nsCOMPtr<nsIFile> exeFile, exeDir;
+-  bool persistent;
+-  rv = mDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
+-                            getter_AddRefs(exeFile));
+-  NS_ENSURE_SUCCESS(rv, 1);
+-  rv = exeFile->GetParent(getter_AddRefs(exeDir));
+-  NS_ENSURE_SUCCESS(rv, 1);
+-#endif
+-
+   rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc));
+-#ifdef TOR_BROWSER_DATA_OUTSIDE_APP_DIR
+-  if (NS_FAILED(rv)) {
+-    // NS_NewToolkitProfileService() returns a generic NS_ERROR_FAILURE error
+-    // if creation of the TorBrowser-Data directory fails due to access denied
+-    // or because of a read-only disk volume. Do an extra check here to detect
+-    // these errors so we can display an informative error message.
+-    ProfileStatus status = CheckTorBrowserDataWriteAccess(exeDir);
+-    if ((PROFILE_STATUS_ACCESS_DENIED == status) ||
+-        (PROFILE_STATUS_READ_ONLY == status)) {
+-      ProfileErrorDialog(nullptr, nullptr, status, nullptr, mNativeApp,
+-                         nullptr);
+-      return 1;
+-    }
+-  }
+- #endif
+-
+   if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
+     PR_fprintf(PR_STDERR,
+                "Error: Access was denied while trying to open files in "
+@@ -4179,6 +4122,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+ #if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
+   // Check for and process any available updates
+   nsCOMPtr<nsIFile> updRoot;
++  bool persistent;
+   rv = mDirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                             getter_AddRefs(updRoot));
+   // XRE_UPDATE_ROOT_DIR may fail. Fallback to appDir if failed
 diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
-index ec3c102e1c87..d2864b6aa7f3 100644
+index e96b940e1172..22bc56abe173 100644
 --- a/toolkit/xre/nsXREDirProvider.cpp
 +++ b/toolkit/xre/nsXREDirProvider.cpp
-@@ -47,8 +47,6 @@
- #include "mozilla/Preferences.h"
+@@ -46,8 +46,6 @@
  #include "mozilla/Telemetry.h"
+ #include "nsPrintfCString.h"
  
 -#include "TorFileUtils.h"
 -
  #include <stdlib.h>
  
  #ifdef XP_WIN
-@@ -1434,18 +1432,34 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
+@@ -1421,18 +1419,34 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
      return gDataDirHome->Clone(aFile);
    }
  
@@ -71,7 +202,7 @@ index ec3c102e1c87..d2864b6aa7f3 100644
  
    if (aLocal) {
      rv = localDir->AppendNative(NS_LITERAL_CSTRING("Caches"));
-@@ -1546,15 +1560,6 @@ nsresult nsXREDirProvider::GetUserDataDirectory(nsIFile** aFile, bool aLocal) {
+@@ -1538,15 +1552,6 @@ nsresult nsXREDirProvider::GetUserDataDirectory(nsIFile** aFile, bool aLocal) {
    return NS_OK;
  }
  
@@ -85,13 +216,13 @@ index ec3c102e1c87..d2864b6aa7f3 100644
 -}
 -
  nsresult nsXREDirProvider::EnsureDirectoryExists(nsIFile* aDirectory) {
-   bool exists;
-   nsresult rv = aDirectory->Exists(&exists);
+   nsresult rv = aDirectory->Create(nsIFile::DIRECTORY_TYPE, 0700);
+ 
 diff --git a/toolkit/xre/nsXREDirProvider.h b/toolkit/xre/nsXREDirProvider.h
-index a13daac770a3..c76b778f567e 100644
+index 2aa2face5974..b9678d4ec577 100644
 --- a/toolkit/xre/nsXREDirProvider.h
 +++ b/toolkit/xre/nsXREDirProvider.h
-@@ -112,12 +112,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
+@@ -113,12 +113,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
     */
    nsresult GetProfileDir(nsIFile** aResult);
  
@@ -292,10 +423,10 @@ index d5e86abf9685..000000000000
 -
 -#endif // !TorFileUtils_h__
 diff --git a/xpcom/io/moz.build b/xpcom/io/moz.build
-index 5c313f7cd1cb..ccf895cca501 100644
+index b0eb74f4c56d..a165b491bc56 100644
 --- a/xpcom/io/moz.build
 +++ b/xpcom/io/moz.build
-@@ -85,7 +85,6 @@ EXPORTS += [
+@@ -86,7 +86,6 @@ EXPORTS += [
      'nsUnicharInputStream.h',
      'nsWildCard.h',
      'SpecialSystemDirectory.h',
@@ -303,7 +434,7 @@ index 5c313f7cd1cb..ccf895cca501 100644
  ]
  
  EXPORTS.mozilla += [
-@@ -135,10 +134,6 @@ UNIFIED_SOURCES += [
+@@ -136,10 +135,6 @@ UNIFIED_SOURCES += [
      'SpecialSystemDirectory.cpp',
  ]
  
@@ -315,10 +446,10 @@ index 5c313f7cd1cb..ccf895cca501 100644
      SOURCES += [
          'CocoaFileUtils.mm',
 diff --git a/xpcom/io/nsAppFileLocationProvider.cpp b/xpcom/io/nsAppFileLocationProvider.cpp
-index 273a509877d2..9f2656e4b90a 100644
+index 9f95e5cbec2d..81551a8e3893 100644
 --- a/xpcom/io/nsAppFileLocationProvider.cpp
 +++ b/xpcom/io/nsAppFileLocationProvider.cpp
-@@ -27,8 +27,6 @@
+@@ -28,8 +28,6 @@
  #  include <sys/param.h>
  #endif
  
@@ -327,7 +458,7 @@ index 273a509877d2..9f2656e4b90a 100644
  // WARNING: These hard coded names need to go away. They need to
  // come from localizable resources
  
-@@ -250,14 +248,8 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
+@@ -236,14 +234,8 @@ nsresult nsAppFileLocationProvider::CloneMozBinDirectory(nsIFile** aLocalFile) {
  // GetProductDirectory - Gets the directory which contains the application data
  // folder
  //
@@ -342,7 +473,7 @@ index 273a509877d2..9f2656e4b90a 100644
  //----------------------------------------------------------------------------------------
  nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
                                                          bool aLocal) {
-@@ -265,25 +257,42 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
+@@ -251,25 +243,42 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
      return NS_ERROR_INVALID_ARG;
    }
  
