@@ -9,12 +9,12 @@ PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n4
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config#n11
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config#n2
-TOR_PV="10.0a7"
-TOR_TAG="10.0-1-build2"
-TORLAUNCHER_VERSION="0.2.24"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-10.0#n4
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-10.0#n11
+# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.0#n2
+TOR_PV="10.0"
+TOR_TAG="10.0-2-build2"
+TORLAUNCHER_VERSION="0.2.25"
 
 # Patch version
 PATCH="firefox-78.0-patches-05"
