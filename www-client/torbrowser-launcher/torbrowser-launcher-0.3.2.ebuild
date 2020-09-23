@@ -17,13 +17,35 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE=""
 
+FIREFOX_BIN="dev-libs/atk
+	>=sys-apps/dbus-0.60
+	>=dev-libs/dbus-glib-0.72
+	>=dev-libs/glib-2.26:2
+	media-libs/fontconfig
+	>=media-libs/freetype-2.4.10
+	>=x11-libs/cairo-1.10[X]
+	x11-libs/gdk-pixbuf
+	>=x11-libs/gtk+-3.4.0:3
+	x11-libs/libX11
+	x11-libs/libXcomposite
+	x11-libs/libXdamage
+	x11-libs/libXext
+	x11-libs/libXfixes
+	x11-libs/libXrender
+	x11-libs/libXt
+	>=x11-libs/pango-1.22.0
+
+	dev-libs/libevent"
+
 RDEPEND="${PYTHON_DEPS}
 	$(python_gen_cond_dep '
 		app-crypt/gpgme[python,${PYTHON_MULTI_USEDEP}]
 		dev-python/PyQt5[${PYTHON_MULTI_USEDEP},widgets]
 		dev-python/PySocks[${PYTHON_MULTI_USEDEP}]
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
-	')"
+	')
+	${FIREFOX_BIN}"
+
 DEPEND="${PYTHON_DEPS}"
 
 python_install_all() {
