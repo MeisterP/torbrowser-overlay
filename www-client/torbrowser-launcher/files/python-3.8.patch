@@ -1,0 +1,57 @@
+From 8ba982651d848bc492b7b5ada12b3a3f24ce2c66 Mon Sep 17 00:00:00 2001
+From: Milkey Mouse <milkeymouse@meme.institute>
+Date: Sun, 10 May 2020 16:47:50 -0700
+Subject: [PATCH] Remove use of deprecated platform.dist() (fixes #446)
+
+platform.dist was deprecated a while ago and finally removed in Python
+3.8. It was only used for a workaround for issue #128 (and #215) which
+is no longer necessary, so just remove the use altogether.
+---
+ setup.py | 27 +++++++++++----------------
+ 1 file changed, 11 insertions(+), 16 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index a79d3b3..6a41c60 100644
+--- a/setup.py
++++ b/setup.py
+@@ -34,9 +34,6 @@
+ 
+ SHARE = 'share'
+ 
+-# detect linux distribution
+-distro = platform.dist()[0]
+-
+ 
+ def file_list(path):
+     files = []
+@@ -74,19 +71,17 @@ def create_mo_files():
+     if files:
+         datafiles.append((root, [os.path.join(root, f) for f in files]))
+ 
+-# disable shipping apparmor profiles until they work in ubuntu (#128)
+-if distro != 'Ubuntu':
+-    if not hasattr(sys, 'real_prefix'):
+-        # we're not in a virtualenv, so we can probably write to /etc
+-        datafiles += [
+-            ('/etc/apparmor.d/', [
+-                'apparmor/torbrowser.Browser.firefox',
+-                'apparmor/torbrowser.Tor.tor']),
+-            ('/etc/apparmor.d/local/', [
+-                'apparmor/local/torbrowser.Browser.firefox',
+-                'apparmor/local/torbrowser.Tor.tor']),
+-            ('/etc/apparmor.d/tunables/', ['apparmor/tunables/torbrowser'])
+-        ]
++if not hasattr(sys, 'real_prefix'):
++    # we're not in a virtualenv, so we can probably write to /etc
++    datafiles += [
++        ('/etc/apparmor.d/', [
++            'apparmor/torbrowser.Browser.firefox',
++            'apparmor/torbrowser.Tor.tor']),
++        ('/etc/apparmor.d/local/', [
++            'apparmor/local/torbrowser.Browser.firefox',
++            'apparmor/local/torbrowser.Tor.tor']),
++        ('/etc/apparmor.d/tunables/', ['apparmor/tunables/torbrowser'])
++    ]
+ 
+ datafiles += [(os.path.dirname(f), [f]) for f in create_mo_files()]
+ 
