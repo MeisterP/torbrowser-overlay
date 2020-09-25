@@ -49,7 +49,15 @@ RDEPEND="${PYTHON_DEPS}
 
 DEPEND="${PYTHON_DEPS}"
 
-PATCHES=( "${FILESDIR}"/python-3.8.patch )
+PATCHES=(
+	"${FILESDIR}"/python-3.8.patch
+
+	# https://github.com/micahflee/torbrowser-launcher/pull/482
+	"${FILESDIR}"/0028-Update-Tor-Browser-Developers-public-key-481.patch
+
+	# https://github.com/micahflee/torbrowser-launcher/pull/499
+	"${FILESDIR}"/0031-Use-better-version-string-comparison.patch
+	)
 
 python_install_all() {
 	distutils-r1_python_install_all
