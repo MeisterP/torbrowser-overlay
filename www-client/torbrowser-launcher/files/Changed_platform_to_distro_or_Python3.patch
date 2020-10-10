@@ -1,0 +1,42 @@
+From 7eff7d976a132070e598052d38dabe3fb089b74f Mon Sep 17 00:00:00 2001
+From: lnxdork <lnxdork@gmail.com>
+Date: Thu, 13 Aug 2020 11:41:48 -0400
+Subject: [PATCH] Changed platform to distro for Python3
+
+---
+ setup.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 1649eb4..c6e4fe4 100644
+--- a/setup.py
++++ b/setup.py
+@@ -2,7 +2,7 @@
+ Tor Browser Launcher
+ https://github.com/micahflee/torbrowser-launcher/
+ 
+-Copyright (c) 2013-2017 Micah Lee <micah@micahflee.com>
++Copyright (c) 2013-2020 Micah Lee <micah@micahflee.com>
+ 
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+@@ -28,14 +28,14 @@ OTHER DEALINGS IN THE SOFTWARE.
+ 
+ import os
+ import sys
+-import platform
++import distro
+ import subprocess
+ from distutils.core import setup
+ 
+ SHARE = "share"
+ 
+ # detect linux distribution
+-distro = platform.dist()[0]
++distro = distro.linux_distribution()[0]
+ 
+ 
+ def file_list(path):
+-- 
+2.26.2
+
