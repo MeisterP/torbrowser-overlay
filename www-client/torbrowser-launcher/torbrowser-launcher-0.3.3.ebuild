@@ -38,6 +38,11 @@ FIREFOX_BIN="dev-libs/atk
 
 	dev-libs/libevent"
 
+DEPEND="${PYTHON_DEPS}
+	$(python_gen_cond_dep '
+		dev-python/distro[${PYTHON_MULTI_USEDEP}]
+	')"
+
 RDEPEND="${PYTHON_DEPS}
 	$(python_gen_cond_dep '
 		app-crypt/gpgme[python,${PYTHON_MULTI_USEDEP}]
@@ -46,8 +51,6 @@ RDEPEND="${PYTHON_DEPS}
 		dev-python/requests[${PYTHON_MULTI_USEDEP}]
 	')
 	${FIREFOX_BIN}"
-
-DEPEND="${PYTHON_DEPS}"
 
 PATCHES=(
 	# https://github.com/micahflee/torbrowser-launcher/pull/484
