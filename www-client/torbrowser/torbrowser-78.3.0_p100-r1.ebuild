@@ -3,17 +3,14 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-esr-78-patches-02.tar.xz"
+FIREFOX_PATCHSET="firefox-esr-78-patches-03.tar.xz"
 
 LLVM_MAX_SLOT=11
 
-PYTHON_COMPAT=( python3_{6..9} )
+PYTHON_COMPAT=( python3_{7..9} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
 
 WANT_AUTOCONF="2.1"
-
-PYTHON_COMPAT=( python3_{7,8,9} )
-PYTHON_REQ_USE='ncurses,sqlite,ssl,threads(+)'
 
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_p*}esr"
@@ -367,6 +364,11 @@ src_prepare() {
 }
 
 src_configure() {
+	# Show flags set at the beginning
+	einfo "Current CFLAGS:    ${CFLAGS}"
+	einfo "Current LDFLAGS:   ${LDFLAGS}"
+	einfo "Current RUSTFLAGS: ${RUSTFLAGS}"
+
 	local have_switched_compiler=
 	if use clang && ! tc-is-clang ; then
 		# Force clang
@@ -418,11 +420,15 @@ src_configure() {
 	# LTO flag was handled via configure
 	filter-flags '-flto*'
 
-if is-flag '-g*' ; then
+	if is-flag '-g*' ; then
+		if use clang ; then
 			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols=$(get-flag '-g*')
 		else
-			mozconfig_add_options_ac 'Gentoo default' --disable-debug-symbols
+			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols
 		fi
+	else
+		mozconfig_add_options_ac 'Gentoo default' --disable-debug-symbols
+	fi
 
 	if is-flag '-O0' ; then
 		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O0
