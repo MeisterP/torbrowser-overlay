@@ -30,7 +30,7 @@ RDEPEND="${DEPEND}
 	media-libs/exiftool
 	sandbox? ( sys-apps/bubblewrap )
 	svg? ( gnome-base/librsvg[introspection] )
-	video? ( virtual/ffmpeg )"
+	video? ( media-video/ffmpeg )"
 
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
