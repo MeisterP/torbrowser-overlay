@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-78esr-patches-04.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-06.tar.xz"
 
 LLVM_MAX_SLOT=11
 
@@ -20,8 +20,8 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.0-desktop#n80
-TOR_PV="10.0.4"
-TOR_TAG="10.0-2-build3"
+TOR_PV="10.0.5"
+TOR_TAG="10.0-1-build1"
 TORLAUNCHER_VERSION="0.2.26"
 HTTPSEVERYWHERE_VERSION="2020.8.13"
 NOSCRIPT_VERSION="11.1.5"
@@ -231,7 +231,7 @@ mozconfig_use_with() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	CHECKREQS_DISK_BUILD="5G"
+	CHECKREQS_DISK_BUILD="6400M"
 
 	check-reqs_pkg_pretend
 }
