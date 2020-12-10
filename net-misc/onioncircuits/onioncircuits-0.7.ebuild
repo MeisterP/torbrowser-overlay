@@ -8,8 +8,8 @@ PYTHON_COMPAT=( python3_{7,8,9} )
 inherit distutils-r1 xdg
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
-HOMEPAGE="https://git-tails.immerda.ch/onioncircuits"
-SRC_URI="http://ftp.debian.org/debian/pool/main/o/${PN}/${PN}_${PV}.orig.tar.xz"
+HOMEPAGE="https://gitlab.tails.boum.org/tails/onioncircuits"
+SRC_URI="https://gitlab.tails.boum.org/tails/onioncircuits/-/archive/${PV}/onioncircuits-${PV}.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -24,9 +24,7 @@ RDEPEND="${PYTHON_DEPS}
 	net-libs/stem[${PYTHON_USEDEP}]
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
-DOCS=( HACKING README README.translators ${FILESDIR}/README.controlport )
-
-PATCHES=( ${FILESDIR}/Fix_duplicate_entry_in_onioncircuits.desktop.patch )
+DOCS=( HACKING.md README.md README.translators.md ${FILESDIR}/README.controlport )
 
 pkg_postinst() {
 	xdg_pkg_postinst
