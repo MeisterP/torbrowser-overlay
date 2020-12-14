@@ -20,7 +20,7 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.0-desktop#n80
-TOR_PV="10.0.5"
+TOR_PV="10.0.6"
 TOR_TAG="10.0-1-build1"
 TORLAUNCHER_VERSION="0.2.26"
 HTTPSEVERYWHERE_VERSION="2020.8.13"
@@ -55,7 +55,7 @@ KEYWORDS="~amd64 ~x86"
 
 SLOT="0"
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
-IUSE="clang dbus
+IUSE="+clang dbus
 	hardened pulseaudio
 	+system-av1 +system-harfbuzz +system-icu +system-jpeg +system-libevent
 	+system-libvpx +system-webp"
@@ -64,7 +64,7 @@ BDEPEND="${PYTHON_DEPS}
 	app-arch/unzip
 	app-arch/zip
 	>=dev-util/cbindgen-0.14.3
-	>=net-libs/nodejs-10.19.0
+	>=net-libs/nodejs-10.21.1
 	virtual/pkgconfig
 	>=virtual/rust-1.41.0
 	|| (
