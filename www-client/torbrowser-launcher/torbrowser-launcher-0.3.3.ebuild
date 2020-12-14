@@ -4,10 +4,8 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{7,8,9} )
-DISTUTILS_SINGLE_IMPL=1
-DISTUTILS_USE_SETUPTOOLS=no
 
-inherit distutils-r1 gnome2-utils xdg-utils
+inherit distutils-r1 xdg
 
 DESCRIPTION="A program to download, updated, and run the Tor Browser Bundle"
 HOMEPAGE="https://github.com/micahflee/torbrowser-launcher"
@@ -16,7 +14,7 @@ SRC_URI="https://github.com/micahflee/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE=""
+IUSE="apparmor"
 
 FIREFOX_BIN="dev-libs/atk
 	>=sys-apps/dbus-0.60
@@ -39,19 +37,16 @@ FIREFOX_BIN="dev-libs/atk
 	dev-libs/libevent"
 
 DEPEND="${PYTHON_DEPS}
-	$(python_gen_cond_dep '
-		dev-python/distro[${PYTHON_MULTI_USEDEP}]
-	')"
+	dev-python/distro[${PYTHON_USEDEP}]"
 
 RDEPEND="${PYTHON_DEPS}
-	$(python_gen_cond_dep '
-		app-crypt/gpgme[python,${PYTHON_MULTI_USEDEP}]
-		dev-python/packaging[${PYTHON_MULTI_USEDEP}]
-		dev-python/PyQt5[${PYTHON_MULTI_USEDEP},widgets]
-		dev-python/PySocks[${PYTHON_MULTI_USEDEP}]
-		dev-python/requests[${PYTHON_MULTI_USEDEP}]
-	')
-	${FIREFOX_BIN}"
+	app-crypt/gpgme[python,${PYTHON_USEDEP}]
+	dev-python/packaging[${PYTHON_USEDEP}]
+	dev-python/PyQt5[${PYTHON_USEDEP},widgets]
+	dev-python/PySocks[${PYTHON_USEDEP}]
+	dev-python/requests[${PYTHON_USEDEP}]
+	${FIREFOX_BIN}
+	apparmor? ( sys-libs/libapparmor )"
 
 PATCHES=(
 	# https://github.com/micahflee/torbrowser-launcher/pull/484
@@ -62,21 +57,13 @@ python_install_all() {
 	distutils-r1_python_install_all
 
 	# delete apparmor profiles
-	rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
-	rmdir "${D}/etc" || die "Failed to remove empty directory"
+	if ! use apparmor; then
+		rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
+		rmdir "${D}/etc" || die "Failed to remove empty directory"
+	fi
 }
 
 pkg_postinst() {
-	xdg_mimeinfo_database_update
-	gnome2_icon_cache_update
-
-	elog "To get additional features, a number of optional runtime"
-	elog "dependencies may be installed:"
-	elog ""
-	optfeature "updating over system TOR" "net-vpn/tor dev-python/txsocksx"
-}
-
-pkg_postrm() {
-	xdg_mimeinfo_database_update
-	gnome2_icon_cache_update
+	xdg_pkg_postinst
+	elog "For updating over system TOR install net-vpn/tor and dev-python/txsocksx"
 }

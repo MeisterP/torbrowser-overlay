@@ -5,4 +5,7 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
+	<use>
+		<flag name="apparmor">Enable AppArmor support</flag>
+	</use>
 </pkgmetadata>
