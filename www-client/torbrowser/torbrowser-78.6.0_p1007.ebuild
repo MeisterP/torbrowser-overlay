@@ -20,10 +20,10 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.0-desktop#n80
-TOR_PV="10.0.6"
+TOR_PV="10.0.7"
 TOR_TAG="10.0-1-build1"
 TORLAUNCHER_VERSION="0.2.26"
-HTTPSEVERYWHERE_VERSION="2020.8.13"
+HTTPSEVERYWHERE_VERSION="2020.11.17"
 NOSCRIPT_VERSION="11.1.5"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
