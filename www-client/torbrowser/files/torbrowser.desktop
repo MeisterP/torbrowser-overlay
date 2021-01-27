@@ -11,4 +11,4 @@ MimeType=application/vnd.mozilla.xul+xml;application/xhtml+xml;text/html;text/mm
 StartupNotify=true
 StartupWMClass=Tor Browser
 Categories=Network;WebBrowser;Security;
-Keywords=web;browser;internet;tor;torbrowser
+Keywords=web;browser;internet;tor;torbrowser;onion
