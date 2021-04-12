@@ -10,8 +10,7 @@ variables:
 repoman:
   stage: repoman
   script:
-#   https://bugs.gentoo.org/779967
-#   - repoman --version
+    - repoman --version
     - repoman full -xiIdv
 
 pkgcheck:
