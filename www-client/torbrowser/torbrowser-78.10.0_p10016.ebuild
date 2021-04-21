@@ -20,11 +20,11 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.0-desktop#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.0-desktop#n80
-TOR_PV="10.0.15"
-TOR_TAG="10.0-1-build3"
-TORLAUNCHER_VERSION="0.2.26"
+TOR_PV="10.0.16"
+TOR_TAG="10.0-1-build1"
+TORLAUNCHER_VERSION="0.2.28"
 HTTPSEVERYWHERE_VERSION="2021.1.27"
-NOSCRIPT_VERSION="11.2.3"
+NOSCRIPT_VERSION="11.2.4"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs \
