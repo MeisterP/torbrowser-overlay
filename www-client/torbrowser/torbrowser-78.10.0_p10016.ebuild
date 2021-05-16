@@ -3,9 +3,9 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-78esr-patches-10.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-12.tar.xz"
 
-LLVM_MAX_SLOT=11
+LLVM_MAX_SLOT=12
 
 PYTHON_COMPAT=( python3_{7..9} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -27,8 +27,7 @@ HTTPSEVERYWHERE_VERSION="2021.1.27"
 NOSCRIPT_VERSION="11.2.4"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
-	multiprocessing pax-utils python-any-r1 toolchain-funcs \
-	xdg eutils
+	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
 
 TOR_SRC_BASE_URI="https://dist.torproject.org/torbrowser/${TOR_PV}"
 TOR_SRC_ARCHIVE_URI="https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}"
@@ -64,10 +63,17 @@ BDEPEND="${PYTHON_DEPS}
 	app-arch/unzip
 	app-arch/zip
 	>=dev-util/cbindgen-0.14.3
-	>=net-libs/nodejs-10.21.1
+	>=net-libs/nodejs-10.21.0
 	virtual/pkgconfig
 	>=virtual/rust-1.41.0
 	|| (
+		(
+			sys-devel/clang:12
+			sys-devel/llvm:12
+			clang? (
+				=sys-devel/lld-12*
+			)
+		)
 		(
 			sys-devel/clang:11
 			sys-devel/llvm:11
@@ -80,13 +86,6 @@ BDEPEND="${PYTHON_DEPS}
 			sys-devel/llvm:10
 			clang? (
 				=sys-devel/lld-10*
-			)
-		)
-		(
-			sys-devel/clang:9
-			sys-devel/llvm:9
-			clang? (
-				=sys-devel/lld-9*
 			)
 		)
 	)
@@ -160,6 +159,22 @@ DEPEND="${CDEPEND}
 
 S="${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}"
 
+llvm_check_deps() {
+	if ! has_version -b "sys-devel/clang:${LLVM_SLOT}" ; then
+		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+		return 1
+	fi
+
+	if use clang ; then
+		if ! has_version -b "=sys-devel/lld-${LLVM_SLOT}*" ; then
+			ewarn "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+			return 1
+		fi
+	fi
+
+	einfo "Using LLVM slot ${LLVM_SLOT} to build" >&2
+}
+
 moz_clear_vendor_checksums() {
 	debug-print-function ${FUNCNAME} "$@"
 
@@ -175,6 +190,42 @@ moz_clear_vendor_checksums() {
 		|| die
 }
 
+moz_install_xpi() {
+	debug-print-function ${FUNCNAME} "$@"
+
+	if [[ ${#} -lt 2 ]] ; then
+		die "${FUNCNAME} requires at least two arguments"
+	fi
+
+	local DESTDIR=${1}
+	shift
+
+	insinto "${DESTDIR}"
+
+	local emid xpi_file xpi_tmp_dir
+	for xpi_file in "${@}" ; do
+		emid=
+		xpi_tmp_dir=$(mktemp -d --tmpdir="${T}")
+
+		# Unpack XPI
+		unzip -qq "${xpi_file}" -d "${xpi_tmp_dir}" || die
+
+		# Determine extension ID
+		if [[ -f "${xpi_tmp_dir}/install.rdf" ]] ; then
+			emid=$(sed -n -e '/install-manifest/,$ { /em:id/!d; s/.*[\">]\([^\"<>]*\)[\"<].*/\1/; p; q }' "${xpi_tmp_dir}/install.rdf")
+			[[ -z "${emid}" ]] && die "failed to determine extension id from install.rdf"
+		elif [[ -f "${xpi_tmp_dir}/manifest.json" ]] ; then
+			emid=$(sed -n -e 's/.*"id": "\([^"]*\)".*/\1/p' "${xpi_tmp_dir}/manifest.json")
+			[[ -z "${emid}" ]] && die "failed to determine extension id from manifest.json"
+		else
+			die "failed to determine extension id"
+		fi
+
+		einfo "Installing ${emid}.xpi into ${ED}${DESTDIR} ..."
+		newins "${xpi_file}" "${emid}.xpi"
+	done
+}
+
 mozconfig_add_options_ac() {
 	debug-print-function ${FUNCNAME} "$@"
 
@@ -186,7 +237,7 @@ mozconfig_add_options_ac() {
 	shift
 
 	local option
-	for option in "${@}" ; do
+	for option in ${@} ; do
 		echo "ac_add_options ${option} # ${reason}" >>${MOZCONFIG}
 	done
 }
@@ -420,48 +471,8 @@ src_configure() {
 	# Initialize MOZCONFIG
 	mozconfig_add_options_ac '' --enable-application=browser
 
-	# Avoid auto-magic on linker
-	if use clang ; then
-		# This is upstream's default
-		mozconfig_add_options_ac "forcing ld=lld due to USE=clang" --enable-linker=lld
-	elif tc-ld-is-gold ; then
-		mozconfig_add_options_ac "linker is set to gold" --enable-linker=gold
-	else
-		mozconfig_add_options_ac "linker is set to bfd" --enable-linker=bfd
-	fi
-
-	# LTO flag was handled via configure
-	filter-flags '-flto*'
-
-	if is-flag '-g*' ; then
-		if use clang ; then
-			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols=$(get-flag '-g*')
-		else
-			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols
-		fi
-	else
-		mozconfig_add_options_ac 'Gentoo default' --disable-debug-symbols
-	fi
-
-	if is-flag '-O0' ; then
-		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O0
-	elif is-flag '-O4' ; then
-		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O4
-	elif is-flag '-O3' ; then
-		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O3
-	elif is-flag '-O1' ; then
-		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O1
-	elif is-flag '-Os' ; then
-		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-Os
-	else
-		mozconfig_add_options_ac "Gentoo default" --enable-optimize=-O2
-	fi
-
-	# Debug flag was handled via configure
-	filter-flags '-g*'
-
-	# Optimization flag was handled via configure
-	filter-flags '-O*'
+	# Set Gentoo defaults
+	export MOZILLA_OFFICIAL=1
 
 	mozconfig_add_options_ac 'Gentoo default' \
 		--allow-addon-sideload \
@@ -534,7 +545,6 @@ src_configure() {
 
 	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/mozconfig-linux-x86_64
 	mozconfig_add_options_mk 'torbrowser' "MOZ_APP_DISPLAYNAME=\"Tor Browser\""
-	export MOZILLA_OFFICIAL=1
 
 	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build#n135
 	# and https://gitweb.torproject.org/tor-browser.git/tree/old-configure.in?h=tor-browser-78.2.0esr-10.0-1#n1969
@@ -559,6 +569,49 @@ src_configure() {
 		--disable-tor-browser-update \
 		--enable-tor-launcher
 
+	# Avoid auto-magic on linker
+	if use clang ; then
+		# This is upstream's default
+		mozconfig_add_options_ac "forcing ld=lld due to USE=clang" --enable-linker=lld
+	elif tc-ld-is-gold ; then
+		mozconfig_add_options_ac "linker is set to gold" --enable-linker=gold
+	else
+		mozconfig_add_options_ac "linker is set to bfd" --enable-linker=bfd
+	fi
+
+	# LTO flag was handled via configure
+	filter-flags '-flto*'
+
+	if is-flag '-g*' ; then
+		if use clang ; then
+			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols=$(get-flag '-g*')
+		else
+			mozconfig_add_options_ac 'from CFLAGS' --enable-debug-symbols
+		fi
+	else
+		mozconfig_add_options_ac 'Gentoo default' --disable-debug-symbols
+	fi
+
+	if is-flag '-O0' ; then
+		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O0
+	elif is-flag '-O4' ; then
+		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O4
+	elif is-flag '-O3' ; then
+		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O3
+	elif is-flag '-O1' ; then
+		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-O1
+	elif is-flag '-Os' ; then
+		mozconfig_add_options_ac "from CFLAGS" --enable-optimize=-Os
+	else
+		mozconfig_add_options_ac "Gentoo default" --enable-optimize=-O2
+	fi
+
+	# Debug flag was handled via configure
+	filter-flags '-g*'
+
+	# Optimization flag was handled via configure
+	filter-flags '-O*'
+
 	if use clang ; then
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1482204
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1483822
@@ -575,11 +628,23 @@ src_configure() {
 		if [[ -n ${disable_elf_hack} ]] ; then
 			mozconfig_add_options_ac 'elf-hack is broken when using Clang' --disable-elf-hack
 		fi
+	elif tc-is-gcc ; then
+		if ver_test $(gcc-fullversion) -ge 10 ; then
+			einfo "Forcing -fno-tree-loop-vectorize to workaround GCC bug, see bug 758446 ..."
+			append-cxxflags -fno-tree-loop-vectorize
+		fi
+	fi
+
+	if ! use elibc_glibc ; then
+		mozconfig_add_options_ac '!elibc_glibc' --disable-jemalloc
 	fi
 
 	# Allow elfhack to work in combination with unstripped binaries
 	# when they would normally be larger than 2GiB.
 	append-ldflags "-Wl,--compress-debug-sections=zlib"
+
+	# Make revdep-rebuild.sh happy; Also required for musl
+	append-ldflags -Wl,-rpath="${MOZILLA_FIVE_HOME}",--enable-new-dtags
 
 	# Pass $MAKEOPTS to build system
 	export MOZ_MAKE_FLAGS="${MAKEOPTS}"
@@ -776,7 +841,7 @@ pkg_postinst() {
 		elog
 	fi
 
-	if [[ -z ${REPLACING_VERSIONS} ]]; then
+	if [[ -z "${REPLACING_VERSIONS}" ]] ; then
 		ewarn "This patched firefox build is _NOT_ recommended by Tor upstream but uses"
 		ewarn "the exact same sources. Use this only if you know what you are doing!"
 		elog "Torbrowser uses port 9150 to connect to Tor. You can change the port"
