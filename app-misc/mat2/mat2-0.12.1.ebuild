@@ -4,7 +4,6 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{7,8,9} )
-DISTUTILS_SINGLE_IMPL=1
 
 inherit desktop distutils-r1 xdg
 
@@ -19,19 +18,18 @@ IUSE="+audio +image +pdf +svg +video nautilus +sandbox"
 
 DEPEND="${PYTHON_DEPS}"
 RDEPEND="${DEPEND}
-	$(python_gen_cond_dep '
-		audio? ( media-libs/mutagen[${PYTHON_MULTI_USEDEP}] )
-		dev-python/pygobject[${PYTHON_MULTI_USEDEP}]
-		nautilus? ( dev-python/nautilus-python[${PYTHON_SINGLE_USEDEP}] )
-		pdf? ( dev-python/pycairo[${PYTHON_MULTI_USEDEP}]
-			app-text/poppler[cairo,introspection] )
-	')
+	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
+	dev-python/pygobject[${PYTHON_USEDEP}]
+	nautilus? ( dev-python/nautilus-python )
+	pdf? ( dev-python/pycairo[${PYTHON_USEDEP}]
+		app-text/poppler[cairo,introspection] )
 	image? ( x11-libs/gdk-pixbuf[jpeg,tiff,introspection] )
 	media-libs/exiftool
 	sandbox? ( sys-apps/bubblewrap )
 	svg? ( gnome-base/librsvg[introspection] )
 	video? ( media-video/ffmpeg )"
 
+PATCHES=( ${FILESDIR}/0.12.1-fix-test.patch )
 DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
 python_test() {
