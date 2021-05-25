@@ -1,4 +1,0 @@
-# Poncho <poncho@spahan.ch> (09 Sep 2018)
-# From https://0xacab.org/jvoisin/mat2
-# This software is currently in beta, please don't use it for anything critical.
-app-misc/mat2
