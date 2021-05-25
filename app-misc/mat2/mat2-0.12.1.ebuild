@@ -3,54 +3,45 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=(python3_{7..9})
+PYTHON_REQ_USE="xml"
+DISTUTILS_USE_SETUPTOOLS=bdepend
 
-inherit desktop distutils-r1 xdg
+inherit distutils-r1
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
 HOMEPAGE="https://0xacab.org/jvoisin/mat2"
 SRC_URI="https://0xacab.org/jvoisin/mat2/-/archive/${PV}/${P}.tar.gz"
 
-LICENSE="GPL-3"
+LICENSE="LGPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+audio +image +pdf +svg +video nautilus +sandbox"
+IUSE="+exif sandbox video"
+REQUIRED_USE="
+	${PYTHON_REQUIRED_USE}
+	test? ( exif video )
+"
 
-DEPEND="${PYTHON_DEPS}"
-RDEPEND="${DEPEND}
-	audio? ( media-libs/mutagen[${PYTHON_USEDEP}] )
-	dev-python/pygobject[${PYTHON_USEDEP}]
-	nautilus? ( dev-python/nautilus-python )
-	pdf? ( dev-python/pycairo[${PYTHON_USEDEP}]
-		app-text/poppler[cairo,introspection] )
-	image? ( x11-libs/gdk-pixbuf[jpeg,tiff,introspection] )
-	media-libs/exiftool
+RDEPEND="
+	${PYTHON_DEPS}
+	app-text/poppler[introspection]
+	dev-python/pycairo:0[${PYTHON_USEDEP}]
+	dev-python/pygobject:3[${PYTHON_USEDEP}]
+	gnome-base/librsvg:2[introspection]
+	media-libs/mutagen:0[${PYTHON_USEDEP}]
+	x11-libs/gdk-pixbuf:2[introspection]
+	exif? ( media-libs/exiftool:* )
 	sandbox? ( sys-apps/bubblewrap )
-	svg? ( gnome-base/librsvg[introspection] )
-	video? ( media-video/ffmpeg )"
+	video? ( media-video/ffmpeg:* )
+"
+DEPEND="
+	${RDEPEND}
+	test? (
+		media-video/ffmpeg[mp3,vorbis]
+		x11-libs/gdk-pixbuf:2[jpeg,tiff]
+	)
+"
 
 PATCHES=( ${FILESDIR}/0.12.1-fix-test.patch )
-DOCS=( README.md doc/implementation_notes.md doc/threat_model.md )
 
-python_test() {
-	"${EPYTHON}" -m unittest discover -v || die "Tests fail with ${EPYTHON}"
-	if has usersandbox $FEATURES ; then
-		einfo "The following LD_PRELOAD errors can be ignored:"
-		einfo "ERROR: ld.so: object 'libsandbox.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored."
-		einfo "see https://wiki.gentoo.org/wiki/Knowledge_Base:Object_libsandbox.so_from_LD_PRELOAD_cannot_be_preloaded"
-	fi
-}
-
-python_install_all() {
-	distutils-r1_python_install_all
-
-	doman doc/mat2.1
-	doicon -s 512 data/mat2.png
-	doicon -s scalable data/mat2.svg
-
-	insinto /usr/share/nautilus-python/extensions/
-	doins nautilus/mat2.py
-
-	insinto /usr/share/kservices5/ServiceMenus/
-	doins dolphin/mat2.desktop
-}
+distutils_enable_tests unittest

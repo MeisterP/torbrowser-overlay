@@ -5,11 +5,12 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
+	<upstream>
+		<bugs-to>https://0xacab.org/jvoisin/mat2/issues</bugs-to>
+		<changelog>https://0xacab.org/jvoisin/mat2/tags?format=atom</changelog>
+	</upstream>
 	<use>
-		<flag name="audio">Add support for audio files</flag>
-		<flag name="image">Add support for image files</flag>
-		<flag name="video">Add support for video files</flag>
-		<flag name="nautilus">Add support for the nautilus menu integration</flag>
-		<flag name="sandbox">Use <pkg>sys-apps/bubblewrap</pkg> to sandbox external processes</flag>
+		<flag name="video">Use <pkg>media-video/ffmpeg</pkg> for video support</flag>
+		<flag name="sandbox">Enable sandboxing functionality through <pkg>sys-apps/bubblewrap</pkg></flag>
 	</use>
 </pkgmetadata>
