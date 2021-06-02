@@ -4,6 +4,7 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{7,8,9} )
+DISTUTILS_USE_SETUPTOOLS=rdepend
 inherit distutils-r1
 
 DESCRIPTION="Share files, host websites, and chat with friends using the Tor network."
@@ -17,9 +18,11 @@ KEYWORDS="~amd64 ~x86"
 DEPEND=""
 RDEPEND="${DEPEND}
 	dev-python/click[${PYTHON_USEDEP}]
+	dev-python/colorama[${PYTHON_USEDEP}]
 	dev-python/eventlet[${PYTHON_USEDEP}]
+	>=dev-python/flask-1.1.4[${PYTHON_USEDEP}]
 	dev-python/flask-httpauth[${PYTHON_USEDEP}]
-	dev-python/flask-socketio[${PYTHON_USEDEP}]
+	>=dev-python/flask-socketio-5.0.1[${PYTHON_USEDEP}]
 	dev-python/psutil[${PYTHON_USEDEP}]
 	dev-python/pycryptodome[${PYTHON_USEDEP}]
 	dev-python/PySocks[${PYTHON_USEDEP}]
