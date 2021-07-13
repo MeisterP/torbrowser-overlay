@@ -63,10 +63,10 @@ new identity feature), `www-client/torbrowser` needs to access a control port.
 
 ##  Tor Hidden Service
 
-A hidden service of this repository is available at [vivmyccb3jdb7yij.onion](http://vivmyccb3jdb7yij.onion/poncho/torbrowser-overlay)
+A hidden service of this repository is available at [wmj5kiic7b6kjplpbvwadnht2nh2qnkbnqtcv3dyvpqtz7ssbssftxid.onion](http://wmj5kiic7b6kjplpbvwadnht2nh2qnkbnqtcv3dyvpqtz7ssbssftxid.onion/poncho/torbrowser-overlay)
 
 ```
-git -c http.proxy=socks5h://127.0.0.1:9050 clone http://vivmyccb3jdb7yij.onion/Poncho/torbrowser-overlay.git
+git -c http.proxy=socks5h://127.0.0.1:9050 clone http://wmj5kiic7b6kjplpbvwadnht2nh2qnkbnqtcv3dyvpqtz7ssbssftxid.onion/poncho/torbrowser-overlay.git
 cd torbrowser-overlay
 git config --add remote.origin.proxy "socks5h://127.0.0.1:9050"
 ```
