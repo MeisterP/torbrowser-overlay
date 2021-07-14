@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-78esr-patches-14.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-15.tar.xz"
 
 LLVM_MAX_SLOT=12
 
@@ -20,8 +20,8 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.5#n81
-TOR_PV="10.5"
-TOR_TAG="10.5-1-build3"
+TOR_PV="10.5.2"
+TOR_TAG="10.5-1-build1"
 TORLAUNCHER_VERSION="0.2.30"
 HTTPSEVERYWHERE_VERSION="2021.4.15"
 NOSCRIPT_VERSION="11.2.9"
@@ -161,13 +161,13 @@ S="${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}"
 
 llvm_check_deps() {
 	if ! has_version -b "sys-devel/clang:${LLVM_SLOT}" ; then
-		ewarn "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+		einfo "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 		return 1
 	fi
 
 	if use clang ; then
 		if ! has_version -b "=sys-devel/lld-${LLVM_SLOT}*" ; then
-			ewarn "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+			einfo "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 			return 1
 		fi
 	fi
