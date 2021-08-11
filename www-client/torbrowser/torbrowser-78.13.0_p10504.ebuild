@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-78esr-patches-15.tar.xz"
+FIREFOX_PATCHSET="firefox-78esr-patches-16.tar.xz"
 
 LLVM_MAX_SLOT=12
 
@@ -368,9 +368,6 @@ src_unpack() {
 }
 
 src_prepare() {
-	# FIXME: wait for new firefox patchset
-	rm "${WORKDIR}/firefox-patches/0046-bmo-1719674-Make-packed_simd-compile-with-Rust-1.54.patch"
-
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
