@@ -20,8 +20,8 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-10.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-10.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-10.5#n81
-TOR_PV="10.5.4"
-TOR_TAG="10.5-1-build1"
+TOR_PV="10.5.5"
+TOR_TAG="10.5-2-build1"
 TORLAUNCHER_VERSION="0.2.30"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
 NOSCRIPT_VERSION="11.2.11"
@@ -368,6 +368,7 @@ src_unpack() {
 }
 
 src_prepare() {
+	rm -v "${WORKDIR}/firefox-patches/0045-bmo-1715254-Deny-clone3-to-force-glibc-fallback.patch"
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
