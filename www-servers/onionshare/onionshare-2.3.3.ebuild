@@ -4,7 +4,6 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{7,8,9} )
-DISTUTILS_USE_SETUPTOOLS=rdepend
 inherit desktop distutils-r1 xdg
 
 DESCRIPTION="Share files, host websites, and chat with friends using the Tor network."
