@@ -16,7 +16,7 @@ KEYWORDS="~amd64 ~x86"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 DEPEND="${PYTHON_DEPS}
-	x11-libs/gtk+:3
+	gui-libs/gtk:4
 	gui-libs/libhandy:1
 	$(python_gen_cond_dep '
 		dev-python/pygobject[${PYTHON_USEDEP}]
