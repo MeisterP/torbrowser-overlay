@@ -39,9 +39,8 @@ DEPEND="
 	test? (
 		media-video/ffmpeg[mp3,vorbis]
 		x11-libs/gdk-pixbuf:2[jpeg,tiff]
+		dev-python/unittest-or-fail
 	)
 "
-
-PATCHES=( ${FILESDIR}/0.12.1-fix-test.patch )
 
 distutils_enable_tests unittest
