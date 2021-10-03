@@ -807,6 +807,7 @@ src_install() {
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
+	dodoc "${FILESDIR}/torrc.example"
 
 	dodoc "${WORKDIR}/profile/Browser/TorBrowser/Docs/ChangeLog.txt"
 }
