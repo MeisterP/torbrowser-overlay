@@ -4,20 +4,18 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{7,8,9} )
-DISTUTILS_USE_SETUPTOOLS=rdepend
 inherit distutils-r1
 
 DESCRIPTION="Share files, host websites, and chat with friends using the Tor network."
-HOMEPAGE="https://onionshare.org/ https://pypi.org/project/onionshare-cli/"
-SRC_URI="mirror://pypi/o/onionshare_cli/onionshare_cli-${PV}.tar.gz"
+HOMEPAGE="https://onionshare.org/"
+SRC_URI="https://github.com/micahflee/onionshare/archive/v${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
 
-DEPEND=""
-RDEPEND="${DEPEND}
-	dev-python/click[${PYTHON_USEDEP}]
+DEPEND="test? ( dev-python/pynacl[${PYTHON_USEDEP}] )"
+RDEPEND="dev-python/click[${PYTHON_USEDEP}]
 	dev-python/colorama[${PYTHON_USEDEP}]
 	dev-python/eventlet[${PYTHON_USEDEP}]
 	>=dev-python/flask-1.1.4[${PYTHON_USEDEP}]
@@ -28,10 +26,11 @@ RDEPEND="${DEPEND}
 	dev-python/PySocks[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
 	dev-python/urllib3[${PYTHON_USEDEP}]
-	net-libs/stem[${PYTHON_USEDEP}]"
+	>=net-libs/stem-1.8.1[${PYTHON_USEDEP}]"
 BDEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
 
-# pypi tarball does not contain tests
-RESTRICT="test"
+DOCS=(README.md)
 
-S=${WORKDIR}/onionshare_cli-${PV}
+S=${WORKDIR}/onionshare-${PV}/cli
+
+distutils_enable_tests pytest
