@@ -800,10 +800,6 @@ src_install() {
 		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" "\${@}"
 	EOF
 
-	# Don't install llvm-symbolizer from sys-devel/llvm package
-	[[ -f "${ED%/}${MOZILLA_FIVE_HOME}/llvm-symbolizer" ]] && \
-		rm "${ED%/}${MOZILLA_FIVE_HOME}/llvm-symbolizer"
-
 	# torbrowser and torbrowser-bin are identical
 	rm "${ED%/}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
