@@ -3,7 +3,7 @@
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-91esr-patches-01.tar.xz"
+FIREFOX_PATCHSET="firefox-91esr-patches-02.tar.xz"
 
 LLVM_MAX_SLOT=13
 
@@ -20,8 +20,8 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.0#n81
-TOR_PV="11.0.1"
-TOR_TAG="11.0-1-build4"
+TOR_PV="11.0.2"
+TOR_TAG="11.0-1-build1"
 TORLAUNCHER_VERSION="0.2.32"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
 NOSCRIPT_VERSION="11.2.11"
@@ -86,13 +86,6 @@ BDEPEND="${PYTHON_DEPS}
 			sys-devel/llvm:11
 			clang? (
 				=sys-devel/lld-11*
-			)
-		)
-		(
-			sys-devel/clang:10
-			sys-devel/llvm:10
-			clang? (
-				=sys-devel/lld-10*
 			)
 		)
 	)
@@ -662,6 +655,7 @@ src_configure() {
 
 	# Use system's Python environment
 	export MACH_USE_SYSTEM_PYTHON=1
+	export PIP_NO_CACHE_DIR=off
 
 	# Disable notification when build system has finished
 	export MOZ_NOSPAM=1
