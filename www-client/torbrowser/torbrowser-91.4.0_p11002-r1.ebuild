@@ -26,7 +26,7 @@ TORLAUNCHER_VERSION="0.2.32"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
 NOSCRIPT_VERSION="11.2.11"
 
-inherit autotools check-reqs desktop flag-o-matic gnome2-utils llvm \
+inherit autotools check-reqs desktop flag-o-matic llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
 
 TOR_SRC_BASE_URI="https://dist.torproject.org/torbrowser/${TOR_PV}"
@@ -784,7 +784,7 @@ src_install() {
 	# Install wrapper
 	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/RelativeLink/start-tor-browser
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
-	rm "${ED%/}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
+	rm "${ED}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 
 	newbin - torbrowser <<-EOF
 		#!/bin/sh
@@ -815,7 +815,7 @@ src_install() {
 	sed -i -e "s:@DEFAULT_WAYLAND@:${use_wayland}:" "${ED}/usr/bin/${PN}" || die
 
 	# torbrowser and torbrowser-bin are identical
-	rm "${ED%/}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
+	rm "${ED}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
