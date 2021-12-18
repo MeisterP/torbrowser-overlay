@@ -4,6 +4,7 @@
 EAPI=7
 
 PYTHON_COMPAT=( python3_{8,9} )
+DISTUTILS_USE_SETUPTOOLS=no
 
 inherit distutils-r1 optfeature xdg
 
@@ -48,7 +49,8 @@ RDEPEND="${PYTHON_DEPS}
 	dev-python/PyQt5[${PYTHON_USEDEP},widgets]
 	dev-python/PySocks[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
-	apparmor? ( sys-libs/libapparmor )"
+	apparmor? ( sys-libs/libapparmor )
+	!www-client/torbrowser"
 
 src_prepare() {
 	default

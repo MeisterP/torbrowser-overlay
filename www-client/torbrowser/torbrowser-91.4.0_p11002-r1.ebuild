@@ -144,7 +144,8 @@ RDEPEND="${CDEPEND}
 			media-sound/pulseaudio
 			>=media-sound/apulse-0.1.12-r4
 		)
-	)"
+	)
+	!www-client/torbrowser-launcher"
 
 DEPEND="${CDEPEND}
 	x11-libs/libICE
