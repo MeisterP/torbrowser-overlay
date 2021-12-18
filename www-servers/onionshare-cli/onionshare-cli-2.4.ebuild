@@ -8,7 +8,7 @@ inherit distutils-r1
 
 DESCRIPTION="Share files, host websites, and chat with friends using the Tor network."
 HOMEPAGE="https://onionshare.org/"
-SRC_URI="https://github.com/micahflee/onionshare/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/micahflee/onionshare/archive/v${PV}.tar.gz -> ${P/-cli/}.tar.gz"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -31,6 +31,6 @@ BDEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
 
 DOCS=(README.md)
 
-S=${WORKDIR}/onionshare-${PV}/cli
+S=${WORKDIR}/${P/-cli/}/cli
 
 distutils_enable_tests pytest
