@@ -1,10 +1,10 @@
 # Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
-PYTHON_COMPAT=( python3_{8,9} )
 DISTUTILS_USE_SETUPTOOLS=no
+PYTHON_COMPAT=( python3_{8..10} )
 
 inherit distutils-r1 optfeature xdg
 
@@ -48,14 +48,11 @@ RDEPEND="${PYTHON_DEPS}
 	dev-python/packaging[${PYTHON_USEDEP}]
 	dev-python/PyQt5[${PYTHON_USEDEP},widgets]
 	dev-python/PySocks[${PYTHON_USEDEP}]
+	dev-python/distro[${PYTHON_USEDEP}]
+	dev-python/packaging[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
 	apparmor? ( sys-libs/libapparmor )
 	!www-client/torbrowser"
-
-src_prepare() {
-	default
-	rm po/pt_BR.po || die "Failed to remove broken translation"
-}
 
 python_install_all() {
 	distutils-r1_python_install_all
