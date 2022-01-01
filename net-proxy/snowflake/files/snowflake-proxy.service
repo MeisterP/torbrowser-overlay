@@ -1,0 +1,12 @@
+[Unit]
+Description=snowflake-proxy
+Documentation=man:snowflake-proxy
+Documentation=https://snowflake.torproject.org/
+After=network-online.target docker.socket firewalld.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/snowflake-proxy
+
+[Install]
+WantedBy=multi-user.target
