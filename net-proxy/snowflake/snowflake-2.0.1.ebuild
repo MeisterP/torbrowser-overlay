@@ -550,7 +550,7 @@ EGO_SUM=(
 	)
 go-module_set_globals
 
-DESCRIPTION="Pluggable Transport using WebRTC"
+DESCRIPTION="WebRTC pluggable transport proxy for Tor"
 HOMEPAGE="https://snowflake.torproject.org/ https://community.torproject.org/relay/setup/snowflake/standalone/ https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake "
 SRC_URI="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${PV}/snowflake-v${PV}.tar.gz
 	${EGO_SUM_SRC_URI}"
@@ -560,7 +560,11 @@ SLOT="0"
 KEYWORDS="~amd64"
 
 DEPEND=""
-RDEPEND="${DEPEND}"
+RDEPEND="
+	${DEPEND}
+	acct-group/snowflake
+	acct-user/snowflake
+"
 BDEPEND=""
 
 S=${WORKDIR}/snowflake-v${PV}
