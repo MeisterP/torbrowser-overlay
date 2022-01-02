@@ -1,5 +1,5 @@
 [Unit]
-Description=snowflake-proxy
+Description=WebRTC pluggable transport proxy for Tor
 Documentation=man:snowflake-proxy
 Documentation=https://snowflake.torproject.org/
 After=network-online.target

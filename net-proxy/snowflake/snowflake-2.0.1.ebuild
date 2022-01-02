@@ -584,6 +584,10 @@ src_install() {
 	doman doc/*.1
 	newdoc proxy/README.md README-proxy.md
 	newdoc client/README.md README-client.md
+
+	sed -i -e "s|./client|/usr/bin/snowflake-client|" \
+		client/{torrc,torrc.localhost} \
+		|| die "sed failed to fix torrc example"
 	dodoc client/{torrc,torrc.localhost}
 
 	newbin proxy/proxy snowflake-proxy
