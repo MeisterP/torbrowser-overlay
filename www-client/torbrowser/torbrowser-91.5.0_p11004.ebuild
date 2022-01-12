@@ -1,9 +1,9 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI="7"
 
-FIREFOX_PATCHSET="firefox-91esr-patches-03.tar.xz"
+FIREFOX_PATCHSET="firefox-91esr-patches-04.tar.xz"
 
 LLVM_MAX_SLOT=13
 
@@ -20,11 +20,11 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.0#n81
-TOR_PV="11.0.3"
+TOR_PV="11.0.4"
 TOR_TAG="11.0-1-build1"
 TORLAUNCHER_VERSION="0.2.32"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
-NOSCRIPT_VERSION="11.2.11"
+NOSCRIPT_VERSION="11.2.14"
 
 inherit autotools check-reqs desktop flag-o-matic llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -33,7 +33,7 @@ TOR_SRC_BASE_URI="https://dist.torproject.org/torbrowser/${TOR_PV}"
 TOR_SRC_ARCHIVE_URI="https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}"
 
 PATCH_URIS=(
-	https://dev.gentoo.org/~{axs,polynomial-c,whissi}/mozilla/patchsets/${FIREFOX_PATCHSET}
+	https://dev.gentoo.org/~{juippis,polynomial-c,whissi}/mozilla/patchsets/${FIREFOX_PATCHSET}
 )
 
 SRC_URI="
