@@ -1,23 +1,23 @@
-# Copyright 2021 Gentoo Authors
+# Copyright 2021-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
-PYTHON_COMPAT=( python3_{7,8,9} )
+EAPI=8
+PYTHON_COMPAT=( python3_{8..10} )
 
 inherit gnome2-utils meson python-single-r1 xdg-utils
 
 DESCRIPTION="Python GTK application to view and clean metadata in files, using mat2."
-HOMEPAGE="https://gitlab.com/rmnvgr/metadata-cleaner"
+HOMEPAGE="https://metadatacleaner.romainvigier.fr https://gitlab.com/rmnvgr/metadata-cleaner"
 SRC_URI="https://gitlab.com/rmnvgr/metadata-cleaner/-/archive/v${PV}/metadata-cleaner-v${PV}.tar.gz"
 
 LICENSE="GPL-3+ CC-BY-SA-4.0"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 DEPEND="${PYTHON_DEPS}
 	gui-libs/gtk:4
-	gui-libs/libhandy:1
+	gui-libs/libadwaita
 	$(python_gen_cond_dep '
 		dev-python/pygobject[${PYTHON_USEDEP}]
 		app-misc/mat2[${PYTHON_USEDEP}]
