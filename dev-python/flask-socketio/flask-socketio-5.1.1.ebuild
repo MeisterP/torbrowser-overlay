@@ -1,13 +1,15 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
-PYTHON_COMPAT=( python3_{7,8,9} )
+PYTHON_COMPAT=( python3_{8,9} )
 inherit distutils-r1
 
 DESCRIPTION="Socket.IO integration for Flask applications."
-HOMEPAGE="https://flask-socketio.readthedocs.org/ https://github.com/miguelgrinberg/Flask-SocketIO/ https://pypi.org/project/Flask-SocketIO/"
+HOMEPAGE="https://flask-socketio.readthedocs.io/
+	https://github.com/miguelgrinberg/Flask-SocketIO/
+	https://pypi.org/project/Flask-SocketIO/"
 SRC_URI="mirror://pypi/F/Flask-SocketIO/Flask-SocketIO-${PV}.tar.gz"
 
 LICENSE="MIT"
