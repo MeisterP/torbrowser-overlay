@@ -1,17 +1,10 @@
 image: $CI_REGISTRY/poncho/gentoo-qa-image:latest
 
 stages:
-  - repoman
   - pkgcheck
 
 variables:
   GIT_DEPTH: 1
-
-repoman:
-  stage: repoman
-  script:
-    - repoman --version
-    - repoman full -xiIdv
 
 pkgcheck:
   stage: pkgcheck
