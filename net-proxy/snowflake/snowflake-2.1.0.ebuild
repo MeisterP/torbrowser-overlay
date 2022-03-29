@@ -585,11 +585,11 @@ S=${WORKDIR}/snowflake-v${PV}
 
 src_compile() {
 	pushd proxy > /dev/null || die
-		go build || die "building the proxy failed"
+		ego build
 	popd > /dev/null || die
 
 	pushd client > /dev/null || die
-		go build || die "building the client failed"
+		ego build
 	popd > /dev/null || die
 }
 
