@@ -20,11 +20,11 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.0#n81
-TOR_PV="11.0.7"
-TOR_TAG="11.0-1-build2"
+TOR_PV="11.0.10"
+TOR_TAG="11.0-1-build1"
 TORLAUNCHER_VERSION="0.2.33"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
-NOSCRIPT_VERSION="11.3.7"
+NOSCRIPT_VERSION="11.4.3"
 
 inherit autotools check-reqs desktop flag-o-matic llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -112,7 +112,7 @@ COMMON_DEPEND="
 	>=dev-libs/libffi-3.0.10:=
 	media-video/ffmpeg
 	x11-libs/libX11
-	x11-libs/libxcb
+	x11-libs/libxcb:=
 	x11-libs/libXcomposite
 	x11-libs/libXdamage
 	x11-libs/libXext
@@ -370,6 +370,14 @@ src_unpack() {
 }
 
 src_prepare() {
+	if use system-av1 && has_version "<media-libs/dav1d-1.0.0"; then
+		rm -v "${WORKDIR}"/firefox-patches/0033-bgo-835788-dav1d-1.0.0-support.patch || die
+		elog "<media-libs/dav1d-1.0.0 detected, removing 1.0.0 compat patch."
+	elif ! use system-av1; then
+		rm -v "${WORKDIR}"/firefox-patches/0033-bgo-835788-dav1d-1.0.0-support.patch || die
+		elog "-system-av1 USE flag detected, removing 1.0.0 compat patch."
+	fi
+
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
