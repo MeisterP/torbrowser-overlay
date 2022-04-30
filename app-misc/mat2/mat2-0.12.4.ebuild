@@ -19,7 +19,7 @@ KEYWORDS="~amd64 ~x86"
 IUSE="+exif sandbox video"
 REQUIRED_USE="
 	${PYTHON_REQUIRED_USE}
-	test? ( exif video )
+	test? ( exif video !sandbox )
 "
 
 RDEPEND="

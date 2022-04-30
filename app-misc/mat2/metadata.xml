@@ -6,8 +6,8 @@
 		<name>Poncho</name>
 	</maintainer>
 	<upstream>
-		<bugs-to>https://0xacab.org/jvoisin/mat2/issues</bugs-to>
-		<changelog>https://0xacab.org/jvoisin/mat2/tags?format=atom</changelog>
+		<bugs-to>https://0xacab.org/jvoisin/mat2/-/issues</bugs-to>
+		<changelog>https://0xacab.org/jvoisin/mat2/-/tags?format=atom</changelog>
 	</upstream>
 	<use>
 		<flag name="video">Use <pkg>media-video/ffmpeg</pkg> for video support</flag>
