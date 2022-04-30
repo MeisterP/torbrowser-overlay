@@ -43,7 +43,7 @@ SRC_URI="
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
-	https://addons.cdn.mozilla.net/user-media/addons/722/noscript_security_suite-${NOSCRIPT_VERSION}-an+fx.xpi
+	https://addons.mozilla.org/firefox/downloads/file/3937112/noscript_security_suite-${NOSCRIPT_VERSION}-an+fx.xpi
 	https://www.eff.org/files/https-everywhere-${HTTPSEVERYWHERE_VERSION}-eff.xpi
 	${PATCH_URIS[@]}"
 
@@ -79,13 +79,6 @@ BDEPEND="${PYTHON_DEPS}
 			sys-devel/llvm:12
 			clang? (
 				=sys-devel/lld-12*
-			)
-		)
-		(
-			sys-devel/clang:11
-			sys-devel/llvm:11
-			clang? (
-				=sys-devel/lld-11*
 			)
 		)
 	)
