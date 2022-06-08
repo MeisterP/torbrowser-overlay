@@ -1,11 +1,11 @@
 # Copyright 1999-2022 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="7"
+EAPI="8"
 
-FIREFOX_PATCHSET="firefox-91esr-patches-06j.tar.xz"
+FIREFOX_PATCHSET="firefox-91esr-patches-07j.tar.xz"
 
-LLVM_MAX_SLOT=13
+LLVM_MAX_SLOT=14
 
 PYTHON_COMPAT=( python3_{8..10} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -20,11 +20,11 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.0#n81
-TOR_PV="11.0.13"
-TOR_TAG="11.0-1-build2"
+TOR_PV="11.0.14"
+TOR_TAG="11.0-1-build1"
 TORLAUNCHER_VERSION="0.2.33"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
-NOSCRIPT_VERSION="11.4.5"
+NOSCRIPT_VERSION="11.4.6"
 
 inherit autotools check-reqs desktop flag-o-matic llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -43,7 +43,7 @@ SRC_URI="
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
-	https://addons.mozilla.org/firefox/downloads/file/3937112/noscript_security_suite-${NOSCRIPT_VERSION}-an+fx.xpi
+	https://addons.mozilla.org/firefox/downloads/file/3954910/noscript-${NOSCRIPT_VERSION}.xpi
 	https://www.eff.org/files/https-everywhere-${HTTPSEVERYWHERE_VERSION}-eff.xpi
 	${PATCH_URIS[@]}"
 
@@ -67,6 +67,14 @@ BDEPEND="${PYTHON_DEPS}
 	virtual/pkgconfig
 	>=virtual/rust-1.51.0
 	|| (
+		(
+			sys-devel/clang:14
+			sys-devel/llvm:14
+			clang? (
+				=sys-devel/lld-14*
+			sys-devel/clang:14
+			)
+		)
 		(
 			sys-devel/clang:13
 			sys-devel/llvm:13
@@ -338,7 +346,7 @@ src_unpack() {
 				unzip -qo "${DISTDIR}/${a}" -d "${destdir}" || die
 				;;
 
-			"noscript_security_suite-${NOSCRIPT_VERSION}-an+fx.xpi")
+			"noscript-${NOSCRIPT_VERSION}.xpi")
 				local destdir="${WORKDIR}"
 				echo ">>> Copying ${a} to ${destdir}"
 				cp "${DISTDIR}/${a}" "${destdir}" || die
@@ -416,7 +424,7 @@ src_prepare() {
 	BUILD_DIR="${WORKDIR}/${PN}_build"
 	mkdir -p "${BUILD_DIR}" || die
 
-	xdg_src_prepare
+	xdg_environment_reset
 }
 
 src_configure() {
@@ -734,7 +742,7 @@ src_install() {
 
 	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-11.0#n48
 	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
-	newins "${WORKDIR}"/noscript_security_suite-${NOSCRIPT_VERSION}-an+fx.xpi {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
+	newins "${WORKDIR}"/noscript-${NOSCRIPT_VERSION}.xpi {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
 
 	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/build?h=maint-11.0#n75
 	pushd "${WORKDIR}"/https-everywhere || die
