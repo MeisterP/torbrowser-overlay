@@ -40,6 +40,8 @@ EGO_SUM=(
 	"github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod"
 	"github.com/cespare/xxhash/v2 v2.1.1"
 	"github.com/cespare/xxhash/v2 v2.1.1/go.mod"
+	"github.com/clarkduvall/hyperloglog v0.0.0-20171127014514-a0107a5d8004"
+	"github.com/clarkduvall/hyperloglog v0.0.0-20171127014514-a0107a5d8004/go.mod"
 	"github.com/clbanning/x2j v0.0.0-20191024224557-825249438eec/go.mod"
 	"github.com/client9/misspell v0.3.4/go.mod"
 	"github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod"
