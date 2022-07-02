@@ -3,7 +3,7 @@
 
 EAPI="8"
 
-FIREFOX_PATCHSET="firefox-91esr-patches-08j.tar.xz"
+FIREFOX_PATCHSET="firefox-91esr-patches-09j.tar.xz"
 
 LLVM_MAX_SLOT=14
 
@@ -20,7 +20,7 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/https-everywhere/config?h=maint-11.0#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.0#n81
-TOR_PV="11.0.14"
+TOR_PV="11.0.15"
 TOR_TAG="11.0-1-build1"
 TORLAUNCHER_VERSION="0.2.33"
 HTTPSEVERYWHERE_VERSION="2021.7.13"
