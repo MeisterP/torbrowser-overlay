@@ -3,7 +3,7 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{7..9} )
+PYTHON_COMPAT=( python3_{8..10} )
 inherit desktop distutils-r1 xdg
 
 DESCRIPTION="Share files, host websites, and chat with friends using the Tor network."
