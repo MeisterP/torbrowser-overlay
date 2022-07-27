@@ -19,7 +19,7 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-11.5#n11
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.5#n80
-TOR_PV="11.5"
+TOR_PV="11.5.1"
 TOR_TAG="11.5-1-build1"
 TORLAUNCHER_VERSION="0.2.37"
 NOSCRIPT_VERSION="11.4.6"
@@ -31,7 +31,7 @@ TOR_SRC_BASE_URI="https://dist.torproject.org/torbrowser/${TOR_PV}"
 TOR_SRC_ARCHIVE_URI="https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_PV}"
 
 PATCH_URIS=(
-	https://dev.gentoo.org/~{juippis,polynomial-c,whissi}/mozilla/patchsets/${FIREFOX_PATCHSET}
+	https://dev.gentoo.org/~{juippis,whissi}/mozilla/patchsets/${FIREFOX_PATCHSET}
 )
 
 SRC_URI="
@@ -77,13 +77,6 @@ BDEPEND="${PYTHON_DEPS}
 			sys-devel/llvm:13
 			clang? (
 				=sys-devel/lld-13*
-			)
-		)
-		(
-			sys-devel/clang:12
-			sys-devel/llvm:12
-			clang? (
-				=sys-devel/lld-12*
 			)
 		)
 	)
