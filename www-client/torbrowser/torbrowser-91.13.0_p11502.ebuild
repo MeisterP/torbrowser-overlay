@@ -19,10 +19,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-11.5#n11
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.5#n80
-TOR_PV="11.5.1"
-TOR_TAG="11.5-1-build1"
+TOR_PV="11.5.2"
+TOR_TAG="11.5-1-build2"
 TORLAUNCHER_VERSION="0.2.37"
-NOSCRIPT_VERSION="11.4.6"
+NOSCRIPT_VERSION="11.4.9"
 
 inherit autotools check-reqs desktop flag-o-matic llvm \
 	multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
