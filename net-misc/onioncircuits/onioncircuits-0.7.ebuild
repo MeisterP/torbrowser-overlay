@@ -3,7 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{8..11} )
+PYTHON_COMPAT=( python3_{8..10} )
 
 inherit distutils-r1 xdg
 
@@ -24,7 +24,7 @@ RDEPEND="${PYTHON_DEPS}
 	net-libs/stem[${PYTHON_USEDEP}]
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
-DOCS=( HACKING.md README.md README.translators.md ${FILESDIR}/README.controlport )
+DOCS=( HACKING.md README.md README.translators.md "${FILESDIR}"/README.controlport )
 
 pkg_postinst() {
 	xdg_pkg_postinst
