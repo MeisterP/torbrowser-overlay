@@ -19,8 +19,8 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-11.5#n11
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=maint-11.5#n2
 # and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-browser/config?h=maint-11.5#n80
-TOR_PV="11.5.4"
-TOR_TAG="11.5-1-build4"
+TOR_PV="11.5.5"
+TOR_TAG="11.5-1-build5"
 TORLAUNCHER_VERSION="0.2.37"
 NOSCRIPT_VERSION="11.4.11"
 
