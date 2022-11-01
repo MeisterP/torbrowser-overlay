@@ -1,4 +1,4 @@
-From a053f9cc3072420c1e3b54e829a722f925f06f11 Mon Sep 17 00:00:00 2001
+From 9c84c965e07c85d6b11bed00c465e318ce289cb1 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Fri, 15 Jul 2022 18:30:50 +0200
 Subject: [PATCH 2/2] Revert "Bug 9173: Change the default Firefox profile
@@ -14,11 +14,11 @@ This reverts commit 2c91b6ec30176d11de79c24533df8b05af6f07da.
  5 files changed, 79 insertions(+), 106 deletions(-)
 
 diff --git a/moz.configure b/moz.configure
-index 411a2ebbfbeb..ebb0ed0daacd 100755
+index 7ec6d25a8ac1..3020f86e0dab 100755
 --- a/moz.configure
 +++ b/moz.configure
-@@ -1017,25 +1017,6 @@ set_config("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
- set_define("ZLIB_IN_MOZGLUE", zlib_in_mozglue)
+@@ -1025,25 +1025,6 @@ set_config("BASE_BROWSER", True, when="--enable-base-browser")
+ set_define("BASE_BROWSER", True, when="--enable-base-browser")
  
  
 -option(
@@ -31,7 +31,7 @@ index 411a2ebbfbeb..ebb0ed0daacd 100755
 -@depends("--with-relative-profile", target)
 -@imports("json")
 -def relative_profile(value, target):
--    if target.os == "Android":
+-    if value and target.os == "Android":
 -        die("--with-relative-profile is not supported on Android")
 -    if value:
 -        return json.dumps(value[0])
@@ -353,5 +353,5 @@ index 60b1775eda97..ef974f99048f 100644
  
    return rv;
 -- 
-2.37.3
+2.37.4
 

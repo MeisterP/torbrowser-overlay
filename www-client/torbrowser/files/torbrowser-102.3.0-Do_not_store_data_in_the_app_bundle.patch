@@ -1,4 +1,4 @@
-From 7d611bf1248aec2735148c684edfe7932691e345 Mon Sep 17 00:00:00 2001
+From d05ff77710c091dba62f0894f6f008882347351b Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
 Date: Fri, 15 Jul 2022 18:25:27 +0200
 Subject: [PATCH 1/2] Revert "Bug 13252: Do not store data in the app bundle"
@@ -383,5 +383,5 @@ index 85ce71c5016c..60b1775eda97 100644
    if (aLocal) {
      rv = localDir->AppendNative("Caches"_ns);
 -- 
-2.37.3
+2.37.4
 

@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-102esr-patches-03j.tar.xz"
+FIREFOX_PATCHSET="firefox-102esr-patches-04j.tar.xz"
 
 LLVM_MAX_SLOT=14
 
@@ -15,12 +15,10 @@ WANT_AUTOCONF="2.1"
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=tbb-12.0a3-build1#n11
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/tor-launcher/config?h=tbb-12.0a3-build1#n2
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=tbb-12.0a3-build1#n86
-TOR_PV="12.0a3"
-TOR_TAG="12.0-1-build2"
-TORLAUNCHER_VERSION="0.2.39"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=tbb-12.0a4-build1#n13
+# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=tbb-12.0a4-build1#n84
+TOR_PV="12.0a4"
+TOR_TAG="12.0-2-build1"
 NOSCRIPT_VERSION="11.4.11"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
@@ -35,11 +33,7 @@ PATCH_URIS=(
 
 SRC_URI="
 	${TOR_SRC_BASE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
-	${TOR_SRC_BASE_URI}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
-	${TOR_SRC_BASE_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
-	${TOR_SRC_ARCHIVE_URI}/src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz
-	${TOR_SRC_ARCHIVE_URI}/tor-browser-linux64-${TOR_PV}_en-US.tar.xz
 	https://addons.mozilla.org/firefox/downloads/file/3954910/noscript-${NOSCRIPT_VERSION}.xpi
 	${PATCH_URIS[@]}"
 
@@ -67,14 +61,14 @@ BDEPEND="${PYTHON_DEPS}
 			sys-devel/clang:14
 			sys-devel/llvm:14
 			clang? (
-				=sys-devel/lld-14*
+				sys-devel/lld:14
 			)
 		)
 		(
 			sys-devel/clang:13
 			sys-devel/llvm:13
 			clang? (
-				=sys-devel/lld-13*
+				sys-devel/lld:13
 			)
 		)
 	)
@@ -329,29 +323,10 @@ src_unpack() {
 				unpack "${a}"
 				;;
 
-			"src-tor-launcher-${TORLAUNCHER_VERSION}.tar.xz")
-				local destdir="${S}"/browser/extensions/tor-launcher
-				echo ">>> Unpacking ${a} to ${destdir}"
-				mkdir "${destdir}" || die
-				tar -C "${destdir}" -x -o --strip-components 1 \
-					-f "${DISTDIR}/${a}" || die
-				;;
-
 			"noscript-${NOSCRIPT_VERSION}.xpi")
 				local destdir="${WORKDIR}"
 				echo ">>> Copying ${a} to ${destdir}"
 				cp "${DISTDIR}/${a}" "${destdir}" || die
-				;;
-
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=tbb-12.0a3-build1#n33
-			"tor-browser-linux64-${TOR_PV}_en-US.tar.xz")
-				local destdir="${WORKDIR}"/profile
-				echo ">>> Unpacking ${a} to ${destdir}"
-				mkdir "${destdir}" || die
-				tar -C "${destdir}" -x -o --strip-components 1 \
-					-f "${DISTDIR}/${a}" \
-					tor-browser_en-US/Browser/TorBrowser/Docs \
-					tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default || die
 				;;
 
 			*)
@@ -567,7 +542,6 @@ src_configure() {
 		--enable-bundled-fonts \
 		--with-branding=browser/branding/official \
 		--disable-tor-browser-update \
-		--enable-tor-launcher \
 		--disable-system-policies \
 		--enable-verify-mar
 
@@ -699,11 +673,6 @@ src_compile() {
 }
 
 src_install() {
-	# Default bookmarks
-	local PROFILE_DIR="${WORKDIR}/profile/Browser/TorBrowser/Data/Browser/profile.default"
-	cat "${PROFILE_DIR}"/bookmarks.html > \
-		"${WORKDIR}"/torbrowser_build/dist/bin/browser/chrome/en-US/locale/browser/bookmarks.html || die
-
 	# xpcshell is getting called during install
 	pax-mark m \
 		"${BUILD_DIR}"/dist/bin/xpcshell \
@@ -810,8 +779,6 @@ src_install() {
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
 	dodoc "${FILESDIR}/torrc.example"
-
-	dodoc "${WORKDIR}/profile/Browser/TorBrowser/Docs/ChangeLog.txt"
 }
 
 pkg_preinst() {
