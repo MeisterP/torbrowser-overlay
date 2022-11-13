@@ -10,4 +10,4 @@ pkgcheck:
   stage: pkgcheck
   script:
     - pkgcheck --version
-    - pkgcheck scan
+    - pkgcheck scan --exit
