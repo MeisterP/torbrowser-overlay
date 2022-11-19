@@ -8,7 +8,7 @@ inherit gnome2-utils meson python-single-r1 xdg-utils
 
 DESCRIPTION="Python GTK application to view and clean metadata in files, using mat2."
 HOMEPAGE="https://metadatacleaner.romainvigier.fr https://gitlab.com/rmnvgr/metadata-cleaner"
-SRC_URI="https://gitlab.com/rmnvgr/metadata-cleaner/-/archive/v${PV}/metadata-cleaner-v${PV}.tar.gz"
+SRC_URI="https://gitlab.com/rmnvgr/metadata-cleaner/-/archive/v${PV}/metadata-cleaner-v${PV}.tar.bz2"
 
 LICENSE="GPL-3+ CC-BY-SA-4.0"
 SLOT="0"
