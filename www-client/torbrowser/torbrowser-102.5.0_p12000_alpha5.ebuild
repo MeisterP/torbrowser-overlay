@@ -3,9 +3,9 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-102esr-patches-04j.tar.xz"
+FIREFOX_PATCHSET="firefox-102esr-patches-06j.tar.xz"
 
-LLVM_MAX_SLOT=14
+LLVM_MAX_SLOT=15
 
 PYTHON_COMPAT=( python3_{8..11} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -15,11 +15,11 @@ WANT_AUTOCONF="2.1"
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=tbb-12.0a4-build1#n13
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=tbb-12.0a4-build1#n84
-TOR_PV="12.0a4"
-TOR_TAG="12.0-2-build1"
-NOSCRIPT_VERSION="11.4.11"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=tbb-12.0a5-build1#n13
+# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=tbb-12.0a5-build1#n100
+TOR_PV="12.0a5"
+TOR_TAG="12.0-1-build4"
+NOSCRIPT_VERSION="11.4.13"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
 	llvm multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -50,28 +50,30 @@ IUSE+=" +system-av1 +system-harfbuzz +system-icu +system-jpeg +system-libevent +
 IUSE+=" wayland"
 
 BDEPEND="${PYTHON_DEPS}
-	app-arch/unzip
-	app-arch/zip
-	>=dev-util/cbindgen-0.24.3
-	net-libs/nodejs
-	virtual/pkgconfig
-	virtual/rust
 	|| (
+		(
+			sys-devel/clang:15
+			sys-devel/llvm:15
+			clang? (
+				sys-devel/lld:15
+				virtual/rust:0/llvm-15
+			)
+		)
 		(
 			sys-devel/clang:14
 			sys-devel/llvm:14
 			clang? (
 				sys-devel/lld:14
-			)
-		)
-		(
-			sys-devel/clang:13
-			sys-devel/llvm:13
-			clang? (
-				sys-devel/lld:13
+				virtual/rust:0/llvm-14
 			)
 		)
 	)
+	!clang? ( virtual/rust )
+	app-arch/unzip
+	app-arch/zip
+	>=dev-util/cbindgen-0.24.3
+	net-libs/nodejs
+	virtual/pkgconfig
 	>=dev-lang/nasm-2.14"
 
 COMMON_DEPEND="
@@ -120,7 +122,7 @@ COMMON_DEPEND="
 	)
 	system-icu? ( >=dev-libs/icu-71.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
-	system-libevent? ( >=dev-libs/libevent-2.0:0=[threads] )
+	system-libevent? ( >=dev-libs/libevent-2.1.12:0=[threads] )
 	system-libvpx? ( >=media-libs/libvpx-1.8.2:0=[postproc] )
 	system-png? ( >=media-libs/libpng-1.6.35:0=[apng] )
 	system-webp? ( >=media-libs/libwebp-1.1.0:0= )
@@ -158,8 +160,13 @@ llvm_check_deps() {
 	fi
 
 	if use clang ; then
-		if ! has_version -b "=sys-devel/lld-${LLVM_SLOT}*" ; then
-			einfo "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+		if ! has_version -b "sys-devel/lld:${LLVM_SLOT}" ; then
+			einfo "sys-devel/lld:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+			return 1
+		fi
+
+		if ! has_version -b "virtual/rust:0/llvm-${LLVM_SLOT}" ; then
+			einfo "virtual/rust:0/llvm-${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 			return 1
 		fi
 	fi
@@ -375,6 +382,9 @@ src_prepare() {
 	einfo "Removing pre-built binaries ..."
 	find "${S}"/third_party -type f \( -name '*.so' -o -name '*.o' \) -print -delete || die
 
+	# Clearing crate checksums where we have applied patches
+	moz_clear_vendor_checksums bindgen
+
 	# Create build dir
 	BUILD_DIR="${WORKDIR}/${PN}_build"
 	mkdir -p "${BUILD_DIR}" || die
@@ -391,12 +401,13 @@ src_configure() {
 	einfo "Current RUSTFLAGS:\t\t${RUSTFLAGS:-no value set}"
 
 	local have_switched_compiler=
-	if use clang && ! tc-is-clang ; then
+	if use clang; then
 		# Force clang
 		einfo "Enforcing the use of clang due to USE=clang ..."
-		have_switched_compiler=yes
+		if tc-is-gcc; then
+			have_switched_compiler=yes
+		fi
 		AR=llvm-ar
-		AS=llvm-as
 		CC=${CHOST}-clang
 		CXX=${CHOST}-clang++
 		NM=llvm-nm
@@ -421,7 +432,8 @@ src_configure() {
 	# Ensure we use correct toolchain
 	export HOST_CC="$(tc-getBUILD_CC)"
 	export HOST_CXX="$(tc-getBUILD_CXX)"
-	tc-export CC CXX LD AR NM OBJDUMP RANLIB PKG_CONFIG
+	export AS="$(tc-getCC) -c"
+	tc-export CC CXX LD AR AS NM OBJDUMP RANLIB PKG_CONFIG
 
 	# Pass the correct toolchain paths through cbindgen
 	if tc-is-cross-compiler ; then
@@ -616,7 +628,7 @@ src_configure() {
 	export MOZ_MAKE_FLAGS="${MAKEOPTS}"
 
 	# Use system's Python environment
-	PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS=mach
+	export PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS=mach
 
 	if use system-python-libs; then
 		export MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE="system"
@@ -676,7 +688,7 @@ src_install() {
 	# xpcshell is getting called during install
 	pax-mark m \
 		"${BUILD_DIR}"/dist/bin/xpcshell \
-		"${BUILD_DIR}"/dist/bin/torbrowser \
+		"${BUILD_DIR}"/dist/bin/${PN} \
 		"${BUILD_DIR}"/dist/bin/plugin-container
 
 	DESTDIR="${D}" ./mach install || die
