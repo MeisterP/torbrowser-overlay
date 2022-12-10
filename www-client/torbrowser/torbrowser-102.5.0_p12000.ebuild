@@ -15,10 +15,10 @@ WANT_AUTOCONF="2.1"
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=tbb-12.0a5-build1#n13
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=tbb-12.0a5-build1#n100
-TOR_PV="12.0a5"
-TOR_TAG="12.0-1-build4"
+# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-12.0#n15
+# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=maint-12.0#n100
+TOR_PV="12.0"
+TOR_TAG="12.0-2-build1"
 NOSCRIPT_VERSION="11.4.13"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
@@ -324,20 +324,22 @@ pkg_setup() {
 }
 
 src_unpack() {
-	for a in ${A} ; do
-		case "${a}" in
+	local _src_file
+
+	for _src_file in ${A} ; do
+		case "${_src_file}" in
 			"src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz")
-				unpack "${a}"
+				unpack "${_src_file}"
 				;;
 
 			"noscript-${NOSCRIPT_VERSION}.xpi")
 				local destdir="${WORKDIR}"
-				echo ">>> Copying ${a} to ${destdir}"
-				cp "${DISTDIR}/${a}" "${destdir}" || die
+				echo ">>> Copying ${_src_file} to ${destdir}"
+				cp "${DISTDIR}/${_src_file}" "${destdir}" || die
 				;;
 
 			*)
-				unpack "${a}"
+				unpack "${_src_file}"
 				;;
 		esac
 	done
@@ -532,9 +534,9 @@ src_configure() {
 	mozconfig_add_options_ac 'torbrowser' --with-app-name=torbrowser
 	mozconfig_add_options_ac 'torbrowser' --with-app-basename=torbrowser
 
-	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/base-browser?h=tor-browser-102.3.0esr-12.0-1
-	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/tor-browser?h=tor-browser-102.3.0esr-12.0-1
-	# see https://gitweb.torproject.org/tor-browser.git/tree/mozconfig-linux-x86_64-dev?h=tor-browser-102.3.0esr-12.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/base-browser?h=tor-browser-102.5.0esr-12.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/tor-browser?h=tor-browser-102.5.0esr-12.0-1
+	# see https://gitweb.torproject.org/tor-browser.git/tree/mozconfig-linux-x86_64-dev?h=tor-browser-102.5.0esr-12.0-1
 	mozconfig_add_options_mk 'torbrowser' "MOZ_APP_DISPLAYNAME=\"Tor Browser\""
 	mozconfig_add_options_ac 'torbrowser' \
 		--enable-optimize \
@@ -555,7 +557,9 @@ src_configure() {
 		--with-branding=browser/branding/official \
 		--disable-tor-browser-update \
 		--disable-system-policies \
-		--enable-verify-mar
+		--enable-verify-mar \
+		--disable-backgroundtasks \
+		--enable-base-browser
 
 	# Avoid auto-magic on linker
 	if use clang ; then
@@ -679,9 +683,13 @@ src_configure() {
 }
 
 src_compile() {
-	local -x GDK_BACKEND=x11
-
 	./mach build --verbose || die
+
+	# FIXME: add locale support
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build?h=maint-12.0#n174
+	export MOZ_CHROME_MULTILOCALE=""
+	./mach package-multi-locale --locales en-US $MOZ_CHROME_MULTILOCALE || die
+	AB_CD=multi ./mach build stage-package || die
 }
 
 src_install() {
@@ -702,20 +710,13 @@ src_install() {
 		rm -v "${ED}${MOZILLA_FIVE_HOME}/llvm-symbolizer" || die
 	fi
 
-	# https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=tbb-12.0a3-build1#n48
+	# https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=maint-12.0#n59
 	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
 	newins "${WORKDIR}"/noscript-${NOSCRIPT_VERSION}.xpi {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
 
 	# Install system-wide preferences
 	local PREFS_DIR="${MOZILLA_FIVE_HOME}/browser/defaults/preferences"
 	insinto "${PREFS_DIR}"
-
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=tbb-12.0a3-build1#n172
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=tbb-12.0a3-build1#n210
-	newins - 000-tor-browser.js <<-EOF
-		pref("extensions.torlauncher.prompt_for_locale", "false");
-		pref("intl.locale.requested", "en-US");
-	EOF
 
 	local GENTOO_PREFS="${ED}${PREFS_DIR}/gentoo-prefs.js"
 
@@ -747,12 +748,12 @@ src_install() {
 	done
 
 	# Install menu
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser.desktop?h=tbb-12.0a3-build1
+	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser.desktop?h=maint-12.0
 	domenu "${FILESDIR}"/torbrowser.desktop
 
 	# Install wrapper
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser?h=tbb-12.0a3-build1
-	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
+	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser.desktop?h=maint-12.0
+	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
 	rm "${ED}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 
 	newbin - torbrowser <<-EOF
@@ -761,11 +762,8 @@ src_install() {
 		unset SESSION_MANAGER
 		export GSETTINGS_BACKEND=memory
 
-		export TOR_HIDE_UPDATE_CHECK_UI=1
-		export TOR_NO_DISPLAY_NETWORK_SETTINGS=1
-		export TOR_SKIP_CONTROLPORTTEST=1
 		export TOR_SKIP_LAUNCH=1
-		export TOR_USE_LEGACY_LAUNCHER=1
+		export TOR_SKIP_CONTROLPORTTEST=1
 
 		if @DEFAULT_WAYLAND@ && [[ -z \${MOZ_DISABLE_WAYLAND} ]]; then
 			if [[ -n "\${WAYLAND_DISPLAY}" ]]; then
@@ -788,7 +786,7 @@ src_install() {
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
-	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/lib/anon-ws-disable-stacked-tor/torbrowser.sh
+	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
 	dodoc "${FILESDIR}/torrc.example"
 }
