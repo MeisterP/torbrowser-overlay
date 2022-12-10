@@ -3,8 +3,8 @@
 
 #PidFile /run/tor/tor.pid
 
-#SocksPort 127.0.0.1:9050 ExtendedErrors
-#SocksPort unix:/run/tor/socks GroupWritable ExtendedErrors
+#SocksPort 127.0.0.1:9050 ExtendedErrors IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
+#SocksPort unix:/run/tor/socks GroupWritable ExtendedErrors IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
 
 #ControlPort 127.0.0.1:9051
 #ControlPort unix:/run/tor/control GroupWritable
