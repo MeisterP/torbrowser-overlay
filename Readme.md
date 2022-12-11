@@ -22,13 +22,13 @@ Tor Browser Launcher is intended to make Tor Browser easier to install and use f
 
 ## www-client/torbrowser
 
-[Git repository](https://gitweb.torproject.org/tor-browser.git)
+[Git repository](https://gitlab.torproject.org/tpo/applications/tor-browser)
 
 This patched Firefox build is **not recommended by Tor upstream** but
-uses the exact same sources. Use this only if you know what you are doing!
+uses the same sources. Use this only if you know what you are doing!
 
 The profile folder includes pre-configuration recommended by upstream,
-as well as the extensions Torbutton, NoScript and HTTPS-Everywhere.
+as well as the NoScript extension.
 If you want to start from scratch just remove the directory `~/.mozilla/torbrowser`.
 
 Torbrowser uses port `9150` to connect to Tor. You can change the port
@@ -40,10 +40,10 @@ You can do this either with gentoo's `/etc/env.d`
 or on the command line.
 
 
-### Advanced torbutton functionality
+### Advanced functionality
 
-To get the advanced functionality of Torbutton (network information,
-new identity feature), `www-client/torbrowser` needs to access a control port.
+To get the advanced functionality (network information, new identity feature, password prompts for onion services),
+`www-client/torbrowser` needs to access a control port and the tor service needs to run with certain options enabled.
 
 ![Tor Onion Menu ](https://extra.torproject.org/blog/2018-09-05-tor-browser-80/tb8-circuit-display-onion-small.gif)
 
@@ -53,12 +53,12 @@ new identity feature), `www-client/torbrowser` needs to access a control port.
   [mechanism](https://wiki.gentoo.org/wiki/Handbook:AMD64/Working/EnvVar/en#Defining_variables_globally)
   or on the command line.
 
-  _Tor Network Settings_ and _Check for Tor Browser Update_ functionality is not working with the `www-client/torbrowser` and is therefore disabled.
-
 * If you use `www-client/torbrowser-launcher`, make sure that the environment variables in `/etc/env.d/99torbrowser`
   are **unset** and that you **don't** have the system wide tor running on port `9150`.
 
-  With `www-client/torbrowser-launcher`, all menu entries are available and working.
+* For Onion Service Authentication to work, you need to enable `ExtendedErrors` for the tor servic.
+  See [torrc.example ](https://github.com/MeisterP/torbrowser-overlay/blob/master/www-client/torbrowser/files/torrc.example).
+  for possible settings.
 
 
 ##  Tor Hidden Service
