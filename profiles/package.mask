@@ -1,6 +1,0 @@
-# Poncho <poncho@spahan.ch> (10 Dec 2022)
-# TOR_SOCKS_IPC_PATH environment variable doesn't work
-# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/41519
-#
-# Feel free to unmask if you use TOR_SOCKS_HOST and TOR_SOCKS_PORT instead
->=www-client/torbrowser-102.5.0_p12000_alpha5
