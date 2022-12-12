@@ -35,6 +35,7 @@ SRC_URI="
 	${TOR_SRC_BASE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	https://addons.mozilla.org/firefox/downloads/file/3954910/noscript-${NOSCRIPT_VERSION}.xpi
+	https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/raw/tbb-${TOR_PV}-${TOR_TAG##*-}/projects/browser/Bundle-Data/Docs/ChangeLog.txt -> ${P}-ChangeLog.txt
 	${PATCH_URIS[@]}"
 
 DESCRIPTION="Private browsing without tracking, surveillance, or censorship"
@@ -323,34 +324,17 @@ pkg_setup() {
 	linux-info_pkg_setup
 }
 
-src_unpack() {
-	local _src_file
-
-	for _src_file in ${A} ; do
-		case "${_src_file}" in
-			"src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz")
-				unpack "${_src_file}"
-				;;
-
-			"noscript-${NOSCRIPT_VERSION}.xpi")
-				local destdir="${WORKDIR}"
-				echo ">>> Copying ${_src_file} to ${destdir}"
-				cp "${DISTDIR}/${_src_file}" "${destdir}" || die
-				;;
-
-			*)
-				unpack "${_src_file}"
-				;;
-		esac
-	done
-}
-
 src_prepare() {
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
 	eapply "${FILESDIR}"/${PN}-102.3.0-Do_not_store_data_in_the_app_bundle.patch
 	eapply "${FILESDIR}"/${PN}-102.3.0-Change_the_default_Firefox_profile_directory.patch
+
+	# https://gitlab.torproject.org/tpo/applications/torbutton/-/merge_requests/119
+	pushd "${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}/toolkit/torproject/torbutton" &>/dev/null || die
+		eapply "${FILESDIR}"/0001-Bug-41519-honor-the-TOR_SOCKS_IPC_PATH-variable.patch
+	popd &>/dev/null || die
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -712,7 +696,7 @@ src_install() {
 
 	# https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=maint-12.0#n59
 	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
-	newins "${WORKDIR}"/noscript-${NOSCRIPT_VERSION}.xpi {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
+	newins "${DISTDIR}/noscript-${NOSCRIPT_VERSION}.xpi" {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
 
 	# Install system-wide preferences
 	local PREFS_DIR="${MOZILLA_FIVE_HOME}/browser/defaults/preferences"
@@ -784,6 +768,9 @@ src_install() {
 	# torbrowser and torbrowser-bin are identical
 	rm "${ED}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
 	dosym torbrowser ${MOZILLA_FIVE_HOME}/torbrowser-bin
+
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/Bundle-Data/Docs/ChangeLog.txt
+	newdoc "${DISTDIR}/${P}-ChangeLog.txt" ChangeLog.txt
 
 	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
