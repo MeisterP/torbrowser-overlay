@@ -54,10 +54,6 @@ RDEPEND="${PYTHON_DEPS}
 	apparmor? ( sys-libs/libapparmor )
 	!www-client/torbrowser"
 
-PATCHES=(
-	"${FILESDIR}"/${P}-py10.patch
-)
-
 python_install_all() {
 	distutils-r1_python_install_all
 
