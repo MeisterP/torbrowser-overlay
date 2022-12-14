@@ -10,7 +10,7 @@ inherit distutils-r1 optfeature xdg
 
 DESCRIPTION="A program to download, updated, and run the Tor Browser Bundle"
 HOMEPAGE="https://github.com/micahflee/torbrowser-launcher"
-SRC_URI="https://github.com/micahflee/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+SRC_URI="https://github.com/micahflee/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${PF}.tar.gz"
 
 LICENSE="MIT"
 SLOT="0"
