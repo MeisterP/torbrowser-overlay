@@ -3,13 +3,14 @@
 
 EAPI=7
 
+DISTUTILS_USE_PEP517=setuptools
 PYTHON_COMPAT=( python3_{8..10} )
 
 inherit distutils-r1 xdg
 
 DESCRIPTION="A GTK application to display Tor circuits and streams"
 HOMEPAGE="https://gitlab.tails.boum.org/tails/onioncircuits"
-SRC_URI="https://gitlab.tails.boum.org/tails/onioncircuits/-/archive/${PV}/onioncircuits-${PV}.tar.gz"
+SRC_URI="https://gitlab.tails.boum.org/tails/onioncircuits/-/archive/${PV}/onioncircuits-${PV}.tar.bz2"
 
 LICENSE="GPL-3+"
 SLOT="0"
@@ -25,6 +26,11 @@ RDEPEND="${PYTHON_DEPS}
 	>=x11-libs/gtk+-3.14.0:3[introspection]"
 
 DOCS=( HACKING.md README.md README.translators.md "${FILESDIR}"/README.controlport )
+
+src_prepare(){
+	default
+	rm -r apparmor po || die
+}
 
 pkg_postinst() {
 	xdg_pkg_postinst
