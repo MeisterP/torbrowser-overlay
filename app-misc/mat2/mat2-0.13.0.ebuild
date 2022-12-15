@@ -3,15 +3,15 @@
 
 EAPI=8
 
+DISTUTILS_USE_PEP517=setuptools
 PYTHON_COMPAT=( python3_{8..10} )
 PYTHON_REQ_USE="xml"
-DISTUTILS_USE_SETUPTOOLS=bdepend
 
 inherit distutils-r1
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
 HOMEPAGE="https://0xacab.org/jvoisin/mat2"
-SRC_URI="https://0xacab.org/jvoisin/mat2/-/archive/${PV}/${P}.tar.gz"
+SRC_URI="https://0xacab.org/jvoisin/mat2/-/archive/${PV}/${P}.tar.bz2"
 
 LICENSE="LGPL-3"
 SLOT="0"
