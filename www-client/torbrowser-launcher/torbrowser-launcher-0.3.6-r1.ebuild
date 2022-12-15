@@ -3,8 +3,8 @@
 
 EAPI=8
 
-DISTUTILS_USE_SETUPTOOLS=no
-PYTHON_COMPAT=( python3_{8..10} )
+DISTUTILS_USE_PEP517=setuptools
+PYTHON_COMPAT=( python3_{8..11} )
 
 inherit distutils-r1 optfeature xdg
 
@@ -15,9 +15,9 @@ SRC_URI="https://github.com/micahflee/${PN}/archive/refs/tags/v${PV}.tar.gz -> $
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="apparmor"
+IUSE=""
 
-FIREFOX_BIN="dev-libs/atk
+FIREFOX_BIN="app-accessibility/at-spi2-core
 	dev-libs/dbus-glib
 	>=dev-libs/glib-2.26:2
 	media-libs/fontconfig
@@ -27,8 +27,8 @@ FIREFOX_BIN="dev-libs/atk
 	>=x11-libs/cairo-1.10[X]
 	x11-libs/gdk-pixbuf
 	>=x11-libs/gtk+-3.11:3[wayland,X]
-	x11-libs/libxcb
 	x11-libs/libX11
+	x11-libs/libxcb
 	x11-libs/libXcomposite
 	x11-libs/libXcursor
 	x11-libs/libXdamage
@@ -51,18 +51,7 @@ RDEPEND="${PYTHON_DEPS}
 	dev-python/distro[${PYTHON_USEDEP}]
 	dev-python/packaging[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
-	apparmor? ( sys-libs/libapparmor )
 	!www-client/torbrowser"
-
-python_install_all() {
-	distutils-r1_python_install_all
-
-	# delete apparmor profiles
-	if ! use apparmor; then
-		rm -r "${D}/etc/apparmor.d" || die "Failed to remove apparmor profiles"
-		rmdir "${D}/etc" || die "Failed to remove empty directory"
-	fi
-}
 
 pkg_postinst() {
 	xdg_pkg_postinst

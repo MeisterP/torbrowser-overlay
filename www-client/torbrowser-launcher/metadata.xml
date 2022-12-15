@@ -5,7 +5,7 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
-	<use>
-		<flag name="apparmor">Enable AppArmor support</flag>
-	</use>
+	<upstream>
+		<remote-id type="github">micahflee/torbrowser-launcher</remote-id>
+	</upstream>
 </pkgmetadata>
