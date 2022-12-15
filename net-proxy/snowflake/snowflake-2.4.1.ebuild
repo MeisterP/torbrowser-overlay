@@ -569,7 +569,7 @@ go-module_set_globals
 
 DESCRIPTION="WebRTC pluggable transport proxy for Tor"
 HOMEPAGE="https://snowflake.torproject.org/ https://community.torproject.org/relay/setup/snowflake/standalone/ https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake "
-SRC_URI="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${PV}/snowflake-v${PV}.tar.gz
+SRC_URI="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${PV}/snowflake-v${PV}.tar.bz2
 	${EGO_SUM_SRC_URI}"
 
 LICENSE="BSD"
