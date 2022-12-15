@@ -5,4 +5,7 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
+	<upstream>
+		<remote-id type="gitlab">rmnvgr/metadata-cleaner</remote-id>
+	</upstream>
 </pkgmetadata>
