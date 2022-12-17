@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-102esr-patches-06j.tar.xz"
+FIREFOX_PATCHSET="firefox-102esr-patches-07j.tar.xz"
 
 LLVM_MAX_SLOT=15
 
@@ -15,11 +15,13 @@ WANT_AUTOCONF="2.1"
 # Convert the ebuild version to the upstream mozilla version, used by mozlinguas
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/config?h=maint-12.0#n15
-# and https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/config?h=maint-12.0#n100
-TOR_PV="12.0"
-TOR_TAG="12.0-2-build1"
+# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/firefox/config#L15
+# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/config#L104
+# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
+TOR_PV="12.0.1"
+TOR_TAG="12.0-1-build2"
 NOSCRIPT_VERSION="11.4.13"
+CHANGELOG_TAG="12.0.1-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
 	llvm multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -35,11 +37,11 @@ SRC_URI="
 	${TOR_SRC_BASE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	https://addons.mozilla.org/firefox/downloads/file/3954910/noscript-${NOSCRIPT_VERSION}.xpi
-	https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/raw/tbb-${TOR_PV}-${TOR_TAG##*-}/projects/browser/Bundle-Data/Docs/ChangeLog.txt -> ${P}-ChangeLog.txt
+	https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/raw/tbb-${CHANGELOG_TAG}/projects/browser/Bundle-Data/Docs/ChangeLog.txt -> ${P}-ChangeLog.txt
 	${PATCH_URIS[@]}"
 
 DESCRIPTION="Private browsing without tracking, surveillance, or censorship"
-HOMEPAGE="https://www.torproject.org/ https://gitweb.torproject.org/tor-browser.git"
+HOMEPAGE="https://www.torproject.org/ https://gitlab.torproject.org/tpo/applications/tor-browser/"
 
 KEYWORDS="~amd64 ~x86"
 
@@ -82,7 +84,7 @@ COMMON_DEPEND="
 	dev-libs/expat
 	dev-libs/glib:2
 	dev-libs/libffi:=
-	>=dev-libs/nss-3.79.1
+	>=dev-libs/nss-3.79.2
 	>=dev-libs/nspr-4.34
 	media-libs/alsa-lib
 	media-libs/fontconfig
@@ -328,11 +330,6 @@ src_prepare() {
 	eapply "${FILESDIR}"/${PN}-102.3.0-Do_not_store_data_in_the_app_bundle.patch
 	eapply "${FILESDIR}"/${PN}-102.3.0-Change_the_default_Firefox_profile_directory.patch
 
-	# https://gitlab.torproject.org/tpo/applications/torbutton/-/merge_requests/119
-	pushd "${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}/toolkit/torproject/torbutton" &>/dev/null || die
-		eapply "${FILESDIR}"/0001-Bug-41519-honor-the-TOR_SOCKS_IPC_PATH-variable.patch
-	popd &>/dev/null || die
-
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
 
@@ -515,9 +512,10 @@ src_configure() {
 	mozconfig_add_options_ac 'torbrowser' --with-app-name=torbrowser
 	mozconfig_add_options_ac 'torbrowser' --with-app-basename=torbrowser
 
-	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/base-browser?h=tor-browser-102.5.0esr-12.0-1
-	# see https://gitweb.torproject.org/tor-browser.git/tree/browser/config/mozconfigs/tor-browser?h=tor-browser-102.5.0esr-12.0-1
-	# see https://gitweb.torproject.org/tor-browser.git/tree/mozconfig-linux-x86_64-dev?h=tor-browser-102.5.0esr-12.0-1
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-102.6.0esr-12.0-1-build2/mozconfig-linux-x86_64
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-102.6.0esr-12.0-1-build2/browser/config/mozconfigs/tor-browser
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-102.6.0esr-12.0-1-build2/browser/config/mozconfigs/base-browser
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-102.6.0esr-12.0-1-build2/browser/config/mozconfig
 	mozconfig_add_options_mk 'torbrowser' "MOZ_APP_DISPLAYNAME=\"Tor Browser\""
 	mozconfig_add_options_ac 'torbrowser' \
 		--enable-optimize \
@@ -667,7 +665,7 @@ src_compile() {
 	./mach build --verbose || die
 
 	# FIXME: add locale support
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/firefox/build?h=maint-12.0#n174
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/firefox/build#L172
 	export MOZ_CHROME_MULTILOCALE=""
 	./mach package-multi-locale --locales en-US $MOZ_CHROME_MULTILOCALE || die
 	AB_CD=multi ./mach build stage-package || die
@@ -691,7 +689,7 @@ src_install() {
 		rm -v "${ED}${MOZILLA_FIVE_HOME}/llvm-symbolizer" || die
 	fi
 
-	# https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/build?h=maint-12.0#n59
+	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/build#L59
 	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
 	newins "${DISTDIR}/noscript-${NOSCRIPT_VERSION}.xpi" {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
 
@@ -729,11 +727,11 @@ src_install() {
 	done
 
 	# Install menu
-	# see https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser.desktop?h=maint-12.0
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/RelativeLink/start-browser.desktop
 	domenu "${FILESDIR}"/torbrowser.desktop
 
 	# Install wrapper
-	# see: https://gitweb.torproject.org/builders/tor-browser-build.git/tree/projects/browser/RelativeLink/start-browser.desktop?h=maint-12.0
+	# see: https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/RelativeLink/start-browser
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
 	rm "${ED}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 
@@ -769,7 +767,6 @@ src_install() {
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/Bundle-Data/Docs/ChangeLog.txt
 	newdoc "${DISTDIR}/${P}-ChangeLog.txt" ChangeLog.txt
 
-	# see: https://trac.torproject.org/projects/tor/ticket/11751#comment:2
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
 	dodoc "${FILESDIR}/torrc.example"
