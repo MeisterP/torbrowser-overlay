@@ -19,9 +19,9 @@ MOZ_PV="${PV/_p*}esr"
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/config#L104
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
 TOR_PV="12.0.1"
-TOR_TAG="12.0-1-build2"
+TOR_TAG="${TOR_PV%.*}-1-build2"
 NOSCRIPT_VERSION="11.4.13"
-CHANGELOG_TAG="12.0.1-build1"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
 	llvm multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -736,7 +736,7 @@ src_install() {
 	rm "${ED}"/usr/bin/torbrowser || die # symlink to /usr/lib64/torbrowser/torbrowser
 
 	newbin - torbrowser <<-EOF
-		#!/bin/sh
+		#!/bin/bash
 
 		unset SESSION_MANAGER
 		export GSETTINGS_BACKEND=memory
