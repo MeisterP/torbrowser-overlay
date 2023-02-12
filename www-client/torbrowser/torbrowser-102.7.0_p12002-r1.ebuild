@@ -464,9 +464,7 @@ src_configure() {
 		--x-includes="${ESYSROOT}/usr/include" \
 		--x-libraries="${ESYSROOT}/usr/$(get_libdir)"
 
-	if ! use x86 ; then
-		mozconfig_add_options_ac '' --enable-rust-simd
-	fi
+	mozconfig_add_options_ac '' --enable-rust-simd
 
 	mozconfig_use_with system-av1
 	mozconfig_use_with system-harfbuzz
@@ -574,10 +572,6 @@ src_configure() {
 		# toolkit/moz.configure Elfhack section: target.cpu in ('arm', 'x86', 'x86_64')
 		local disable_elf_hack=
 		if use amd64 ; then
-			disable_elf_hack=yes
-		elif use x86 ; then
-			disable_elf_hack=yes
-		elif use arm ; then
 			disable_elf_hack=yes
 		fi
 
