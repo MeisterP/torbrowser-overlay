@@ -43,7 +43,7 @@ SRC_URI="
 DESCRIPTION="Private browsing without tracking, surveillance, or censorship"
 HOMEPAGE="https://www.torproject.org/ https://gitlab.torproject.org/tpo/applications/tor-browser/"
 
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64"
 
 SLOT="0"
 LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
