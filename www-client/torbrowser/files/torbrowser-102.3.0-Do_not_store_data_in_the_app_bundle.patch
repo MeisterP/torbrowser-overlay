@@ -1,9 +1,9 @@
-From d05ff77710c091dba62f0894f6f008882347351b Mon Sep 17 00:00:00 2001
+From 3447d3f39c4bb36c35c7695b2534e7c00c1255e7 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
-Date: Fri, 15 Jul 2022 18:25:27 +0200
+Date: Sat, 10 Dec 2022 09:37:54 +0100
 Subject: [PATCH 1/2] Revert "Bug 13252: Do not store data in the app bundle"
 
-This reverts commit a90841e1e0d8fc073dd9b60d7331aa37ad4bdf61.
+This reverts commit 532f1f526f14fbde481cc6bb0b4b18fe27209e37.
 ---
  toolkit/xre/nsAppRunner.cpp            | 56 ++-------------
  toolkit/xre/nsXREDirProvider.cpp       | 23 +-----
@@ -17,10 +17,10 @@ This reverts commit a90841e1e0d8fc073dd9b60d7331aa37ad4bdf61.
  delete mode 100644 xpcom/io/TorFileUtils.h
 
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index c5e285c7e746..468f043386ad 100644
+index d7e0703fb01c..353ffd12d546 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
-@@ -3097,21 +3097,6 @@ static ReturnAbortOnError ShowProfileManager(
+@@ -3099,21 +3099,6 @@ static ReturnAbortOnError ShowProfileManager(
    return LaunchChild(false, true);
  }
  
@@ -42,7 +42,7 @@ index c5e285c7e746..468f043386ad 100644
  static bool gDoMigration = false;
  static bool gDoProfileReset = false;
  static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
-@@ -4158,14 +4143,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
+@@ -4160,14 +4145,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
    if (PR_GetEnv("XRE_MAIN_BREAK")) NS_BREAK();
  #endif
  
@@ -57,7 +57,7 @@ index c5e285c7e746..468f043386ad 100644
    mozilla::startup::IncreaseDescriptorLimits();
  
  #ifdef USE_GLX_TEST
-@@ -5087,34 +5064,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+@@ -5089,34 +5066,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
    }
  #endif
  
@@ -92,19 +92,19 @@ index c5e285c7e746..468f043386ad 100644
    if (rv == NS_ERROR_FILE_ACCESS_DENIED) {
      PR_fprintf(PR_STDERR,
                 "Error: Access was denied while trying to open files in "
-@@ -5225,6 +5175,12 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
- #  ifdef TOR_BROWSER_UPDATE
-     nsAutoCString compatVersion(TOR_BROWSER_VERSION_QUOTED);
- #  endif
+@@ -5224,6 +5174,12 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
+     if (CheckArg("test-process-updates")) {
+       SaveToEnv("MOZ_TEST_PROCESS_UPDATES=1");
+     }
 +    nsCOMPtr<nsIFile> exeFile, exeDir;
 +    rv = mDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
 +                              getter_AddRefs(exeFile));
 +    NS_ENSURE_SUCCESS(rv, 1);
 +    rv = exeFile->GetParent(getter_AddRefs(exeDir));
 +    NS_ENSURE_SUCCESS(rv, 1);
-     ProcessUpdates(mDirProvider.GetGREDir(), exeDir, updRoot, gRestartArgc,
-                    gRestartArgv,
  #  ifdef TOR_BROWSER_UPDATE
+     nsAutoCString compatVersion(TOR_BROWSER_VERSION_QUOTED);
+ #  endif
 diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 index 13a5878df8ed..7f5e3a4c498e 100644
 --- a/toolkit/xre/nsXREDirProvider.cpp
@@ -383,5 +383,5 @@ index 85ce71c5016c..60b1775eda97 100644
    if (aLocal) {
      rv = localDir->AppendNative("Caches"_ns);
 -- 
-2.37.4
+2.39.2
 

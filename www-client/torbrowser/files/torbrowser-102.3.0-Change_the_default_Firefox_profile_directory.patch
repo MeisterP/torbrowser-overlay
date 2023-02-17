@@ -1,20 +1,20 @@
-From 9c84c965e07c85d6b11bed00c465e318ce289cb1 Mon Sep 17 00:00:00 2001
+From c997be15704a98b48d31f6d1be23e816747f33b2 Mon Sep 17 00:00:00 2001
 From: Poncho <poncho@spahan.ch>
-Date: Fri, 15 Jul 2022 18:30:50 +0200
+Date: Sat, 10 Dec 2022 09:44:55 +0100
 Subject: [PATCH 2/2] Revert "Bug 9173: Change the default Firefox profile
  directory to be relative."
 
-This reverts commit 2c91b6ec30176d11de79c24533df8b05af6f07da.
+This reverts commit dcd37e4f76f2a00c956bfd6b2d18ce6a1fc3f7ac.
 ---
- moz.configure                          | 19 ------
- toolkit/xre/nsAppRunner.cpp            | 12 ++--
+ moz.configure                          | 37 -----------
+ toolkit/xre/nsAppRunner.cpp            | 10 ++-
  toolkit/xre/nsXREDirProvider.cpp       | 85 ++++++++++++++------------
  toolkit/xre/nsXREDirProvider.h         |  8 ---
  xpcom/io/nsAppFileLocationProvider.cpp | 61 ++++++++----------
- 5 files changed, 79 insertions(+), 106 deletions(-)
+ 5 files changed, 78 insertions(+), 123 deletions(-)
 
 diff --git a/moz.configure b/moz.configure
-index 7ec6d25a8ac1..3020f86e0dab 100755
+index 7ec6d25a8ac1..de7f9705ee66 100755
 --- a/moz.configure
 +++ b/moz.configure
 @@ -1025,25 +1025,6 @@ set_config("BASE_BROWSER", True, when="--enable-base-browser")
@@ -43,11 +43,36 @@ index 7ec6d25a8ac1..3020f86e0dab 100755
  # Tor additions.
  
  option(
+@@ -1089,24 +1070,6 @@ set_define("TOR_BROWSER_UPDATE", tor_browser_update)
+ add_old_configure_assignment("TOR_BROWSER_UPDATE", tor_browser_update)
+ 
+ 
+-option(
+-    "--enable-tor-browser-data-outside-app-dir",
+-    help="Enable Tor Browser data outside of app directory"
+-)
+-
+-
+-@depends("--enable-tor-browser-data-outside-app-dir")
+-def tor_browser_data_outside_app_dir(value):
+-    if value:
+-        return True
+-
+-
+-set_define(
+-    "TOR_BROWSER_DATA_OUTSIDE_APP_DIR", tor_browser_data_outside_app_dir)
+-add_old_configure_assignment(
+-    "TOR_BROWSER_DATA_OUTSIDE_APP_DIR", tor_browser_data_outside_app_dir)
+-
+-
+ # Please do not add configure checks from here on.
+ 
+ # Fallthrough to autoconf-based configure
 diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
-index 468f043386ad..38100e13bdb7 100644
+index 353ffd12d546..e11ae4e66809 100644
 --- a/toolkit/xre/nsAppRunner.cpp
 +++ b/toolkit/xre/nsAppRunner.cpp
-@@ -2874,19 +2874,17 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
+@@ -2874,12 +2874,10 @@ static ReturnAbortOnError ProfileErrorDialog(nsIFile* aProfileDir,
                                               nsIProfileLock** aResult) {
    nsresult rv;
  
@@ -64,14 +89,6 @@ index 468f043386ad..38100e13bdb7 100644
    }
  
    ScopedXPCOMStartup xpcom;
-   rv = xpcom.Initialize();
-   NS_ENSURE_SUCCESS(rv, rv);
- 
--  if (aProfileDir) mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
-+  mozilla::Telemetry::WriteFailedProfileLock(aProfileDir);
- 
-   rv = xpcom.SetWindowCreator(aNative);
-   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 index 7f5e3a4c498e..c9c97f850cf5 100644
 --- a/toolkit/xre/nsXREDirProvider.cpp
@@ -353,5 +370,5 @@ index 60b1775eda97..ef974f99048f 100644
  
    return rv;
 -- 
-2.37.4
+2.39.2
 

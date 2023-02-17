@@ -18,10 +18,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/firefox/config#L15
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.0/projects/browser/config#L104
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="12.0.2"
-TOR_TAG="${TOR_PV%.*}-1-build1"
-NOSCRIPT_VERSION="11.4.14"
-CHANGELOG_TAG="${TOR_PV}-build2"
+TOR_PV="12.0.3"
+TOR_TAG="${TOR_PV%.*}-1-build2"
+NOSCRIPT_VERSION="11.4.16"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
 	llvm multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
@@ -319,6 +319,8 @@ pkg_setup() {
 }
 
 src_prepare() {
+	rm -v "${WORKDIR}/firefox-patches/0031-bmo-1769631-python-3.11-compatibility.patch" || die
+	rm -v "${WORKDIR}/firefox-patches/0032-bmo-1769631-python-3.11-compatibility.patch" || die
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
