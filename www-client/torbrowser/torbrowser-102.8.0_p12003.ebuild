@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-102esr-patches-07j.tar.xz"
+FIREFOX_PATCHSET="firefox-102esr-patches-09j.tar.xz"
 
 LLVM_MAX_SLOT=15
 
@@ -319,8 +319,6 @@ pkg_setup() {
 }
 
 src_prepare() {
-	rm -v "${WORKDIR}/firefox-patches/0031-bmo-1769631-python-3.11-compatibility.patch" || die
-	rm -v "${WORKDIR}/firefox-patches/0032-bmo-1769631-python-3.11-compatibility.patch" || die
 	eapply "${WORKDIR}/firefox-patches"
 
 	# Revert "Change the default Firefox profile directory to be TBB-relative"
