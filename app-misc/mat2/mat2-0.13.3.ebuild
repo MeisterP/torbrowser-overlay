@@ -41,5 +41,11 @@ DEPEND="
 		dev-python/unittest-or-fail
 	)
 "
+src_prepare() {
+	default
+
+	# ValueError: invalid pyproject.toml config: `project`
+	rm pyproject.toml || die
+}
 
 distutils_enable_tests unittest
