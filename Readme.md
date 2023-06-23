@@ -4,7 +4,7 @@ To add the torbrowser overlay, run `layman -a torbrowser` or `eselect repository
 
 Install either `www-client/torbrowser-launcher` or `www-client/torbrowser`. If unsure, choose `www-client/torbrowser-launcher`.
 
-![Tor Browser Bundle start page](https://extra.torproject.org/blog/2018-09-05-tor-browser-80/tb8-onboarding.gif)
+![Tor Browser Overview](https://blog.torproject.org/new-release-tor-browser-125/125-accessibility.png)
 
 
 ## www-client/torbrowser-launcher
@@ -24,12 +24,10 @@ Tor Browser Launcher is intended to make Tor Browser easier to install and use f
 
 [Git repository](https://gitlab.torproject.org/tpo/applications/tor-browser)
 
-This patched Firefox build is **not recommended by Tor upstream** but
+This Tor Browser build is **not recommended by Tor upstream** but
 uses the same sources. Use this only if you know what you are doing!
 
-The profile folder includes pre-configuration recommended by upstream,
-as well as the NoScript extension.
-If you want to start from scratch just remove the directory `~/.mozilla/torbrowser`.
+The profile folder is located at `~/.torproject/torbrowser/`.
 
 Torbrowser uses port `9150` to connect to Tor. You can change the port
 in `/etc/env.d/99torbrowser` to match your setup. See
@@ -45,7 +43,7 @@ or on the command line.
 To get the advanced functionality (network information, new identity feature, password prompts for onion services),
 `www-client/torbrowser` needs to access a control port and the tor service needs to run with certain options enabled.
 
-![Tor Onion Menu ](https://extra.torproject.org/blog/2018-09-05-tor-browser-80/tb8-circuit-display-onion-small.gif)
+![Tor Onion Menu ](https://blog.torproject.org/new-release-tor-browser-125/125-circuit-display.png)
 
 * If you use `www-client/torbrowser`, you need to **adjust and export** the environment variables from
   [99torbrowser.example](https://github.com/MeisterP/torbrowser-overlay/blob/master/www-client/torbrowser/files/99torbrowser.example).
