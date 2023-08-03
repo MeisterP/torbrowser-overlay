@@ -18,9 +18,9 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.5/projects/firefox/config#L14
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.5/projects/browser/config#L106
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="12.5.1"
+TOR_PV="12.5.2"
 TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="11.4.24"
+NOSCRIPT_VERSION="11.4.26"
 CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
@@ -819,7 +819,7 @@ pkg_postinst() {
 		elog "Set the Variables in /etc/env.d/99torbrowser accordingly."
 	fi
 
-	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "102.7.0_p12500_alpha7" ]]; then
+	if [[ "${REPLACING_VERSIONS}" ]] && [[ "${REPLACING_VERSIONS}" < "102.7.0_p12500" ]]; then
 		ewarn "With this update, the profile directory moved from \"~/.mozilla/torbrowser/\""
 		ewarn "to \"~/.torproject/torbrowser/\". To keep your settings and bookmarks,"
 		ewarn "move your profile to the new location before launching torbrowser"
