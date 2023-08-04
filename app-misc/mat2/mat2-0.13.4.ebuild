@@ -46,6 +46,17 @@ src_prepare() {
 
 	# ValueError: invalid pyproject.toml config: `project`
 	rm pyproject.toml || die
+
+	# installed manually
+	sed -i -e "/data_files.*/d" setup.py || die
+}
+
+src_install() {
+	distutils-r1_src_install
+
+	dodoc CHANGELOG.md CONTRIBUTING.md README.md
+	dodoc doc/comparison_to_others.md doc/implementation_notes.md doc/threat_model.md
+	doman doc/mat2.1
 }
 
 distutils_enable_tests unittest
