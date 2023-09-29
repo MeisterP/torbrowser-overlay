@@ -18,8 +18,8 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.5/projects/firefox/config#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-12.5/projects/browser/config#L106
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="12.5.5"
-TOR_TAG="${TOR_PV%.*}-1-build2"
+TOR_PV="12.5.6"
+TOR_TAG="${TOR_PV%.*}-1-build3"
 NOSCRIPT_VERSION="11.4.27"
 CHANGELOG_TAG="${TOR_PV}-build1"
 
