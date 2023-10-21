@@ -4,12 +4,12 @@ To add the torbrowser overlay, run `layman -a torbrowser` or `eselect repository
 
 Install either `www-client/torbrowser-launcher` or `www-client/torbrowser`. If unsure, choose `www-client/torbrowser-launcher`.
 
-![Tor Browser Overview](https://blog.torproject.org/new-release-tor-browser-125/125-accessibility.png)
+![Tor Browser Overview](https://blog.torproject.org/new-release-tor-browser-130/130-homepage.png)
 
 
 ## www-client/torbrowser-launcher
 
-[Homepage](https://github.com/micahflee/torbrowser-launcher)
+[Homepage](https://gitlab.torproject.org/tpo/applications/torbrowser-launcher)
 
 Tor Browser Launcher is intended to make Tor Browser easier to install and use for GNU/Linux users. You install 'torbrowser-launcher' from your distribution's package manager and it handles everything else:
 
