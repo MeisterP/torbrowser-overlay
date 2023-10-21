@@ -5,7 +5,7 @@ EAPI=8
 
 FIREFOX_PATCHSET="firefox-115esr-patches-06.tar.xz"
 
-LLVM_MAX_SLOT=16
+LLVM_MAX_SLOT=17
 
 PYTHON_COMPAT=( python3_{10..11} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -56,6 +56,14 @@ IUSE+=" wayland +X"
 
 BDEPEND="${PYTHON_DEPS}
 	|| (
+		(
+			sys-devel/clang:17
+			sys-devel/llvm:17
+			clang? (
+				sys-devel/lld:17
+				virtual/rust:0/llvm-17
+			)
+		)
 		(
 			sys-devel/clang:16
 			sys-devel/llvm:16
@@ -189,42 +197,6 @@ moz_clear_vendor_checksums() {
 		-e 's/\("files":{\)[^}]*/\1/' \
 		"${S}"/third_party/rust/${1}/.cargo-checksum.json \
 		|| die
-}
-
-moz_install_xpi() {
-	debug-print-function ${FUNCNAME} "$@"
-
-	if [[ ${#} -lt 2 ]] ; then
-		die "${FUNCNAME} requires at least two arguments"
-	fi
-
-	local DESTDIR=${1}
-	shift
-
-	insinto "${DESTDIR}"
-
-	local emid xpi_file xpi_tmp_dir
-	for xpi_file in "${@}" ; do
-		emid=
-		xpi_tmp_dir=$(mktemp -d --tmpdir="${T}")
-
-		# Unpack XPI
-		unzip -qq "${xpi_file}" -d "${xpi_tmp_dir}" || die
-
-		# Determine extension ID
-		if [[ -f "${xpi_tmp_dir}/install.rdf" ]] ; then
-			emid=$(sed -n -e '/install-manifest/,$ { /em:id/!d; s/.*[\">]\([^\"<>]*\)[\"<].*/\1/; p; q }' "${xpi_tmp_dir}/install.rdf")
-			[[ -z "${emid}" ]] && die "failed to determine extension id from install.rdf"
-		elif [[ -f "${xpi_tmp_dir}/manifest.json" ]] ; then
-			emid=$(sed -n -e 's/.*"id": "\([^"]*\)".*/\1/p' "${xpi_tmp_dir}/manifest.json")
-			[[ -z "${emid}" ]] && die "failed to determine extension id from manifest.json"
-		else
-			die "failed to determine extension id"
-		fi
-
-		einfo "Installing ${emid}.xpi into ${ED}${DESTDIR} ..."
-		newins "${xpi_file}" "${emid}.xpi"
-	done
 }
 
 mozconfig_add_options_ac() {
@@ -426,11 +398,13 @@ src_configure() {
 		if tc-is-gcc; then
 			have_switched_compiler=yes
 		fi
+
 		AR=llvm-ar
 		CC=${CHOST}-clang-${version_clang}
 		CXX=${CHOST}-clang++-${version_clang}
 		NM=llvm-nm
 		RANLIB=llvm-ranlib
+
 	elif ! use clang && ! tc-is-gcc ; then
 		# Force gcc
 		have_switched_compiler=yes
@@ -477,8 +451,6 @@ src_configure() {
 	mozconfig_add_options_ac '' --enable-project=browser
 
 	# Set Gentoo defaults
-	export MOZILLA_OFFICIAL=1
-
 	mozconfig_add_options_ac 'Gentoo default' \
 		--allow-addon-sideload \
 		--disable-cargo-incremental \
@@ -489,12 +461,15 @@ src_configure() {
 		--disable-strip \
 		--disable-tests \
 		--disable-updater \
+		--disable-wmf \
+		--enable-legacy-profile-creation \
 		--enable-negotiateauth \
 		--enable-new-pass-manager \
 		--enable-official-branding \
 		--enable-release \
 		--enable-system-ffi \
 		--enable-system-pixman \
+		--enable-system-policies \
 		--host="${CBUILD:-${CHOST}}" \
 		--libdir="${EPREFIX}/usr/$(get_libdir)" \
 		--prefix="${EPREFIX}/usr" \
@@ -512,6 +487,7 @@ src_configure() {
 		--x-libraries="${ESYSROOT}/usr/$(get_libdir)"
 
 	mozconfig_add_options_ac '' --enable-rust-simd
+	mozconfig_add_options_ac '' --enable-sandbox
 
 	mozconfig_use_with system-av1
 	mozconfig_use_with system-harfbuzz
@@ -625,10 +601,7 @@ src_configure() {
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1482204
 		# https://bugzilla.mozilla.org/show_bug.cgi?id=1483822
 		# toolkit/moz.configure Elfhack section: target.cpu in ('arm', 'x86', 'x86_64')
-		local disable_elf_hack=
-		if use amd64 ; then
-			disable_elf_hack=yes
-		fi
+		local disable_elf_hack=yes
 
 		if [[ -n ${disable_elf_hack} ]] ; then
 			mozconfig_add_options_ac 'elf-hack is broken when using Clang' --disable-elf-hack
@@ -709,10 +682,8 @@ src_compile() {
 	./mach build --verbose || die
 
 	# FIXME: add locale support
-	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/main/projects/firefox/build#L184
-	export MOZ_CHROME_MULTILOCALE=""
-	./mach package-multi-locale --locales en-US $MOZ_CHROME_MULTILOCALE || die
-	AB_CD=multi ./mach build stage-package || die
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/firefox/build?ref_type=heads#L171
+	./mach build stage-package || die
 }
 
 src_install() {
@@ -733,7 +704,7 @@ src_install() {
 		rm -v "${ED}${MOZILLA_FIVE_HOME}/llvm-symbolizer" || die
 	fi
 
-	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/main/projects/browser/build#L65
+	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/browser/build?ref_type=heads#L70
 	insinto ${MOZILLA_FIVE_HOME}/browser/extensions
 	newins "${DISTDIR}/noscript-${NOSCRIPT_VERSION}.xpi" {73a6fe31-595d-460b-a920-fcc0f8843232}.xpi
 
