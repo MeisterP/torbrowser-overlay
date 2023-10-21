@@ -8,10 +8,11 @@ PYTHON_COMPAT=( python3_{9..11} )
 
 inherit distutils-r1 optfeature xdg
 
-DESCRIPTION="A program to download, updated, and run the Tor Browser Bundle"
-HOMEPAGE="https://github.com/micahflee/torbrowser-launcher"
-SRC_URI="https://github.com/micahflee/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${PF}.tar.gz"
+COMMIT="40e7cacbf86a093858d228f4c0588602806f7b8a"
 
+DESCRIPTION="A program to download, updated, and run the Tor Browser Bundle"
+HOMEPAGE="https://gitlab.torproject.org/tpo/applications/torbrowser-launcher"
+SRC_URI="https://gitlab.torproject.org/tpo/applications/torbrowser-launcher/-/archive/${COMMIT}/torbrowser-launcher-${COMMIT}.tar.bz2 -> ${P}.tar.bz2"
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64"
@@ -52,6 +53,8 @@ RDEPEND="${PYTHON_DEPS}
 	dev-python/packaging[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
 	!www-client/torbrowser"
+
+S="${WORKDIR}/torbrowser-launcher-${COMMIT}"
 
 pkg_postinst() {
 	xdg_pkg_postinst
