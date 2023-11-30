@@ -16,7 +16,6 @@ SRC_URI="https://gitlab.torproject.org/tpo/applications/torbrowser-launcher/-/ar
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64"
-IUSE=""
 
 FIREFOX_BIN="app-accessibility/at-spi2-core
 	dev-libs/dbus-glib

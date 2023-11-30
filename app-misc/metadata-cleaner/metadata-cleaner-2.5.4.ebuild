@@ -25,7 +25,6 @@ DEPEND="${PYTHON_DEPS}
 	')"
 
 RDEPEND="${DEPEND}"
-BDEPEND=""
 
 S=${WORKDIR}/metadata-cleaner-v${PV}
 

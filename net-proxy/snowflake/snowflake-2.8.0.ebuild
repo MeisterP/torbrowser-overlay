@@ -374,13 +374,11 @@ LICENSE="BSD"
 SLOT="0"
 KEYWORDS="~amd64"
 
-DEPEND=""
 RDEPEND="
 	${DEPEND}
 	acct-group/snowflake
 	acct-user/snowflake
 "
-BDEPEND=""
 
 S=${WORKDIR}/snowflake-v${PV}
 
