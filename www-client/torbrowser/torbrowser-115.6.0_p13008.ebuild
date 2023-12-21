@@ -16,9 +16,9 @@ WANT_AUTOCONF="2.1"
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/firefox/config?ref_type=heads#L17
-# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/browser/config?ref_type=heads#L91
+# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/browser/config?ref_type=heads#L93
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="13.0.7"
+TOR_PV="13.0.8"
 TOR_TAG="${TOR_PV%.*}-1-build2"
 NOSCRIPT_VERSION="11.4.29"
 CHANGELOG_TAG="${TOR_PV}-build1"
