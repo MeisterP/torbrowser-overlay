@@ -8,7 +8,7 @@ PYTHON_COMPAT=( python3_{10..12} )
 
 inherit distutils-r1 optfeature xdg
 
-COMMIT="40e7cacbf86a093858d228f4c0588602806f7b8a"
+COMMIT="e1e16dbb022e038c56241b680ca150c4ee0cbecd"
 
 DESCRIPTION="A program to download, updated, and run the Tor Browser Bundle"
 HOMEPAGE="https://gitlab.torproject.org/tpo/applications/torbrowser-launcher"
