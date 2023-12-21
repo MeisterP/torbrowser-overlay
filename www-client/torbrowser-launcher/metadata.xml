@@ -5,7 +5,4 @@
 		<email>poncho@spahan.ch</email>
 		<name>Poncho</name>
 	</maintainer>
-	<upstream>
-		<remote-id type="github">micahflee/torbrowser-launcher</remote-id>
-	</upstream>
 </pkgmetadata>
