@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-115esr-patches-08.tar.xz"
+FIREFOX_PATCHSET="firefox-115esr-patches-09.tar.xz"
 
 LLVM_MAX_SLOT=17
 
@@ -18,10 +18,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/firefox/config?ref_type=heads#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-13.0/projects/browser/config?ref_type=heads#L99
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="13.0.9"
+TOR_PV="13.0.10"
 TOR_TAG="${TOR_PV%.*}-1-build1"
 NOSCRIPT_VERSION="11.4.29"
-CHANGELOG_TAG="${TOR_PV}-build2"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info \
 	llvm multiprocessing pax-utils python-any-r1 toolchain-funcs xdg
