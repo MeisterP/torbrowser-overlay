@@ -2,7 +2,7 @@
 Description=WebRTC pluggable transport proxy for Tor
 Documentation=man:snowflake-proxy
 Documentation=https://snowflake.torproject.org/
-After=network-online.target
+After=network-online.target nss-lookup.target
 Wants=network-online.target
 
 [Service]
@@ -10,15 +10,8 @@ ExecStart=/usr/bin/snowflake-proxy
 Restart=on-failure
 
 # Hardening
-User=snowflake
-NoNewPrivileges=yes
-PrivateDevices=yes
-PrivateTmp=yes
-ProtectHome=yes
-ProtectSystem=strict
-ProtectControlGroups=yes
-ProtectKernelTunables=yes
-CapabilityBoundingSet=
+DynamicUser=true
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
