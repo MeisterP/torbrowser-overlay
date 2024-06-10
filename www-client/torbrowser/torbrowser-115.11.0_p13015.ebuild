@@ -87,7 +87,10 @@ BDEPEND="${PYTHON_DEPS}
 	>=dev-util/cbindgen-0.24.3
 	net-libs/nodejs
 	virtual/pkgconfig
-	!clang? ( >=virtual/rust-1.65 )
+	!clang? (
+		>=virtual/rust-1.65
+		<virtual/rust-1.78
+	)
 	>=dev-lang/nasm-2.14"
 
 COMMON_DEPEND="
