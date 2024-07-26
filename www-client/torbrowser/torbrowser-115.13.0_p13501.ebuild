@@ -3,9 +3,9 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-115esr-patches-09.tar.xz"
+FIREFOX_PATCHSET="firefox-115esr-patches-12.tar.xz"
 
-LLVM_MAX_SLOT=17
+LLVM_MAX_SLOT=18
 
 PYTHON_COMPAT=( python3_{10..11} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -56,6 +56,14 @@ IUSE+=" wayland +X"
 
 BDEPEND="${PYTHON_DEPS}
 	|| (
+		(
+			sys-devel/clang:18
+			sys-devel/llvm:18
+			clang? (
+				sys-devel/lld:18
+				virtual/rust:0/llvm-18
+			)
+		)
 		(
 			sys-devel/clang:17
 			sys-devel/llvm:17
@@ -383,6 +391,10 @@ src_prepare() {
 	# Clear cargo checksums from crates we have patched
 	# moz_clear_vendor_checksums crate
 	moz_clear_vendor_checksums audio_thread_priority
+	moz_clear_vendor_checksums bindgen
+	moz_clear_vendor_checksums encoding_rs
+	moz_clear_vendor_checksums any_all_workaround
+	moz_clear_vendor_checksums packed_simd
 
 	# Create build dir
 	BUILD_DIR="${WORKDIR}/${PN}_build"
