@@ -51,9 +51,10 @@ KEYWORDS="~amd64"
 
 IUSE="+clang dbus hardened +jumbo-build"
 IUSE+=" pulseaudio +system-av1 +system-harfbuzz +system-icu +system-jpeg"
-IUSE+=" +system-libevent +system-libvpx system-png +system-webp +X"
+IUSE+=" +system-libevent +system-libvpx system-png +system-webp wayland +X"
 
-REQUIRED_USE="X"
+REQUIRED_USE="|| ( X wayland )
+	wayland? ( dbus )"
 
 BDEPEND="${PYTHON_DEPS}
 	$(llvm_gen_dep '
@@ -115,6 +116,10 @@ COMMON_DEPEND="
 	system-libvpx? ( >=media-libs/libvpx-1.8.2:0=[postproc] )
 	system-png? ( >=media-libs/libpng-1.6.35:0=[apng] )
 	system-webp? ( >=media-libs/libwebp-1.1.0:0= )
+	wayland? (
+		>=media-libs/libepoxy-1.5.10-r1
+		x11-libs/gtk+:3[wayland]
+	)
 	X? (
 		virtual/opengl
 		x11-libs/cairo[X]
@@ -503,7 +508,13 @@ src_configure() {
 
 	! use jumbo-build && mozconfig_add_options_ac '--disable-unified-build' --disable-unified-build
 
-	mozconfig_add_options_ac '+x11' --enable-default-toolkit=cairo-gtk3-x11-only
+	if use X && use wayland ; then
+		mozconfig_add_options_ac '+x11+wayland' --enable-default-toolkit=cairo-gtk3-x11-wayland
+	elif ! use X && use wayland ; then
+		mozconfig_add_options_ac '+wayland' --enable-default-toolkit=cairo-gtk3-wayland-only
+	else
+		mozconfig_add_options_ac '+x11' --enable-default-toolkit=cairo-gtk3-x11-only
+	fi
 
 	# LTO is handled via configure
 	filter-lto
@@ -736,8 +747,21 @@ src_install() {
 		export TOR_SKIP_LAUNCH=1
 		export TOR_SKIP_CONTROLPORTTEST=1
 
+		if @DEFAULT_WAYLAND@ && [[ -z \${MOZ_DISABLE_WAYLAND} ]]; then
+			if [[ -n "\${WAYLAND_DISPLAY}" ]]; then
+				export MOZ_ENABLE_WAYLAND=1
+			fi
+		fi
+
 		exec /usr/$(get_libdir)/torbrowser/torbrowser --class "Tor Browser" --name "Tor Browser" "\${@}"
 	EOF
+
+	# Update wrapper
+	local use_wayland="false"
+	if use wayland ; then
+		use_wayland="true"
+	fi
+	sed -i -e "s:@DEFAULT_WAYLAND@:${use_wayland}:" "${ED}/usr/bin/${PN}" || die
 
 	# torbrowser and torbrowser-bin are identical
 	rm "${ED}"${MOZILLA_FIVE_HOME}/torbrowser-bin || die
