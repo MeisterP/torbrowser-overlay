@@ -506,6 +506,8 @@ src_configure() {
 
 	mozconfig_add_options_ac '--enable-audio-backends' --enable-audio-backends="${myaudiobackends::-1}"
 
+	mozconfig_add_options_ac '' --disable-necko-wifi
+
 	! use jumbo-build && mozconfig_add_options_ac '--disable-unified-build' --disable-unified-build
 
 	if use X && use wayland ; then
