@@ -488,6 +488,7 @@ src_configure() {
 	mozconfig_use_with system-webp
 
 	mozconfig_use_enable dbus
+	mozconfig_use_enable dbus necko-wifi
 	mozconfig_add_options_ac ''  --disable-libproxy
 
 	mozconfig_add_options_ac '' --disable-eme
