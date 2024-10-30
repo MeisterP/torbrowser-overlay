@@ -3,9 +3,9 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-128esr-patches-03.tar.xz"
+FIREFOX_PATCHSET="firefox-128esr-patches-04.tar.xz"
 
-LLVM_COMPAT=( 17 18 )
+LLVM_COMPAT=( 17 18 19 )
 
 PYTHON_COMPAT=( python3_{10..12} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
@@ -49,7 +49,7 @@ LICENSE="BSD CC-BY-3.0 MPL-2.0 GPL-2 LGPL-2.1"
 SLOT="0"
 KEYWORDS="~amd64"
 
-IUSE="+clang dbus hardened +jumbo-build"
+IUSE="clang dbus hardened +jumbo-build"
 IUSE+=" pulseaudio +system-av1 +system-harfbuzz +system-icu +system-jpeg"
 IUSE+=" +system-libevent +system-libvpx system-png +system-webp wayland +X"
 
@@ -518,8 +518,11 @@ src_configure() {
 		mozconfig_add_options_ac '+x11' --enable-default-toolkit=cairo-gtk3-x11-only
 	fi
 
-	# LTO is handled via configure
+	# LTO is handled via configure.
+	# -Werror=lto-type-mismatch -Werror=odr are going to fail with GCC,
+	# bmo#1516758, bgo#942288
 	filter-lto
+	filter-flags -Werror=lto-type-mismatch -Werror=odr
 
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/issues/40745
 	export MOZ_APP_BASENAME="TorBrowser"
@@ -610,10 +613,6 @@ src_configure() {
 
 	# System-av1 fix
 	use system-av1 && append-ldflags "-Wl,--undefined-version"
-
-	# Allow elfhack to work in combination with unstripped binaries
-	# when they would normally be larger than 2GiB.
-	append-ldflags "-Wl,--compress-debug-sections=zlib"
 
 	# Make revdep-rebuild.sh happy; Also required for musl
 	append-ldflags -Wl,-rpath="${MOZILLA_FIVE_HOME}",--enable-new-dtags
@@ -775,6 +774,8 @@ src_install() {
 
 	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/main/projects/browser/RelativeLink/start-browser#L340
 	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tree/main/projects/fonts
+	# Todo for 14.5: https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/43140
+	# Todo for 14.5: https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/41799
 	sed -i -e 's|<dir prefix="cwd">fonts</dir>|<dir prefix="relative">fonts</dir>|' \
 		"${WORKDIR}"/tor-browser/Browser/fontconfig/fonts.conf || die
 	insinto /usr/share/torbrowser/
@@ -789,35 +790,8 @@ src_install() {
 	dodoc "${FILESDIR}/torrc.example"
 }
 
-pkg_preinst() {
-	xdg_pkg_preinst
-
-	# If the apulse libs are available in MOZILLA_FIVE_HOME then apulse
-	# does not need to be forced into the LD_LIBRARY_PATH
-	if use pulseaudio && has_version ">=media-sound/apulse-0.1.12-r4" ; then
-		einfo "APULSE found; Generating library symlinks for sound support ..."
-		local lib
-		pushd "${ED}${MOZILLA_FIVE_HOME}" &>/dev/null || die
-		for lib in ../apulse/libpulse{.so{,.0},-simple.so{,.0}} ; do
-			# A quickpkg rolled by hand will grab symlinks as part of the package,
-			# so we need to avoid creating them if they already exist.
-			if [[ ! -L ${lib##*/} ]] ; then
-				ln -s "${lib}" ${lib##*/} || die
-			fi
-		done
-		popd &>/dev/null || die
-	fi
-}
-
 pkg_postinst() {
 	xdg_pkg_postinst
-
-	if use pulseaudio && has_version ">=media-sound/apulse-0.1.12-r4" ; then
-		elog "Apulse was detected at merge time on this system and so it will always be"
-		elog "used for sound.  If you wish to use pulseaudio instead please unmerge"
-		elog "media-sound/apulse."
-		elog
-	fi
 
 	if [[ -z "${REPLACING_VERSIONS}" ]] ; then
 		ewarn "This Tor Browser build is _NOT_ recommended by Tor upstream but uses"
