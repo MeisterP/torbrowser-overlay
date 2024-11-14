@@ -10,7 +10,10 @@ LLVM_COMPAT=( 17 18 19 )
 PYTHON_COMPAT=( python3_{10..12} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
 
+# This will also filter rust versions that don't match LLVM_COMPAT in the non-clang path; this is fine.
 RUST_NEEDS_LLVM=1
+# If not building with clang we need at least rust 1.76
+RUST_MIN_VER=1.77.1
 
 WANT_AUTOCONF="2.1"
 
@@ -20,11 +23,11 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/firefox/config?ref_type=heads#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/browser/config?ref_type=heads#L111
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="14.0.1"
-TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="11.5.0"
-NOSCRIPT_ID="4377088"
-CHANGELOG_TAG="${TOR_PV}-build2"
+TOR_PV="14.0.2"
+TOR_TAG="${TOR_PV%.*}-1-build3"
+NOSCRIPT_VERSION="11.5.2"
+NOSCRIPT_ID="4379558"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
