@@ -46,8 +46,8 @@ RDEPEND="${PYTHON_DEPS}
 	${FIREFOX_BIN}
 	app-crypt/gpgme[python,${PYTHON_USEDEP}]
 	dev-python/packaging[${PYTHON_USEDEP}]
-	dev-python/PyQt5[${PYTHON_USEDEP},widgets]
-	dev-python/PySocks[${PYTHON_USEDEP}]
+	dev-python/pyqt5[${PYTHON_USEDEP},widgets]
+	dev-python/pysocks[${PYTHON_USEDEP}]
 	dev-python/distro[${PYTHON_USEDEP}]
 	dev-python/packaging[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
