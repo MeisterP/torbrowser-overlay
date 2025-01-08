@@ -1,9 +1,9 @@
-# Copyright 1999-2024 Gentoo Authors
+# Copyright 1999-2025 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-128esr-patches-07.tar.xz"
+FIREFOX_PATCHSET="firefox-128esr-patches-08.tar.xz"
 
 LLVM_COMPAT=( 17 18 19 )
 
@@ -23,11 +23,11 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/firefox/config?ref_type=heads#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/browser/config?ref_type=heads#L111
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="14.0.3"
-TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="11.5.2"
-NOSCRIPT_ID="4379558"
-CHANGELOG_TAG="${TOR_PV}-build2"
+TOR_PV="14.0.4"
+TOR_TAG="${TOR_PV%.*}-1-build1"
+NOSCRIPT_VERSION="12.1.1"
+NOSCRIPT_ID="4411102"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
