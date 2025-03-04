@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-128esr-patches-08.tar.xz"
+FIREFOX_PATCHSET="firefox-128esr-patches-09.tar.xz"
 
 LLVM_COMPAT=( 17 18 19 )
 
@@ -23,11 +23,11 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/firefox/config?ref_type=heads#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/browser/config?ref_type=heads#L111
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="14.0.5"
+TOR_PV="14.0.7"
 TOR_TAG="${TOR_PV%.*}-1-build2"
 NOSCRIPT_VERSION="12.1.1"
 NOSCRIPT_ID="4411102"
-CHANGELOG_TAG="${TOR_PV}-build1"
+CHANGELOG_TAG="${TOR_PV}-build2"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -455,7 +455,6 @@ src_configure() {
 		--enable-new-pass-manager \
 		--enable-official-branding \
 		--enable-release \
-		--enable-system-ffi \
 		--enable-system-pixman \
 		--enable-system-policies \
 		--host="${CBUILD:-${CHOST}}" \
@@ -466,6 +465,7 @@ src_configure() {
 		--without-wasm-sandboxed-libraries \
 		--with-intl-api \
 		--with-libclang-path="$(llvm-config --libdir)" \
+		--enable-system-ffi \
 		--with-system-nspr \
 		--with-system-nss \
 		--with-system-zlib \
