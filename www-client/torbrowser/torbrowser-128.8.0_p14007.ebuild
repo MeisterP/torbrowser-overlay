@@ -7,7 +7,7 @@ FIREFOX_PATCHSET="firefox-128esr-patches-09.tar.xz"
 
 LLVM_COMPAT=( 17 18 19 )
 
-PYTHON_COMPAT=( python3_{10..12} )
+PYTHON_COMPAT=( python3_{10..13} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
 
 # This will also filter rust versions that don't match LLVM_COMPAT in the non-clang path; this is fine.
