@@ -29,7 +29,7 @@ RDEPEND="
 BDEPEND="
 	test? (
 		media-libs/exiftool:*
-		media-video/ffmpeg[mp3,vorbis]
+		media-video/ffmpeg[lame,vorbis]
 		x11-libs/gdk-pixbuf:2[introspection,jpeg,tiff]
 	)
 "
