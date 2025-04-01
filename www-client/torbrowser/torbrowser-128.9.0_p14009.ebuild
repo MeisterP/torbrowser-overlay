@@ -23,11 +23,11 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/firefox/config?ref_type=heads#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-14.0/projects/browser/config?ref_type=heads#L111
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="14.0.7"
-TOR_TAG="${TOR_PV%.*}-1-build2"
+TOR_PV="14.0.9"
+TOR_TAG="${TOR_PV%.*}-2-build2"
 NOSCRIPT_VERSION="12.1.1"
 NOSCRIPT_ID="4411102"
-CHANGELOG_TAG="${TOR_PV}-build2"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit autotools check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
