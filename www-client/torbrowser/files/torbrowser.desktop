@@ -1,14 +1,10 @@
 [Desktop Entry]
-Version=1.0
+Type=Application
 Name=Tor Browser
 GenericName=Web Browser
 Comment=Tor Browser is +1 for privacy and −1 for mass surveillance
+Categories=Network;WebBrowser;Security;
 Exec=torbrowser %u
 Icon=torbrowser
-Terminal=false
-Type=Application
-MimeType=application/vnd.mozilla.xul+xml;application/xhtml+xml;text/html;text/mml;text/xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=true
 StartupWMClass=Tor Browser
-Categories=Network;WebBrowser;Security;
-Keywords=web;browser;internet;tor;torbrowser;onion
