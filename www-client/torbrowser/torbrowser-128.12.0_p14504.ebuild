@@ -489,7 +489,11 @@ src_configure() {
 	mozconfig_use_enable dbus
 	mozconfig_add_options_ac ''  --disable-libproxy
 
-	mozconfig_add_options_ac '' --disable-eme
+	CARCH=${CHOST%%-*}
+	case "$CARCH" in
+		aarch64) einfo "--disable-eme not supported on aarch64";;
+		*) mozconfig_add_options_ac '' --disable-eme
+	esac
 
 	if use hardened ; then
 		mozconfig_add_options_ac "+hardened" --enable-hardening
