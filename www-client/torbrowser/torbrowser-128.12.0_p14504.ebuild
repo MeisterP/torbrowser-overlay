@@ -58,7 +58,6 @@ KEYWORDS="~amd64"
 IUSE="+clang dbus hardened pulseaudio"
 IUSE+=" +system-av1 +system-harfbuzz +system-icu +system-jpeg +system-libevent +system-libvpx"
 IUSE+=" system-png +system-webp wayland +X"
-IUSE+=" +jumbo-build"
 
 REQUIRED_USE="|| ( X wayland )
 	wayland? ( dbus )"
@@ -335,14 +334,12 @@ src_prepare() {
 	# Clear checksums from cargo crates we've manually patched.
 	# moz_clear_vendor_checksums xyz
 
-	# Respect choice for "jumbo-build"
 	# Changing the value for FILES_PER_UNIFIED_FILE may not work, see #905431
-	if [[ -n ${FILES_PER_UNIFIED_FILE} ]] && use jumbo-build; then
+	if [[ -n ${FILES_PER_UNIFIED_FILE} ]]; then
 		local my_files_per_unified_file=${FILES_PER_UNIFIED_FILE:=16}
 		elog ""
-		elog "jumbo-build defaults modified to ${my_files_per_unified_file}."
+		elog "build defaults modified to ${my_files_per_unified_file}."
 		elog "if you get a build failure, try undefining FILES_PER_UNIFIED_FILE,"
-		elog "if that fails try -jumbo-build before opening a bug report."
 		elog ""
 
 		sed -i -e "s/\"FILES_PER_UNIFIED_FILE\", 16/\"FILES_PER_UNIFIED_FILE\", "${my_files_per_unified_file}"/" \
@@ -506,8 +503,6 @@ src_configure() {
 	mozconfig_add_options_ac '--enable-audio-backends' --enable-audio-backends="${myaudiobackends::-1}"
 
 	mozconfig_add_options_ac '' --disable-necko-wifi
-
-	! use jumbo-build && mozconfig_add_options_ac '--disable-unified-build' --disable-unified-build
 
 	if use X && use wayland ; then
 		mozconfig_add_options_ac '+x11+wayland' --enable-default-toolkit=cairo-gtk3-x11-wayland
