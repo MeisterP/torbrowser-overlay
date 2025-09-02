@@ -280,6 +280,11 @@ src_prepare() {
 	fi
 	rm -v "${WORKDIR}"/firefox-patches/*-bmo-1862601-system-icu-74.patch || die
 
+	# Workaround for bgo#915651 on musl
+	if ! use elibc_musl ; then
+		rm -v "${WORKDIR}"/firefox-patches/*bgo-748849-RUST_TARGET_override.patch || die
+	fi
+
 	eapply "${WORKDIR}/firefox-patches"
 
 	# https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/20497#note_2873088
@@ -292,6 +297,15 @@ src_prepare() {
 
 	# Make cargo respect MAKEOPTS
 	export CARGO_BUILD_JOBS="$(makeopts_jobs)"
+
+	# Workaround for bgo#915651
+	if use elibc_musl ; then
+		if use amd64 ; then
+			export RUST_TARGET="x86_64-unknown-linux-musl"
+		else
+			die "Unsupported architecture ${CHOST}"
+		fi
+	fi
 
 	# Make LTO respect MAKEOPTS
 	sed -i -e "s/multiprocessing.cpu_count()/$(makeopts_jobs)/" \
@@ -604,6 +618,10 @@ src_configure() {
 		mozconfig_add_options_ac 'disable elf-hack with mold linker' --disable-elf-hack
 	else
 		mozconfig_add_options_ac 'relr elf-hack' --enable-elf-hack=relr
+	fi
+
+	if use elibc_musl; then
+		mozconfig_add_options_ac 'elibc_musl' --disable-jemalloc
 	fi
 
 	# System-av1 fix
