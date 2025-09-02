@@ -111,7 +111,6 @@ COMMON_DEPEND="
 		>=media-libs/libaom-1.0.0:=
 	)
 	system-harfbuzz? (
-		>=media-gfx/graphite2-1.3.13
 		>=media-libs/harfbuzz-2.8.1:0=
 	)
 	system-icu? ( >=dev-libs/icu-73.1:= )
@@ -147,14 +146,14 @@ DEPEND="${COMMON_DEPEND}
 	)"
 
 llvm_check_deps() {
-	if ! has_version -b "sys-devel/clang:${LLVM_SLOT}" ; then
-		einfo "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+	if ! has_version -b "llvm-core/clang:${LLVM_SLOT}" ; then
+		einfo "llvm-core/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 		return 1
 	fi
 
 	if use clang && ! tc-ld-is-mold ; then
-		if ! has_version -b "sys-devel/lld:${LLVM_SLOT}" ; then
-			einfo "sys-devel/lld:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+		if ! has_version -b "llvm-core/lld:${LLVM_SLOT}" ; then
+			einfo "llvm-core/lld:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 			return 1
 		fi
 	fi
@@ -238,35 +237,38 @@ pkg_pretend() {
 }
 
 pkg_setup() {
-	# Ensure we have enough disk space to compile
-	CHECKREQS_DISK_BUILD="6400M"
+	if [[ ${MERGE_TYPE} != binary ]] ; then
 
-	check-reqs_pkg_setup
-	llvm-r1_pkg_setup
-	rust_pkg_setup
-	python-any-r1_pkg_setup
+		# Ensure we have enough disk space to compile
+		CHECKREQS_DISK_BUILD="6400M"
 
-	# These should *always* be cleaned up anyway
-	unset \
-		DBUS_SESSION_BUS_ADDRESS \
-		DISPLAY \
-		ORBIT_SOCKETDIR \
-		SESSION_MANAGER \
-		XAUTHORITY \
-		XDG_CACHE_HOME \
-		XDG_SESSION_COOKIE
+		check-reqs_pkg_setup
+		llvm-r1_pkg_setup
+		rust_pkg_setup
+		python-any-r1_pkg_setup
 
-	# Build system is using /proc/self/oom_score_adj, bug #604394
-	addpredict /proc/self/oom_score_adj
+		# These should *always* be cleaned up anyway
+		unset \
+			DBUS_SESSION_BUS_ADDRESS \
+			DISPLAY \
+			ORBIT_SOCKETDIR \
+			SESSION_MANAGER \
+			XAUTHORITY \
+			XDG_CACHE_HOME \
+			XDG_SESSION_COOKIE
 
-	if ! mountpoint -q /dev/shm ; then
-		# If /dev/shm is not available, configure is known to fail with
-		# a traceback report referencing /usr/lib/pythonN.N/multiprocessing/synchronize.py
-		ewarn "/dev/shm is not mounted -- expect build failures!"
+		# Build system is using /proc/self/oom_score_adj, bug #604394
+		addpredict /proc/self/oom_score_adj
+
+		if ! mountpoint -q /dev/shm ; then
+			# If /dev/shm is not available, configure is known to fail with
+			# a traceback report referencing /usr/lib/pythonN.N/multiprocessing/synchronize.py
+			ewarn "/dev/shm is not mounted -- expect build failures!"
+		fi
+
+		# Ensure we use C locale when building, bug #746215
+		export LC_ALL=C
 	fi
-
-	# Ensure we use C locale when building, bug #746215
-	export LC_ALL=C
 
 	CONFIG_CHECK="~SECCOMP"
 	WARNING_SECCOMP="CONFIG_SECCOMP not set! This system will be unable to play DRM-protected content."
@@ -281,7 +283,7 @@ src_prepare() {
 	rm -v "${WORKDIR}"/firefox-patches/*-bmo-1862601-system-icu-74.patch || die
 
 	# Workaround for bgo#915651 on musl
-	if ! use elibc_musl ; then
+	if use elibc_glibc ; then
 		rm -v "${WORKDIR}"/firefox-patches/*bgo-748849-RUST_TARGET_override.patch || die
 	fi
 
@@ -299,7 +301,7 @@ src_prepare() {
 	export CARGO_BUILD_JOBS="$(makeopts_jobs)"
 
 	# Workaround for bgo#915651
-	if use elibc_musl ; then
+	if ! use elibc_glibc ; then
 		if use amd64 ; then
 			export RUST_TARGET="x86_64-unknown-linux-musl"
 		else
@@ -476,7 +478,7 @@ src_configure() {
 		--without-wasm-sandboxed-libraries \
 		--with-intl-api \
 		--with-libclang-path="$(llvm-config --libdir)" \
-		--enable-system-ffi \
+		--with-system-ffi \
 		--with-system-nspr \
 		--with-system-nss \
 		--with-system-zlib \
@@ -489,7 +491,6 @@ src_configure() {
 
 	mozconfig_use_with system-av1
 	mozconfig_use_with system-harfbuzz
-	mozconfig_use_with system-harfbuzz system-graphite2
 	mozconfig_use_with system-icu
 	mozconfig_use_with system-jpeg
 	mozconfig_use_with system-libevent
@@ -620,8 +621,8 @@ src_configure() {
 		mozconfig_add_options_ac 'relr elf-hack' --enable-elf-hack=relr
 	fi
 
-	if use elibc_musl; then
-		mozconfig_add_options_ac 'elibc_musl' --disable-jemalloc
+	if ! use elibc_glibc; then
+		mozconfig_add_options_ac '!elibc_glibc' --disable-jemalloc
 	fi
 
 	# System-av1 fix
@@ -701,7 +702,7 @@ src_install() {
 	rm "${ED}${MOZILLA_FIVE_HOME}/${PN}-bin" || die
 	dosym ${PN} ${MOZILLA_FIVE_HOME}/${PN}-bin
 
-	# Don't install llvm-symbolizer from sys-devel/llvm package
+	# Don't install llvm-symbolizer from llvm-core/llvm package
 	if [[ -f "${ED}${MOZILLA_FIVE_HOME}/llvm-symbolizer" ]] ; then
 		rm -v "${ED}${MOZILLA_FIVE_HOME}/llvm-symbolizer" || die
 	fi
