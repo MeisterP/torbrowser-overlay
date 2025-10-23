@@ -3,15 +3,15 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{10..13} )
+PYTHON_COMPAT=( python3_{10..14} )
 PYTHON_REQ_USE="xml(+)"
 DISTUTILS_USE_PEP517=setuptools
 
 inherit distutils-r1 optfeature
 
 DESCRIPTION="Metadata Anonymisation Toolkit"
-HOMEPAGE="https://0xacab.org/jvoisin/mat2"
-SRC_URI="https://0xacab.org/jvoisin/mat2/-/archive/${PV}/${P}.tar.bz2"
+HOMEPAGE="https://github.com/jvoisin/mat2"
+SRC_URI="https://github.com/jvoisin/mat2/archive/refs/tags/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="LGPL-3"
 SLOT="0"
@@ -48,6 +48,5 @@ src_test() {
 
 pkg_postinst() {
 	optfeature "misc file format support" media-libs/exiftool
-	optfeature "sandboxing" sys-apps/bubblewrap
 	optfeature "video support" media-video/ffmpeg
 }

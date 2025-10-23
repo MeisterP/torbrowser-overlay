@@ -6,7 +6,6 @@
 		<name>Poncho</name>
 	</maintainer>
 	<upstream>
-		<bugs-to>https://0xacab.org/jvoisin/mat2/-/issues</bugs-to>
-		<changelog>https://0xacab.org/jvoisin/mat2/-/tags?format=atom</changelog>
+		<remote-id type="github">jvoisin/mat2</remote-id>
 	</upstream>
 </pkgmetadata>
