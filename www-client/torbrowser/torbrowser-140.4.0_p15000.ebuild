@@ -286,10 +286,11 @@ src_prepare() {
 
 	eapply "${WORKDIR}/firefox-patches"
 
-	# https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/20497#note_2873088
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/44311
+	# see https://codeberg.org/librewolf/source/src/branch/main/patches/moz-configure.patch
 	sed -i \
-		-e "s/MOZ_APP_VENDOR=\"Tor Project\"/MOZ_APP_VENDOR=\"TorProject\"/" \
-		"${S}"/browser/confvars.sh || die
+		-e "/\"MOZ_APP_PROFILE\",/a \ \ \ \ default=\"torproject/torbrowser\"," \
+		"${S}"/toolkit/moz.configure || die
 
 	# Allow user to apply any additional patches without modifing ebuild
 	eapply_user
@@ -445,7 +446,6 @@ src_configure() {
 		--disable-wmf \
 		--enable-negotiateauth \
 		--enable-new-pass-manager \
-		--enable-official-branding \
 		--enable-packed-relative-relocs \
 		--enable-release \
 		--enable-system-policies \
@@ -524,19 +524,21 @@ src_configure() {
 		--without-wasm-sandboxed-libraries
 
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-140.4.0esr-15.0-1/browser/config/mozconfigs/tor-browser
-	mozconfig_add_options_mk 'torbrowser' "MOZ_APP_REMOTINGNAME=\"Tor Browser\""
+	# with-user-appdir is not honored but set it here anyway
+	export MOZ_APP_REMOTINGNAME="Tor Browser"
 	mozconfig_add_options_ac 'torbrowser' \
 		--without-relative-data-dir \
 		--with-user-appdir=.torproject \
 		--with-distribution-id=org.torproject
 
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/blob/tor-browser-140.4.0esr-15.0-1/browser/config/mozconfigs/base-browser
+	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/mozconfig#L82
 	export MOZILLA_OFFICIAL=1
 	mozconfig_add_options_ac 'torbrowser' \
-		--enable-official-branding \
 		--enable-optimize \
 		--enable-rust-simd \
 		--disable-unverified-updates \
+		--disable-updater \
 		--disable-base-browser-update \
 		--enable-bundled-fonts \
 		--disable-tests \
@@ -549,7 +551,6 @@ src_configure() {
 		--disable-backgroundtasks \
 		MOZ_TELEMETRY_REPORTING= \
 		--disable-legacy-profile-creation \
-		--enable-geckodriver \
 		--without-wasm-sandboxed-libraries
 
 	# Avoid auto-magic on linker
