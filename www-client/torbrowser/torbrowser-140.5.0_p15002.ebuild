@@ -5,7 +5,7 @@ EAPI=8
 
 FIREFOX_PATCHSET="firefox-140esr-patches-03.tar.xz"
 
-LLVM_COMPAT=( 19 20 )
+LLVM_COMPAT=( 19 20 21 )
 
 # This will also filter rust versions that don't match LLVM_COMPAT in the non-clang path; this is fine.
 RUST_NEEDS_LLVM=1
@@ -22,11 +22,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L116
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0"
-#TOR_TAG="${TOR_PV%.*}-1-build5"
-TOR_TAG="${TOR_PV}-1-build5"
-NOSCRIPT_VERSION="13.2.2"
-NOSCRIPT_ID="4597669"
+TOR_PV="15.0.2"
+TOR_TAG="${TOR_PV%.*}-1-build2"
+NOSCRIPT_VERSION="13.4"
+NOSCRIPT_ID="4609561"
 CHANGELOG_TAG="${TOR_PV}-build2"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
@@ -91,7 +90,7 @@ COMMON_DEPEND="
 	media-libs/freetype
 	media-libs/mesa
 	<media-video/ffmpeg-8.0
-	sys-libs/zlib
+	virtual/zlib:=
 	virtual/freedesktop-icon-theme
 	x11-libs/cairo
 	x11-libs/gdk-pixbuf:2
