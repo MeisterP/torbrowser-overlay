@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-140esr-patches-03.tar.xz"
+FIREFOX_PATCHSET="firefox-140esr-patches-04.tar.xz"
 
 LLVM_COMPAT=( 19 20 21 )
 
@@ -84,12 +84,12 @@ COMMON_DEPEND="
 	dev-libs/glib:2
 	dev-libs/libffi:=
 	>=dev-libs/nss-3.112.2
-	>=dev-libs/nspr-4.35
+	>=dev-libs/nspr-4.36
 	media-libs/alsa-lib
 	media-libs/fontconfig
 	media-libs/freetype
 	media-libs/mesa
-	<media-video/ffmpeg-8.0
+	media-video/ffmpeg
 	virtual/zlib:=
 	virtual/freedesktop-icon-theme
 	x11-libs/cairo
