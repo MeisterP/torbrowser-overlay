@@ -22,11 +22,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L116
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0.2"
-TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="13.4"
-NOSCRIPT_ID="4609561"
-CHANGELOG_TAG="${TOR_PV}-build2"
+TOR_PV="15.0.3"
+TOR_TAG="${TOR_PV%.*}-1-build5"
+NOSCRIPT_VERSION="13.5.2.1984"
+CHANGELOG_TAG="${TOR_PV}-build3"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -45,7 +44,7 @@ SRC_URI="
 	${TOR_SRC_ARCHIVE_URI}/src-firefox-tor-browser-${MOZ_PV}-${TOR_TAG}.tar.xz
 	${TOR_SRC_BASE_URI}/tor-browser-linux-x86_64-${TOR_PV}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/tor-browser-linux-x86_64-${TOR_PV}.tar.xz
-	https://addons.mozilla.org/firefox/downloads/file/${NOSCRIPT_ID}/noscript-${NOSCRIPT_VERSION}.xpi
+	https://dist.torproject.org/torbrowser/noscript/noscript-${NOSCRIPT_VERSION}.xpi
 	https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/raw/tbb-${CHANGELOG_TAG}/projects/browser/Bundle-Data/Docs-TBB/ChangeLog.txt -> ${P}-ChangeLog.txt
 	${PATCH_URIS[@]}"
 
