@@ -1,9 +1,9 @@
-# Copyright 1999-2025 Gentoo Authors
+# Copyright 1999-2026 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-140esr-patches-04.tar.xz"
+FIREFOX_PATCHSET="firefox-140esr-patches-05.tar.xz"
 
 LLVM_COMPAT=( 19 20 21 )
 
@@ -20,12 +20,12 @@ PYTHON_REQ_USE="ncurses,sqlite,ssl"
 MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L17
-# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L116
+# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L121
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0.3"
-TOR_TAG="${TOR_PV%.*}-1-build5"
-NOSCRIPT_VERSION="13.5.2.1984"
-CHANGELOG_TAG="${TOR_PV}-build3"
+TOR_PV="15.0.4"
+TOR_TAG="${TOR_PV%.*}-1-build2"
+NOSCRIPT_VERSION="13.5.7.1984"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -79,7 +79,6 @@ BDEPEND="${PYTHON_DEPS}
 
 COMMON_DEPEND="
 	>=app-accessibility/at-spi2-core-2.46.0:2
-	dev-libs/expat
 	dev-libs/glib:2
 	dev-libs/libffi:=
 	>=dev-libs/nss-3.112.2
@@ -283,6 +282,12 @@ src_prepare() {
 	fi
 
 	eapply "${WORKDIR}/firefox-patches"
+
+
+	# ICU's subslot change should trigger rebuild on Firefox if it is updated 77->78.
+	if use system-icu && has_version ">=dev-libs/icu-78.1" ; then
+		eapply "${FILESDIR}/firefox-146.0.1-icu78.patch" # bgo#967261
+	fi
 
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/44311
 	# see https://codeberg.org/librewolf/source/src/branch/main/patches/moz-configure.patch
