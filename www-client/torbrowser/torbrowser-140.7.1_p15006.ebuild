@@ -288,6 +288,11 @@ src_prepare() {
 		eapply "${FILESDIR}/firefox-146.0.1-icu78.patch" # bgo#967261
 	fi
 
+	# fix build with sys-libs/glibc-2.43
+	# see https://gitlab.archlinux.org/archlinux/packaging/packages/firefox/-/tree/147.0.4-1
+	eapply "${FILESDIR}/0001-Patch-glsl-optimizer-to-build-with-glibc-2.43.patch"
+	eapply "${FILESDIR}/0002-Fix-sandbox-to-build-with-glibc-2.43.patch"
+
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/44311
 	# see https://codeberg.org/librewolf/source/src/branch/main/patches/moz-configure.patch
 	sed -i \
