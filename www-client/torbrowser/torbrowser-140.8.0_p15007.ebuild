@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-140esr-patches-05.tar.xz"
+FIREFOX_PATCHSET="firefox-140esr-patches-07.tar.xz"
 
 LLVM_COMPAT=( 19 20 21 )
 
@@ -22,10 +22,10 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L17
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L121
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0.6"
-TOR_TAG="${TOR_PV%.*}-1-build1"
-NOSCRIPT_VERSION="13.5.13.1984"
-CHANGELOG_TAG="${TOR_PV}-build2"
+TOR_PV="15.0.7"
+TOR_TAG="${TOR_PV%.*}-1-build3"
+NOSCRIPT_VERSION="13.5.14.1984"
+CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -81,7 +81,7 @@ COMMON_DEPEND="
 	>=app-accessibility/at-spi2-core-2.46.0:2
 	dev-libs/glib:2
 	dev-libs/libffi:=
-	>=dev-libs/nss-3.112.2
+	>=dev-libs/nss-3.112.3
 	>=dev-libs/nspr-4.36
 	media-libs/alsa-lib
 	media-libs/fontconfig
@@ -288,11 +288,6 @@ src_prepare() {
 		eapply "${FILESDIR}/firefox-146.0.1-icu78.patch" # bgo#967261
 	fi
 
-	# fix build with sys-libs/glibc-2.43
-	# see https://gitlab.archlinux.org/archlinux/packaging/packages/firefox/-/tree/147.0.4-1
-	eapply "${FILESDIR}/0001-Patch-glsl-optimizer-to-build-with-glibc-2.43.patch"
-	eapply "${FILESDIR}/0002-Fix-sandbox-to-build-with-glibc-2.43.patch"
-
 	# see https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/44311
 	# see https://codeberg.org/librewolf/source/src/branch/main/patches/moz-configure.patch
 	sed -i \
@@ -339,6 +334,8 @@ src_prepare() {
 
 	# Clear checksums from cargo crates we've manually patched.
 	# moz_clear_vendor_checksums xyz
+	# glslopt: bgo#969412
+	moz_clear_vendor_checksums glslopt
 
 	# Changing the value for FILES_PER_UNIFIED_FILE may not work, see #905431
 	if [[ -n ${FILES_PER_UNIFIED_FILE} ]]; then
