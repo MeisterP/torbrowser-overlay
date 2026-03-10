@@ -1,11 +1,11 @@
-# Copyright 2022-2025 Gentoo Authors
+# Copyright 2022-2026 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
 
 inherit go-module systemd
 
-JOB_ID="898266"
+JOB_ID="1413878"
 
 DESCRIPTION="WebRTC pluggable transport proxy for Tor"
 HOMEPAGE="https://snowflake.torproject.org/ \
