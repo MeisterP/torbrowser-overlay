@@ -16,6 +16,10 @@ SLOT="0"
 KEYWORDS="~amd64"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
+# Tests aren't relevant downstream (codequality).
+# Opportunistically use pre-commit and fail without a git repository.
+RESTRICT="test"
+
 DEPEND="${PYTHON_DEPS}
 	dev-util/itstool
 	gui-libs/gtk:4
