@@ -28,6 +28,7 @@ RDEPEND="
 "
 BDEPEND="
 	test? (
+		gui-libs/gdk-pixbuf-loader-webp
 		media-libs/exiftool:*
 		media-video/ffmpeg[lame,vorbis]
 		x11-libs/gdk-pixbuf:2[introspection,jpeg,tiff]
@@ -38,13 +39,9 @@ DOCS=( doc {CHANGELOG,CONTRIBUTING,INSTALL,README}.md )
 
 distutils_enable_tests unittest
 
-src_test() {
-	# Double sandboxing is not possible
-	if ! has usersandbox ${FEATURES}; then
-		distutils-r1_src_test
-	fi
-	return 0
-}
+PATCHES=(
+	"${FILESDIR}"/mat2-0.14.0-fix-tests.patch
+)
 
 pkg_postinst() {
 	optfeature "misc file format support" media-libs/exiftool
