@@ -5,7 +5,7 @@ EAPI=8
 
 FIREFOX_PATCHSET="firefox-140esr-patches-07.tar.xz"
 
-LLVM_COMPAT=( 19 20 21 )
+LLVM_COMPAT=( 20 21 )
 
 # This will also filter rust versions that don't match LLVM_COMPAT in the non-clang path; this is fine.
 RUST_NEEDS_LLVM=1
@@ -13,17 +13,17 @@ RUST_NEEDS_LLVM=1
 # If not building with clang we need at least rust 1.76
 RUST_MIN_VER=1.82.0
 
-PYTHON_COMPAT=( python3_{11..14} )
+PYTHON_COMPAT=( python3_{12..14} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
 
 # Convert the ebuild version to the upstream Mozilla version
 MOZ_PV="${PV/_p*}esr"
 
-# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L17
-# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L121
+# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L21
+# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L120
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0.9"
-TOR_TAG="${TOR_PV%.*}-1-build1"
+TOR_PV="15.0.10"
+TOR_TAG="${TOR_PV%.*}-1-build2"
 NOSCRIPT_VERSION="13.6.15.1984"
 CHANGELOG_TAG="${TOR_PV}-build1"
 
@@ -81,7 +81,7 @@ COMMON_DEPEND="
 	>=app-accessibility/at-spi2-core-2.46.0:2
 	dev-libs/glib:2
 	dev-libs/libffi:=
-	>=dev-libs/nss-3.112.3
+	>=dev-libs/nss-3.112.4
 	>=dev-libs/nspr-4.36
 	media-libs/alsa-lib
 	media-libs/fontconfig
@@ -231,7 +231,7 @@ mozconfig_use_with() {
 
 pkg_pretend() {
 	# Ensure we have enough disk space to compile
-	CHECKREQS_DISK_BUILD="7400M"
+	CHECKREQS_DISK_BUILD="9000M"
 
 	check-reqs_pkg_pretend
 }
@@ -240,7 +240,7 @@ pkg_setup() {
 	if [[ ${MERGE_TYPE} != binary ]] ; then
 
 		# Ensure we have enough disk space to compile
-		CHECKREQS_DISK_BUILD="6400M"
+		CHECKREQS_DISK_BUILD="9000M"
 
 		check-reqs_pkg_setup
 		llvm-r1_pkg_setup
