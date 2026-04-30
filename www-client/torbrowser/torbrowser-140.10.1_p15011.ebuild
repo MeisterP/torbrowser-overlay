@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-140esr-patches-07.tar.xz"
+FIREFOX_PATCHSET="firefox-140esr-patches-08.tar.xz"
 
 LLVM_COMPAT=( 20 21 )
 
@@ -22,9 +22,9 @@ MOZ_PV="${PV/_p*}esr"
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L120
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
-TOR_PV="15.0.10"
-TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="13.6.15.1984"
+TOR_PV="15.0.11"
+TOR_TAG="${TOR_PV%.*}-1-build1"
+NOSCRIPT_VERSION="13.6.18.1984"
 CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
@@ -81,7 +81,7 @@ COMMON_DEPEND="
 	>=app-accessibility/at-spi2-core-2.46.0:2
 	dev-libs/glib:2
 	dev-libs/libffi:=
-	>=dev-libs/nss-3.112.4
+	>=dev-libs/nss-3.112.5
 	>=dev-libs/nspr-4.36
 	media-libs/alsa-lib
 	media-libs/fontconfig
@@ -117,7 +117,7 @@ COMMON_DEPEND="
 	system-libevent? ( >=dev-libs/libevent-2.1.12:0=[threads(+)] )
 	system-libvpx? ( >=media-libs/libvpx-1.8.2:0=[postproc] )
 	system-pipewire? ( >=media-video/pipewire-1.4.7-r2:= )
-	system-png? ( >=media-libs/libpng-1.6.45:0=[apng] )
+	system-png? ( >=media-libs/libpng-1.6.58:0=[apng] )
 	system-webp? ( >=media-libs/libwebp-1.1.0:0= )
 	wayland? (
 		>=media-libs/libepoxy-1.5.10-r1
