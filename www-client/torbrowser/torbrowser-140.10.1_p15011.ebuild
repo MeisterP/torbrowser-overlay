@@ -21,11 +21,9 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L120
-# and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tags
 TOR_PV="15.0.11"
 TOR_TAG="${TOR_PV%.*}-1-build1"
 NOSCRIPT_VERSION="13.6.18.1984"
-CHANGELOG_TAG="${TOR_PV}-build1"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -45,7 +43,6 @@ SRC_URI="
 	${TOR_SRC_BASE_URI}/tor-browser-linux-x86_64-${TOR_PV}.tar.xz
 	${TOR_SRC_ARCHIVE_URI}/tor-browser-linux-x86_64-${TOR_PV}.tar.xz
 	https://dist.torproject.org/torbrowser/noscript/noscript-${NOSCRIPT_VERSION}.xpi
-	https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/raw/tbb-${CHANGELOG_TAG}/projects/browser/Bundle-Data/Docs-TBB/ChangeLog.txt -> ${P}-ChangeLog.txt
 	${PATCH_URIS[@]}"
 
 S="${WORKDIR}/firefox-tor-browser-${MOZ_PV}-${TOR_TAG}"
@@ -777,9 +774,6 @@ src_install() {
 	# https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/tree/main/projects/fonts
 	insinto /usr/$(get_libdir)/torbrowser/
 	doins -r "${WORKDIR}/tor-browser/Browser/fonts"
-
-	# see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/main/projects/browser/Bundle-Data/Docs/ChangeLog.txt
-	newdoc "${DISTDIR}/${P}-ChangeLog.txt" ChangeLog.txt
 
 	# see: https://github.com/Whonix/anon-ws-disable-stacked-tor/blob/master/usr/libexec/anon-ws-disable-stacked-tor/torbrowser.sh
 	dodoc "${FILESDIR}/99torbrowser.example"
