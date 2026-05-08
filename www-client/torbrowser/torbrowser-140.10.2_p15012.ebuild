@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-140esr-patches-08.tar.xz"
+FIREFOX_PATCHSET="firefox-140esr-patches-10.tar.xz"
 
 LLVM_COMPAT=( 20 21 )
 
@@ -21,9 +21,9 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L120
-TOR_PV="15.0.11"
+TOR_PV="15.0.12"
 TOR_TAG="${TOR_PV%.*}-1-build1"
-NOSCRIPT_VERSION="13.6.18.1984"
+NOSCRIPT_VERSION="13.6.19.1984"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
 	pax-utils python-any-r1 rust toolchain-funcs xdg
