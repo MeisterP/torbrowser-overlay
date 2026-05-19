@@ -21,8 +21,8 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-15.0/projects/browser/config#L120
-TOR_PV="15.0.12"
-TOR_TAG="${TOR_PV%.*}-1-build1"
+TOR_PV="15.0.14"
+TOR_TAG="${TOR_PV%.*}-1-build3"
 NOSCRIPT_VERSION="13.6.19.1984"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
