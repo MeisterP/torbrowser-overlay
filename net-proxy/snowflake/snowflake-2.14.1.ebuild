@@ -5,13 +5,11 @@ EAPI=8
 
 inherit go-module systemd
 
-JOB_ID="1620354"
-
 DESCRIPTION="WebRTC pluggable transport proxy for Tor"
 HOMEPAGE="https://snowflake.torproject.org/ \
 	https://community.torproject.org/relay/setup/snowflake/standalone/ \
 	https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake "
-SRC_URI="https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/jobs/${JOB_ID}/artifacts/raw/snowflake-v${PV}.tar.gz"
+SRC_URI="https://dist.torproject.org/snowflake/2.14.1/snowflake-v${PV}.tar.gz"
 
 S=${WORKDIR}/snowflake-v${PV}
 
