@@ -28,7 +28,7 @@ TOR_PV="16.0"
 TOR_TAG="${TOR_PV}-1-build3"
 NOSCRIPT_VERSION="13.6.37.1984"
 
-inherit check-reqs desktop flag-o-matic linux-info llvm-r1 multiprocessing \
+inherit check-reqs desktop flag-o-matic linux-info llvm-r2 multiprocessing \
 	optfeature pax-utils python-any-r1 rust toolchain-funcs xdg
 
 TOR_SRC_BASE_URI="https://dist.torproject.org/torbrowser/${TOR_PV}"
@@ -274,7 +274,7 @@ pkg_setup() {
 		fi
 
 		check-reqs_pkg_setup
-		llvm-r1_pkg_setup
+		llvm-r2_pkg_setup
 		rust_pkg_setup
 		python-any-r1_pkg_setup
 
