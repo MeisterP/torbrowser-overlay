@@ -3,7 +3,7 @@
 
 EAPI=8
 
-FIREFOX_PATCHSET="firefox-153esr-patches-04.tar.xz"
+FIREFOX_PATCHSET="firefox-153esr-patches-05.tar.xz"
 
 LLVM_COMPAT=( 22 23 )
 
@@ -24,9 +24,9 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-16.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-16.0/projects/browser/config#L90
-TOR_PV="16.0"
-TOR_TAG="${TOR_PV}-1-build3"
-NOSCRIPT_VERSION="13.6.37.1984"
+TOR_PV="16.0.1"
+TOR_TAG="${TOR_PV%.*}-1-build2"
+NOSCRIPT_VERSION="13.6.38.1984"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r2 multiprocessing \
 	optfeature pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -86,7 +86,7 @@ COMMON_DEPEND="
 	>=app-accessibility/at-spi2-core-2.46.0:2
 	dev-libs/glib:2
 	dev-libs/libffi:=
-	>=dev-libs/nss-3.125
+	>=dev-libs/nss-3.125.1
 	>=dev-libs/nspr-4.39
 	media-libs/alsa-lib
 	media-libs/fontconfig
@@ -100,9 +100,7 @@ COMMON_DEPEND="
 	x11-libs/libdrm
 	x11-libs/pango
 	x11-libs/pixman
-	dbus? (
-		sys-apps/dbus
-	)
+	dbus? ( sys-apps/dbus )
 	pulseaudio? (
 		|| (
 			media-libs/libpulse
