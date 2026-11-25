@@ -24,9 +24,9 @@ MOZ_PV="${PV/_p*}esr"
 
 # see https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-16.0/projects/firefox/config#L21
 # and https://gitlab.torproject.org/tpo/applications/tor-browser-build/-/blob/maint-16.0/projects/browser/config#L90
-TOR_PV="16.0.1"
+TOR_PV="16.0.3"
 TOR_TAG="${TOR_PV%.*}-1-build2"
-NOSCRIPT_VERSION="13.6.38.1984"
+NOSCRIPT_VERSION="13.6.39.1984"
 
 inherit check-reqs desktop flag-o-matic linux-info llvm-r2 multiprocessing \
 	optfeature pax-utils python-any-r1 rust toolchain-funcs xdg
@@ -481,7 +481,7 @@ src_configure() {
 	mozconfig_add_options_ac '' --enable-project=browser
 
 	# Set Gentoo defaults
-	# remove --enable-official-branding 
+	# remove --enable-official-branding
 	mozconfig_add_options_ac 'Gentoo default' \
 		--allow-addon-sideload \
 		--disable-cargo-incremental \
